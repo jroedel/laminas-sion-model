@@ -1,0 +1,7 @@
+.buildpath
+.project
+.settings/
+.DS_Store
+vendor/
+/tests/
+/composer.phar

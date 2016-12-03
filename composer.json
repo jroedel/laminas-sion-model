@@ -1,0 +1,15 @@
+{
+    "name": "jroedel/zf2-sion-model",
+    "description": "Some support database, filter and form classes for Sion projects.",
+    "type": "library",
+    "require": {
+        "nesbot/carbon": "^1.21",
+        "giggsey/libphonenumber-for-php": "^7.7",
+        "neitanod/forceutf8": "^2.0",
+        "tedivm/jshrink": "^1.1",
+        "voku/html2text": "^3.4",
+        "tijsverkoyen/css-to-inline-styles": "^2.2"
+    },
+    "license": "MIT",
+    "minimum-stability": "stable"
+}
