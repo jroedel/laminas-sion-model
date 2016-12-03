@@ -11,5 +11,10 @@
         "tijsverkoyen/css-to-inline-styles": "^2.2"
     },
     "license": "MIT",
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "autoload": {
+        "psr-4": {
+            "SionModel\\": "src/"
+        }
+	}
 }
