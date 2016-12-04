@@ -2,9 +2,7 @@
 namespace SionModel;
 
 return [
-    'view_helpers' => [  
-        'factories' => [
-        ],
+    'view_helpers' => [
         'invokables' => [
             'dayFormat'             => 'SionModel\I18n\View\Helper\DayFormat',
             'diffForHumans'         => 'SionModel\View\Helper\DiffForHumans',
@@ -19,8 +17,6 @@ return [
     'view_manager' => [
         'template_path_stack' => [
             'sionmodel' => __DIR__ . '/../view',
-        ],
-        'template_map' => [
         ],
     ],
 ];

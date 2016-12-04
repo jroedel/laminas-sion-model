@@ -8,7 +8,6 @@ use SionModel\Db\TableGateway\HydratingTableGateway;
 use BjyAuthorize\Provider\Resource\ProviderInterface as ResourceProviderInterface;
 use Zend\Db\Sql\Insert;
 use Zend\Db\TableGateway\TableGateway;
-use ZfcUser\Entity\UserInterface;
 use Zend\Filter\Boolean;
 use Zend\Filter\StringTrim;
 use Zend\Filter\FilterChain;
@@ -18,20 +17,20 @@ use Zend\Validator\EmailAddress;
 /*
  * I have an interesting idea of being able to specify in a configuration file
  * or maybe even directly in the Entity class the specifications for each SionTable
- * including column access information (for example the "father's name" column 
- * wouldn't be accessable to everyone, just superiors or something like that. 
- * 
+ * including column access information (for example the "father's name" column
+ * wouldn't be accessable to everyone, just superiors or something like that.
+ *
  * This is a huge topic: how do I manage resource based permissions? The specifications
- * should probably be stored in a table, but that means either using GUIDs in all the 
+ * should probably be stored in a table, but that means either using GUIDs in all the
  * tables or else having to specify the resource type with a string in the ACL table.
  * How might this access permission table look like? maybe...
- * resourceType, resourceId, fields, role, readAccess(Allow, Deny, Neutral), 
+ * resourceType, resourceId, fields, role, readAccess(Allow, Deny, Neutral),
  * writeAccess(Allow, Deny, Neutral)
- * 
+ *
  * Something like that could work. I have to check out how that would work. Then I could
- * combine all that code along with the table specs in a SionDB Module, maybe even 
+ * combine all that code along with the table specs in a SionDB Module, maybe even
  * including the User login stuff there. That would have to have its own bitbucket.
- * 
+ *
  * Ok, I just read the intro to Zend\Permissions\Acl.  I think the solution is pretty
  * simple.
  * Table: role, resource, permission, allow/deny
@@ -44,38 +43,38 @@ use Zend\Validator\EmailAddress;
  * ex: "user_8", "administrator"
  */
 class SionTable // implements ResourceProviderInterface
-{    
+{
     const SUGGESTION_ERROR = 'Error';
     const SUGGESTION_INREVIEW = 'In review';
     const SUGGESTION_ACCEPTED = 'Accepted';
     const SUGGESTION_DENIED = 'Denied';
-    
+
     /**
-     * 
+     *
      * @var HydratingTableGateway
      */
     protected $tableGateway;
-    
+
     /**
-     * 
+     *
      * @var Adapter
      */
     protected $adapter;
-    
+
     /**
-     * 
+     *
      * @var HydratorInterface
      */
     protected $hydrator;
-    
+
     protected $columns;
-    
+
     protected $select;
-    
+
     protected $sql;
 
     protected $entities;
-    
+
     /**
      *
      * @var int
@@ -110,14 +109,14 @@ class SionTable // implements ResourceProviderInterface
         } else {
             $result = $this->tableGateway->select($where);
         }
-    
+
         $return = array();
         foreach ($result as $row) {
             $return[] = $row;
         }
         return $return;
     }
-    
+
     protected function updateHelper($id, $data, $tableName, $tableKey, $tableGateway, $updateCols, $referenceEntity, $manyToOneUpdateColumns = null)
     {
     	if (is_null($tableName) || $tableName == '') {
@@ -187,7 +186,7 @@ class SionTable // implements ResourceProviderInterface
     	}
     	return true;
     }
-    
+
     /**
      *
      * @param string $entity
@@ -201,7 +200,7 @@ class SionTable // implements ResourceProviderInterface
     	$tableName     = $this->entities[$entity]['table_name'];
     	$tableKey      = $this->entities[$entity]['table_key'];
     	$tableGateway  = new TableGateway($tableName, $this->adapter);
-    
+
     	if (!is_numeric($id)) {
     		throw new \InvalidArgumentException('Invalid id provided.');
     	}
@@ -221,7 +220,7 @@ class SionTable // implements ResourceProviderInterface
     			}
     			return $this->updateHelper($id, $data, $tableName, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns);
     }
-    
+
     public function createEntity($entity, $data)
     {
     	$tableName                 = $this->entities[$entity]['table_name'];
@@ -237,7 +236,7 @@ class SionTable // implements ResourceProviderInterface
     			}
     			return $this->createHelper($data, $requiredCols, $updateCols, $tableName, $tableGateway, $scope, $manyToOneUpdateColumns);
     }
-    
+
     protected function createHelper($data, $requiredCols, $updateCols, $tableName, $tableGateway, $scope = null, $manyToOneUpdateColumns = null)
     {
     	//make sure required cols are being passed
@@ -246,7 +245,7 @@ class SionTable // implements ResourceProviderInterface
     			return false;
     		}
     	}
-    
+
     	$now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
     	$updateVals = array();
     	foreach ($data as $col => $value) {
@@ -354,15 +353,15 @@ class SionTable // implements ResourceProviderInterface
     			$i++;
     		}
     	}
-    
+
     	return $i;
     }
-    
+
     public function getUserTable()
     {
     	return $this->userTable;
     }
-    
+
     /**
      *
      * @param UserTable $userTable
@@ -373,7 +372,7 @@ class SionTable // implements ResourceProviderInterface
     	$this->userTable = $userTable;
     	return $this;
     }
-    
+
     protected function filterDbId($str)
     {
         if (is_null($str) || $str === '' || $str == '0') {
@@ -381,7 +380,7 @@ class SionTable // implements ResourceProviderInterface
         }
         return (int) $str;
     }
-    
+
     protected function filterDbString($str)
     {
         if (is_null($str) || $str === '') {
@@ -396,7 +395,7 @@ class SionTable // implements ResourceProviderInterface
         }
         return $filter->filter($str);
     }
-    
+
     protected function filterDbInt($str)
     {
         if (is_null($str) || $str === '') {
@@ -404,7 +403,7 @@ class SionTable // implements ResourceProviderInterface
         }
         return (int) $str;
     }
-    
+
     protected function filterDbBool($str)
     {
         if (is_null($str) || $str === '' || $str == '0') {
@@ -416,7 +415,7 @@ class SionTable // implements ResourceProviderInterface
         }
         return $filter->filter($str);
     }
-    
+
     /**
      *
      * @param string $str
@@ -436,7 +435,7 @@ class SionTable // implements ResourceProviderInterface
         }
         return $return;
     }
-    
+
     /**
      *
      * @param string $str
@@ -457,7 +456,7 @@ class SionTable // implements ResourceProviderInterface
         }
         return null;
     }
-    
+
     /**
      *
      * @param \DateTime $object
@@ -470,11 +469,11 @@ class SionTable // implements ResourceProviderInterface
         }
         return $object->format('Y-m-d H:i:s');
     }
-    
+
     protected function formatDbArray($arr, $delimiter = '|', $trim = true)
     {
         if (!is_array($arr)) {
-            return $arr;  
+            return $arr;
         }
         if (empty($arr)) {
             return null;
@@ -487,7 +486,7 @@ class SionTable // implements ResourceProviderInterface
         $return = implode($delimiter, $arr);
         return $return;
     }
-    
+
     protected function filterDbArray($str, $delimiter = '|', $trim = true)
     {
         if ($str == '') {
@@ -501,7 +500,7 @@ class SionTable // implements ResourceProviderInterface
         }
         return $return;
     }
-    
+
     public static function keyArray(array $a, $key, $unique = true)
     {
         $return = array();
@@ -518,7 +517,7 @@ class SionTable // implements ResourceProviderInterface
         }
         return $return;
     }
-    
+
     /**
      * Pure and simple update call of the tableGateway
      * @param array $data
@@ -539,12 +538,12 @@ class SionTable // implements ResourceProviderInterface
     {
         return $this->tableGateway->insert($insert);
     }
-    
+
     public function getWhere()
     {
         return $this->where;
     }
-    
+
     /**
      * @param Where|\Closure|string|array $where
      * @return \SionModel\Model\SionTable
@@ -554,7 +553,7 @@ class SionTable // implements ResourceProviderInterface
         $this->where = $where;
         return $this;
     }
-    
+
 //     /**
 //      * @return array[]
 //      */
@@ -570,27 +569,27 @@ class SionTable // implements ResourceProviderInterface
 //     //var_dump($return);
 //         return $return;
 //     }
-    
+
     /**
-     * 
+     *
      * @return \Zend\Db\Adapter\Adapter
      */
     public function getAdapter()
     {
     	return $this->adapter;
     }
-    
+
     /**
-     * 
+     *
      * @param \Zend\Db\Adapter\Adapter $adapter
      */
     public function setAdapter($adapter)
     {
     	$this->adapter = $adapter;
     }
-    
+
     /**
-     * 
+     *
      * @return int
      */
     public function getActingUserId()
@@ -599,7 +598,7 @@ class SionTable // implements ResourceProviderInterface
     }
 
     /**
-     * 
+     *
      * @param int $actingUserId
      * @return self
      */
