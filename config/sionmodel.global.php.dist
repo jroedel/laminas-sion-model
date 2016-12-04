@@ -1,0 +1,47 @@
+
+return [
+	'sion_model' => [
+		'changes_table' => 'project_changes',
+		'entities' => [
+            'event' => [
+                'table_name' => 'event',
+                'table_key' => 'event_id',
+                'scope' => 'event',
+                'show_route' => 'events/event',
+                'show_route_key' => 'event_id',
+                'show_route_key_reference' => 'eventId',
+                'has_dedicated_suggest_form' => false,
+                'update_reference_data_function' => 'getEvent',
+                'required_columns_for_creation' => [
+        	        'title'
+        	    ],
+                'name_column' => 'title',
+                 'moderate_route' => 'courses/course/moderate',
+                 'moderate_route_entity_key' => 'course_id',
+                'text_columns' => [
+
+                ],
+                'date_columns' => [
+                    'startDate',
+                    'endDate',
+                    'createdOn',
+                    'updatedOn'
+                ],
+                'update_columns' => [
+                    'eventId' => 'event_id',
+                    'file' => 'event_file',
+                    'fileDateModified' => 'event_file_date_modified',
+                    'duration' => 'event_duration',
+                    'accuracy' => 'event_accuracy',
+                    'source' => 'event_source',
+                    'startDate' => 'event_start_date',
+                    'endDate' => 'event_end_date',
+                    'textQuality' => 'event_text_quality',
+                    'adminKeywords' => 'event_admin_keywords',
+                    'createdOn' => 'event_create_datetime',
+                    'updatedOn' => 'event_update_datetime'
+        	    ],
+            ],
+		],
+	],
+];
