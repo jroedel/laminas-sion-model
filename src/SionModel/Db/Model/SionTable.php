@@ -3,8 +3,6 @@ namespace SionModel\Db\Model;
 
 use Zend\Db\Adapter\Adapter;
 
-use Zend\Stdlib\Hydrator\HydratorInterface;
-use SionModel\Db\TableGateway\HydratingTableGateway;
 use BjyAuthorize\Provider\Resource\ProviderInterface as ResourceProviderInterface;
 use Zend\Db\Sql\Insert;
 use Zend\Db\TableGateway\TableGateway;
@@ -49,10 +47,6 @@ class SionTable // implements ResourceProviderInterface
     const SUGGESTION_ACCEPTED = 'Accepted';
     const SUGGESTION_DENIED = 'Denied';
 
-    /**
-     *
-     * @var HydratingTableGateway
-     */
     protected $tableGateway;
 
     /**
@@ -61,19 +55,27 @@ class SionTable // implements ResourceProviderInterface
      */
     protected $adapter;
 
-    /**
-     *
-     * @var HydratorInterface
-     */
-    protected $hydrator;
-
-    protected $columns;
-
     protected $select;
 
     protected $sql;
 
+    /**
+     *
+     * @var mixed[] $entities
+     */
     protected $entities;
+
+    /**
+     *
+     * @var string $changesTable
+     */
+    protected $changesTableName;
+
+    /**
+     *
+     * @var TableGateway $changesTableGateway
+     */
+    protected $changesTableGateway;
 
     /**
      *
@@ -81,12 +83,13 @@ class SionTable // implements ResourceProviderInterface
      */
     protected $actingUserId;
 
-    public function __construct($tableGateway, $entities, $actingUserId)
+    public function __construct($tableGateway, $entities, $actingUserId, $changesTableName)
     {
         $this->tableGateway = $tableGateway;
         $this->adapter      = $tableGateway->getAdapter();
-        $this->actingUserId   = $actingUserId;
+        $this->actingUserId = $actingUserId;
         $this->entities		= $entities;
+        $this->changeTableName  = $changesTableName;
     }
 
     /**
@@ -323,6 +326,10 @@ class SionTable // implements ResourceProviderInterface
      */
     public function reportChange($data)
     {
+        $changesTableGateway = $this->getChangesTableGateway();
+        if (is_null($changesTableGateway)) {
+            return -1;
+        }
     	$i = 0;
     	$date = new \DateTime(null, new \DateTimeZone('utc'));
     	foreach ($data as $values) {
@@ -349,7 +356,7 @@ class SionTable // implements ResourceProviderInterface
     					'OldValue'         => isset($values['oldValue']) ? $values['oldValue'] : null,
     					'UpdateDateTime'   => $date->format('Y-m-d H:i:s'),
     			);
-    			$this->getChangesTableGateway()->insert($params);
+    			$changesTableGateway->insert($params);
     			$i++;
     		}
     	}
@@ -554,22 +561,6 @@ class SionTable // implements ResourceProviderInterface
         return $this;
     }
 
-//     /**
-//      * @return array[]
-//      */
-//     public function getResources()
-//     {
-//         $records =$this->fetchAll();
-//         $return = array();
-//         foreach ($records as $key => $value) {
-//             if (!key_exists($value->getResourceParent(), $return))
-//                 $return[$value->getResourceParent()] = array();
-//             $return[$value->getResourceParent()][] = $value->getResourceId();
-//         }
-//     //var_dump($return);
-//         return $return;
-//     }
-
     /**
      *
      * @return \Zend\Db\Adapter\Adapter
@@ -605,6 +596,31 @@ class SionTable // implements ResourceProviderInterface
     public function setActingUserId($actingUserId)
     {
         $this->actingUserId = $actingUserId;
+        return $this;
+    }
+
+    /**
+     * @return TableGateway
+     */
+    public function getChangesTableGateway()
+    {
+        if (null == $this->changesTableGateway) {
+            if (is_null($this->changeTableName)) {
+                return null;
+            }
+            $this->changesTableGateway = new TableGateway($this->changeTableName, $this->adapter);
+        }
+        return $this->changesTableGateway;
+    }
+
+    /**
+     *
+     * @param TableGateway $gateway
+     * @return self
+     */
+    public function setChangesTableGateway($gateway)
+    {
+        $this->changesTableGateway = $gateway;
         return $this;
     }
 }
