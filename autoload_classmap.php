@@ -9,6 +9,8 @@ return array(
     'SionModel\Filter\ToAscii'                     => __DIR__ . '/src/SionModel/Filter/ToAscii.php',
     'SionModel\Filter\ToDateTime'                  => __DIR__ . '/src/SionModel/Filter/ToDateTime.php',
     'SionModel\Form\SionForm'                      => __DIR__ . '/src/SionModel/Form/PatresForm.php',
+    'SionModel\Problem\EntityProblem'              => __DIR__ . '/src/SionModel/Problem/EntityProblem.php',
+    'SionModel\Problem\ProblemProviderInterface'   => __DIR__ . '/src/SionModel/Problem/ProblemProviderInterface.php',
     'SionModel\I18n\View\Helper\DayFormat'         => __DIR__ . '/src/SionModel/I18n/View/Helper/DayFormat.php',
     'SionModel\Stdlib\Dom\SmartDOMDocument'        => __DIR__ . '/src/SionModel/Stdlib/Dom/SmartDOMDocument.php',
     'SionModel\View\Helper\DiffForHumans'          => __DIR__ . '/src/SionModel/View/Helper/DiffForHumans.php',
