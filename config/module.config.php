@@ -19,4 +19,48 @@ return [
             'sionmodel' => __DIR__ . '/../view',
         ],
     ],
+    'service_manager' => [
+        'factories' => [
+            'SionModel\Model\ProblemTable'      => 'SionTable\Service\ProblemTableFactory',
+        ],
+    ],
+    'sion_model' => [
+        'entities' => [
+            'problem' => [
+//                 'table_name' => 'event',
+                'table_key' => 'event_id',
+                'scope' => 'problem',
+                'update_reference_data_function' => 'getProblem',
+                'required_columns_for_creation' => [
+        	        'project',
+                    'entity',
+                    'entityId',
+                    'problem',
+        	    ],
+                'name_column' => 'problemName',
+                'date_columns' => [
+                    'ignoredOn',
+                    'resolvedOn',
+                    'updatedOn',
+                    'createdOn',
+                ],
+                'update_columns' => [
+                    'problemId' => 'ProblemId',
+                    'project' => 'Project',
+                    'entity' => 'Entity',
+                    'entityId' => 'EntityId',
+                    'problem' => 'Problem',
+                    'severity' => 'Severity',
+                    'ignoredOn' => 'IgnoredOn',
+                    'ignoredBy' => 'IgnoredBy',
+                    'resolvedOn' => 'ResolvedOn',
+                    'resolvedBy' => 'ResolvedBy',
+                    'updatedOn' => 'UpdatedOn',
+                    'updatedBy' => 'UpdatedBy',
+                    'createdOn' => 'CreatedOn',
+                    'createdBy' => 'CreatedBy',
+        	    ],
+            ],
+        ],
+    ],
 ];

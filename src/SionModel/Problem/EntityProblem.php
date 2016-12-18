@@ -13,6 +13,13 @@ class EntityProblem
         self::SEVERITY_INFO => 'text-info',
     ];
 
+    /**
+     * Keeps track of which column holds the id
+     * for each entity
+     * @var mixed[]
+     */
+    protected $entitySpecifications = [];
+
     protected $problemSpecifications = [];
 
     protected $entity;
@@ -25,15 +32,62 @@ class EntityProblem
 
     protected $severity;
 
+    /**
+     *
+     * @var \DateTime
+     */
+    protected $ignoredOn;
+
+    /**
+     *
+     * @var int
+     */
+    protected $ignoredBy;
+
+    /**
+     *
+     * @var \DateTime
+     */
+    protected $resolvedOn;
+
+    /**
+     *
+     * @var int
+     */
+    protected $resolvedBy;
+
     public function __construct($problem, $data, $severity = null)
     {
         $this->setProblem($problem);
         $this->setData($data);
     }
 
+    protected function addEntitySpecifications($entitySpecifications)
+    {
+        $this->entitySpecifications = array_merge($this->entitySpecifications, $entitySpecifications);
+    }
+
     protected function addProblemSpecifications($problemSpecifications)
     {
         $this->problemSpecifications = array_merge($this->problemSpecifications, $problemSpecifications);
+    }
+
+    /**
+     * A MD5 sum of concatenated entity, entityId, problem,
+     * ignoredTime (when available), resolvedTime (when available).
+     * This can be used to match up current problems with one's
+     * stored in the database.
+     */
+    public function getIdentifier()
+    {
+        $str = $this->getEntity().$this->getEntityId().$this->getProblem();
+        if (!is_null($ignoredOn = $this->getIgnoredOn())) {
+            $str .= serialize($ignoredOn);
+        }
+        if (!is_null($resolvedOn = $this->getResolvedOn())) {
+            $str .= serialize($resolvedOn);
+        }
+        return md5($str);
     }
 
     public function getProblem()
@@ -149,5 +203,99 @@ class EntityProblem
             return $textClasses[$this->severity];
         }
         return '';
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getIgnoredOn()
+    {
+        return $this->ignoredOn;
+    }
+
+    /**
+     *
+     * @param \DateTime $ignoredOn
+     * @return self
+     */
+    public function setIgnoredOn($ignoredOn)
+    {
+        $this->ignoredOn = $ignoredOn;
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getIgnoredBy()
+    {
+        return $this->ignoredBy;
+    }
+
+    /**
+     *
+     * @param int $ignoredBy
+     * @return self
+     */
+    public function setIgnoredBy($ignoredBy)
+    {
+        $this->ignoredBy = $ignoredBy;
+        return $this;
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getResolvedOn()
+    {
+        return $this->resolvedOn;
+    }
+
+    /**
+     *
+     * @param \DateTime $resolvedOn
+     * @return self
+     */
+    public function setResolvedOn($resolvedOn)
+    {
+        $this->resolvedOn = $resolvedOn;
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getResolvedBy()
+    {
+        return $this->resolvedBy;
+    }
+
+    /**
+     *
+     * @param int $resolvedBy
+     * @return self
+     */
+    public function setResolvedBy($resolvedBy)
+    {
+        $this->resolvedBy = $resolvedBy;
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getEntityId()
+    {
+        if (!$this->isValidProblem()) {
+            throw new \Exception('Problem must be valid before retrieving entity id.');
+        }
+        if (!isset($this->entitySpecifications[$this->getEntity()])) {
+            throw new \Exception('Invalid entity used: '.$this->getEntity());
+        }
+        $fieldName = $this->entitySpecifications[$this->getEntity()];
+        if (!isset($this->getData()[$fieldName])) {
+            throw new \Exception('Problem data does not include id field.');
+        }
+        return $this->getData()[$fieldName];
     }
 }
