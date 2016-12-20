@@ -1,6 +1,8 @@
 <?php
 namespace SionModel\Problem;
 
+use SionModel\Problem\EntityProblem;
+
 /**
  * Problem provider interface
  *
@@ -9,7 +11,8 @@ namespace SionModel\Problem;
 interface ProblemProviderInterface
 {
     /**
-     * @return \Patres\Problem\EntityProblem[]
+     * @param string $minimumSeverity
+     * @return \SionModel\Problem\EntityProblem[]
      */
-    public function getProblems();
+    public function getProblems($minimumSeverity = EntityProblem::SEVERITY_INFO);
 }

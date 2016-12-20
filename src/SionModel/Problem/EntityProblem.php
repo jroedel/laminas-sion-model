@@ -1,6 +1,7 @@
 <?php
 namespace SionModel\Problem;
 
+use SionModel\Entity\Entity;
 class EntityProblem
 {
     const SEVERITY_ERROR = 'error';
@@ -14,20 +15,28 @@ class EntityProblem
     ];
 
     /**
-     * Keeps track of which column holds the id
-     * for each entity
-     * @var mixed[]
+     * Associative array of Entity's, keyed by the Entity name
+     * @var Entity[] $entities
      */
-    protected $entitySpecifications = [];
+    protected $entities = [];
 
     protected $problemSpecifications = [];
 
+    /**
+     * @var string
+     */
     protected $entity;
 
+    /**
+     * @var mixed $data
+     */
     protected $data;
 
     protected $problemFieldName;
 
+    /**
+     * @var string $problem
+     */
     protected $problem;
 
     protected $severity;
@@ -56,20 +65,35 @@ class EntityProblem
      */
     protected $resolvedBy;
 
-    public function __construct($problem, $data, $severity = null)
+    /**
+     * Construct a new entity problem prototype. New entity problems are meant
+     * to be cloned from the \SionModel\Service\ProblemService where they will
+     * be prefilled with 'problem_specifications' values.
+     *
+     * @param Entity[] $entities Associative array of Entity's, keyed by the Entity name
+     * @param mixed[][] $problemSpecifications
+     */
+    public function __construct($entities, $problemSpecifications)
     {
-        $this->setProblem($problem);
-        $this->setData($data);
-    }
-
-    protected function addEntitySpecifications($entitySpecifications)
-    {
-        $this->entitySpecifications = array_merge($this->entitySpecifications, $entitySpecifications);
+        $this->entities = $entities;
+        $this->addProblemSpecifications($problemSpecifications);
     }
 
     protected function addProblemSpecifications($problemSpecifications)
     {
-        $this->problemSpecifications = array_merge($this->problemSpecifications, $problemSpecifications);
+        $specsToAdd = [];
+            foreach ($problemSpecifications as $problem => $spec) {
+                //validate the problem specification
+                if (isset($spec['entity']) && is_string($spec['entity']) &&
+                    strlen($spec['entity']) <= 50 &&
+                    isset($spec['defaultSeverity']) &&
+                    array_key_exists($spec['defaultSeverity'], EntityProblem::SEVERITY_TEXT_CLASSES) &&
+                    isset($spec['text']) && is_string($spec['text'])
+                ) {
+                    $specsToAdd[$problem] = $spec;
+                }
+            }
+        $this->problemSpecifications = array_merge($this->problemSpecifications, $specsToAdd);
     }
 
     /**
@@ -88,6 +112,15 @@ class EntityProblem
             $str .= serialize($resolvedOn);
         }
         return md5($str);
+    }
+
+    /**
+     *
+     * @param mixed[] $array
+     */
+    public function exchangeArray($array)
+    {
+
     }
 
     public function getProblem()
@@ -289,10 +322,10 @@ class EntityProblem
         if (!$this->isValidProblem()) {
             throw new \Exception('Problem must be valid before retrieving entity id.');
         }
-        if (!isset($this->entitySpecifications[$this->getEntity()])) {
+        if (!isset($this->entities[$this->getEntity()])) {
             throw new \Exception('Invalid entity used: '.$this->getEntity());
         }
-        $fieldName = $this->entitySpecifications[$this->getEntity()];
+        $fieldName = $this->entities[$this->getEntity()]->getIdField();
         if (!isset($this->getData()[$fieldName])) {
             throw new \Exception('Problem data does not include id field.');
         }

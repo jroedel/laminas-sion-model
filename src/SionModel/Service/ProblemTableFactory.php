@@ -4,12 +4,12 @@
  *
  */
 
-namespace Patres\Service;
+namespace SionModel\Service;
 
 use Zend\ServiceManager\FactoryInterface;
 use Zend\ServiceManager\ServiceLocatorInterface;
-use Patres\Model\PatresTable;
 use Zend\Db\TableGateway\TableGateway;
+use SionModel\Problem\ProblemTable;
 
 /**
  * Factory responsible of priming the PatresTable service
@@ -33,7 +33,7 @@ class ProblemTableFactory implements FactoryInterface
 		$userService = $serviceLocator->get('zfcuser_user_service');
 		$user = $userService->getAuthService()->getIdentity();
 		$userTable = $serviceLocator->get('JUser\Model\UserTable');
-		$table = new PatresTable( $tableGateway, $config['patres'], $user->id, $userTable );
+		$table = new ProblemTable( $tableGateway, $config['sion_model']['entities'], $user->id, 'a_data_changes' );
 		return $table;
     }
 }

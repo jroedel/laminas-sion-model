@@ -40,6 +40,14 @@ use Zend\Validator\EmailAddress;
  * ex: "administrator", "moderator"
  * ex: "user_8", "administrator"
  */
+/**
+ *
+ * @author jeffr
+ * @todo Finish refactoring of reportChange
+ * @todo Integrate data problem management
+ * @todo Factor out 'changes_table_name' from __contruct method. Make it a required key for entities
+ * @todo make a EntitySpecification class that will parse and validate the options.
+ */
 class SionTable // implements ResourceProviderInterface
 {
     const SUGGESTION_ERROR = 'Error';
@@ -60,7 +68,7 @@ class SionTable // implements ResourceProviderInterface
     protected $sql;
 
     /**
-     *
+     * @todo Refactor to always use the Entity class
      * @var mixed[] $entities
      */
     protected $entities;

@@ -30,11 +30,11 @@ In the `__construct` function make sure to call `addEntitySpecifications` and
 * Register the implemented `ProblemProviderInterface` in the config under the 
 `problem_providers` key.
 	```
-    'sion_model' => [
-        'problem_providers' => [
-            'Patres\Problem\PersonProblemProvider',
-        ],
-    ],
+	    'sion_model' => [
+	        'problem_providers' => [
+	            'Patres\Problem\PersonProblemProvider',
+	        ],
+	    ],
     ```
 
 ## Coming soon
