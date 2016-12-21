@@ -21,6 +21,7 @@ return [
     ],
     'service_manager' => [
         'factories' => [
+            'SionModel\Config'                      => 'SionModel\Service\ConfigServiceFactory',
             'SionModel\Service\EntitiesService'     => 'SionModel\Service\EntitiesServiceFactory',
             'SionModel\Problem\ProblemTable'        => 'SionModel\Service\ProblemTableFactory',
             'SionModel\Service\ProblemService'      => 'SionModel\Service\ProblemServiceFactory',

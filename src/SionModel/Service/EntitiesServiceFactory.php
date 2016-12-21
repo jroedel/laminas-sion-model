@@ -23,7 +23,7 @@ class EntitiesServiceFactory implements FactoryInterface
      */
     public function createService(ServiceLocatorInterface $serviceLocator)
     {
-        $config = $serviceLocator->get ( 'Config' )['sion_model'];
+        $config = $serviceLocator->get ( 'SionModel\Config' );
         if (!isset($config['entities']) || empty($config['entities'])) {
             throw new \Exception('Please set specify entities in app config under key [\'sion_model\'][\'entities\'].');
         }

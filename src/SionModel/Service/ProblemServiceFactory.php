@@ -25,7 +25,7 @@ class ProblemServiceFactory implements FactoryInterface
      */
     public function createService(ServiceLocatorInterface $serviceLocator)
     {
-        $config = $serviceLocator->get ( 'Config' )['sion_model'];
+        $config = $serviceLocator->get ( 'SionModel\Config' );
         if (!isset($config['problem_specifications']) || empty($config['problem_specifications'])) {
             throw new \Exception('Please set specify potential problems in app config under key [\'sion_model\'][\'problem_specifications\'].');
         }

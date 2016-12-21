@@ -20,8 +20,6 @@ class EntitiesService
 
     public function getEntities()
     {
-        //for debugging
-        return ['person' => new Entity('person', [])];
         return $this->entities;
     }
 }

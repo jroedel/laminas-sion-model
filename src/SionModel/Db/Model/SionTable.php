@@ -11,6 +11,8 @@ use Zend\Filter\StringTrim;
 use Zend\Filter\FilterChain;
 use Zend\Filter\ToNull;
 use Zend\Validator\EmailAddress;
+use SionModel\Entity\Entity;
+use Zend\Db\TableGateway\TableGatewayInterface;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -91,13 +93,23 @@ class SionTable // implements ResourceProviderInterface
      */
     protected $actingUserId;
 
-    public function __construct($tableGateway, $entities, $actingUserId, $changesTableName)
+    protected $entityProblemPrototype;
+
+    /**
+     * If $changesTableName is left null, no changes will be made.
+     * @param TableGatewayInterface $tableGateway
+     * @param Entity[] $entities
+     * @param int $actingUserId
+     * @param null|string $changesTableName
+     */
+    public function __construct(TableGatewayInterface $tableGateway, $entities, $actingUserId, $changesTableName = null, $entityProblemPrototype = null)
     {
         $this->tableGateway = $tableGateway;
         $this->adapter      = $tableGateway->getAdapter();
-        $this->actingUserId = $actingUserId;
         $this->entities		= $entities;
+        $this->actingUserId = $actingUserId;
         $this->changeTableName  = $changesTableName;
+        $this->entityProblemPrototype = $entityProblemPrototype;
     }
 
     /**

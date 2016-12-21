@@ -195,6 +195,11 @@ class EntityProblem
         return $this->entity;
     }
 
+    public function getEntitySpecification()
+    {
+        return $this->entities[$this->getEntity()];
+    }
+
     /**
      * EntityProblem is valid iff:
      * 1. Entity isn't null AND
@@ -325,7 +330,7 @@ class EntityProblem
         if (!isset($this->entities[$this->getEntity()])) {
             throw new \Exception('Invalid entity used: '.$this->getEntity());
         }
-        $fieldName = $this->entities[$this->getEntity()]->getIdField();
+        $fieldName = $this->getEntitySpecification()->entityKeyField;
         if (!isset($this->getData()[$fieldName])) {
             throw new \Exception('Problem data does not include id field.');
         }
