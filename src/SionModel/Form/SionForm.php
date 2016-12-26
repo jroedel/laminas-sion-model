@@ -154,6 +154,7 @@ class SionForm extends Form
 	    ];
 		$this->setInputFilterSpecification($inputSpec);
 
+		//@todo make this work without dependency on the PatresTable service!
         //prime the suggestionByPersonId if user is multi-person
 		$authService = $serviceLocator->get('zfcuser_auth_service');
 		if ($authService->hasIdentity() && $authService->getIdentity()->multiPersonUser) {

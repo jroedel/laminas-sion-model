@@ -41,6 +41,7 @@ return [
             'SionModel\Service\EntitiesService'     => 'SionModel\Service\EntitiesServiceFactory',
             'SionModel\Problem\ProblemTable'        => 'SionModel\Service\ProblemTableFactory',
             'SionModel\Service\ProblemService'      => 'SionModel\Service\ProblemServiceFactory',
+            'SionModel\Form\SuggestForm'            => 'SionModel\Service\SuggestFormFactory',
         ],
     ],
     'sion_model' => [
