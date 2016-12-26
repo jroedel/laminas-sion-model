@@ -11,9 +11,9 @@ class SionForm extends Form
     protected $filterSpec;
     protected $phoneInputFilterSpec;
     protected $phoneLabelInputFilterSpec;
-    
+
     protected $isMultiPersonUser = false;
-    
+
     public function __construct($name)
     {
         //@todo just added this line 2016-08-22, should check for regression error in EditCourseForm
@@ -28,7 +28,7 @@ class SionForm extends Form
 		        ],
 		    ],
 		]);
-		
+
         $this->phoneInputFilterSpec = [
 			'required' => false,
 			'filters'  => [
@@ -42,10 +42,10 @@ class SionForm extends Form
                         'max' => 50,
                     ],
                 ],
-				['name' => 'Patres\Validator\Phone'],
+				['name' => 'SionModel\Validator\Phone'],
 			],
 		];
-        
+
         $this->phoneLabelInputFilterSpec = [
             'required' => false,
             'filters' => [
@@ -65,12 +65,12 @@ class SionForm extends Form
             ],
         ];
     }
-	
+
 	public function setInputFilterSpecification($spec)
 	{
 	    $this->filterSpec = $spec;
 	}
-	
+
 	/**
 	 * Primes the form for a suggestion. If user is a multi-person-user,
 	 * it fetches records for the value options of suggestionByPersonId
@@ -118,7 +118,7 @@ class SionForm extends Form
 		        'maxlength' => '70',
 		    ],
 		]);
-	        
+
 	    $inputSpec = $this->getInputFilterSpecification();
 	    $inputSpec['suggestionNotes'] = [
 	        'required' => false,
@@ -153,7 +153,7 @@ class SionForm extends Form
 	        ],
 	    ];
 		$this->setInputFilterSpecification($inputSpec);
-		
+
         //prime the suggestionByPersonId if user is multi-person
 		$authService = $serviceLocator->get('zfcuser_auth_service');
 		if ($authService->hasIdentity() && $authService->getIdentity()->multiPersonUser) {
@@ -163,7 +163,7 @@ class SionForm extends Form
 		    $this->get('suggestionByPersonId')->setValueOptions($persons);
 		}
 	}
-	
+
 	public function prepareForModeration($oldData)
 	{
 	    $name = $this->getName();
@@ -227,7 +227,7 @@ class SionForm extends Form
 	    ];
 	    $this->setInputFilterSpecification($inputSpec);
 	}
-	
+
 	public function setData($data)
 	{
 	    $filterSpec = $this->getInputFilterSpecification();
@@ -249,12 +249,12 @@ class SionForm extends Form
 	    }
 	    return parent::setData($data);
 	}
-	
-	public function getIsMultiPersonUser() 
+
+	public function getIsMultiPersonUser()
 	{
 	    return $this->isMultiPersonUser;
 	}
-	
+
 	public function setIsMultiPersonUser($isMultiPersonUser)
 	{
 	    $this->isMultiPersonUser = $isMultiPersonUser;

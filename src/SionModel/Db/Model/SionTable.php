@@ -108,7 +108,7 @@ class SionTable // implements ResourceProviderInterface
         $this->adapter      = $tableGateway->getAdapter();
         $this->entities		= $entities;
         $this->actingUserId = $actingUserId;
-        $this->changeTableName  = $changesTableName;
+        $this->changeTableName = $changesTableName;
         $this->entityProblemPrototype = $entityProblemPrototype;
     }
 

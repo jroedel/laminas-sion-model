@@ -4,6 +4,7 @@ namespace SionModel;
 return [
     'view_helpers' => [
         'invokables' => [
+            'formRow'		        => 'SionModel\Form\View\Helper\SionFormRow',
             'dayFormat'             => 'SionModel\I18n\View\Helper\DayFormat',
             'diffForHumans'         => 'SionModel\View\Helper\DiffForHumans',
             'email'					=> 'SionModel\View\Helper\Email',
@@ -14,6 +15,20 @@ return [
             'tooltip'               => 'SionModel\View\Helper\Tooltip',
 		],
 	],
+    'validators' => [
+        'invokables' => [
+            'Skype'     => 'SionModel\Validator\Skype',
+            'Twitter'   => 'SionModel\Validator\Twitter',
+            'Instagram' => 'SionModel\Validator\Instagram',
+            'Phone'     => 'SionModel\Validator\Phone',
+            'Slack'     => 'SionModel\Validator\Slack',
+         ],
+    ],
+    'form_elements' => [
+        'invokables' => [
+            'Phone' => 'SionModel\Form\Element\Phone',
+        ],
+    ],
     'view_manager' => [
         'template_path_stack' => [
             'sionmodel' => __DIR__ . '/../view',
@@ -21,6 +36,7 @@ return [
     ],
     'service_manager' => [
         'factories' => [
+            'CountryValueOptions'                   => 'SionModel\Service\CountryValueOptionsFactory',
             'SionModel\Config'                      => 'SionModel\Service\ConfigServiceFactory',
             'SionModel\Service\EntitiesService'     => 'SionModel\Service\EntitiesServiceFactory',
             'SionModel\Problem\ProblemTable'        => 'SionModel\Service\ProblemTableFactory',
