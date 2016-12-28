@@ -70,8 +70,7 @@ class SionTable // implements ResourceProviderInterface
     protected $sql;
 
     /**
-     * @todo Refactor to always use the Entity class
-     * @var mixed[] $entities
+     * @var Entity[] $entities
      */
     protected $entities;
 
@@ -210,6 +209,41 @@ class SionTable // implements ResourceProviderInterface
     	return true;
     }
 
+    public function isReadyToUpdateAndCreate($entity)
+    {
+        if (!isset($this->entities[$entity]->tableName) ||
+            is_null($this->entities[$entity]->tableName)
+        ) {
+            throw new \Exception('Table name configuration is required for entity \''.$entity.'\'');
+        }
+        if (!isset($this->entities[$entity]->tableKey) ||
+            is_null($this->entities[$entity]->tableKey)
+        ) {
+            throw new \Exception('Table key configuration is required for entity \''.$entity.'\'');
+        }
+        if (!isset($this->entities[$entity]->updateReferenceDataFunction) ||
+            is_null($this->entities[$entity]->updateReferenceDataFunction)
+        ) {
+            throw new \Exception('\'updateReferenceDataFunction\' configuration is required for entity \''.$entity.'\'');
+        }
+        if (!method_exists($this, $this->entities[$entity]->updateReferenceDataFunction)
+        ) {
+            throw new \Exception('\'updateReferenceDataFunction\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
+        }
+        if (!isset($this->entities[$entity]->updateColumns) ||
+            is_null($this->entities[$entity]->updateColumns)
+        ) {
+            throw new \Exception('\'updateColumns\' configuration is required for entity \''.$entity.'\'');
+        }
+    	if (isset($this->entities[$entity]->databaseBoundDataPreprocessor) &&
+    	    !is_null($this->entities[$entity]->databaseBoundDataPreprocessor) &&
+    	    !method_exists($this, $this->entities[$entity]->databaseBoundDataPreprocessor)
+		) {
+            throw new \Exception('\'databaseBoundDataPreprocessor\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
+		}
+        return true;
+    }
+
     /**
      *
      * @param string $entity
@@ -220,46 +254,63 @@ class SionTable // implements ResourceProviderInterface
      */
     public function updateEntity($entity, $id, $data)
     {
-    	$tableName     = $this->entities[$entity]['table_name'];
-    	$tableKey      = $this->entities[$entity]['table_key'];
+        if (!$this->isReadyToUpdateAndCreate($entity)) {
+            throw new \InvalidArgumentException('Improper configuration for entity \''.$entity.'\'');
+        }
+
+    	$tableName     = $this->entities[$entity]->tableName;
+    	$tableKey      = $this->entities[$entity]->tableKey;
     	$tableGateway  = new TableGateway($tableName, $this->adapter);
 
     	if (!is_numeric($id)) {
     		throw new \InvalidArgumentException('Invalid id provided.');
     	}
-    	$entityFunction = $this->entities[$entity]['update_reference_data_function'];
-    	//@todo Check to make sure function exists
+    	$entityFunction = $this->entities[$entity]->updateReferenceDataFunction;
     	$entityData = $this->$entityFunction($id);
     	if (!$entityData) {
     		throw new \InvalidArgumentException('No entity provided.');
     	}
-    	$updateCols = $this->entities[$entity]['update_columns'];
-    	$manyToOneUpdateColumns = isset($this->entities[$entity]['many_to_one_update_columns']) ?
-    	$this->entities[$entity]['many_to_one_update_columns'] : null;
-    	if (isset($this->entities[$entity]['database_bound_data_preprocessor']) &&
-    			method_exists($this, $preprocessor = $this->entities[$entity]['database_bound_data_preprocessor'])
-    			) {
-    				$data = $this->$preprocessor($data);
-    			}
-    			return $this->updateHelper($id, $data, $tableName, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns);
+    	$updateCols = $this->entities[$entity]->updateColumns;
+    	$manyToOneUpdateColumns = isset($this->entities[$entity]->manyToOneUpdateColumns) ?
+    	$this->entities[$entity]->manyToOneUpdateColumns : null;
+    	if (isset($this->entities[$entity]->databaseBoundDataPreprocessor) &&
+    	    !is_null($this->entities[$entity]->databaseBoundDataPreprocessor)
+		) {
+		    $preprocessor = $this->entities[$entity]->databaseBoundDataPreprocessor;
+			$data = $this->$preprocessor($data);
+		}
+		return $this->updateHelper($id, $data, $tableName, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns);
     }
 
     public function createEntity($entity, $data)
     {
-    	$tableName                 = $this->entities[$entity]['table_name'];
+        if (!$this->isReadyToUpdateAndCreate($entity)) {
+            throw new \InvalidArgumentException('Improper configuration for entity \''.$entity.'\'');
+        }
+
+    	$tableName                 = $this->entities[$entity]->tableName;
     	$tableGateway              = new TableGateway($tableName, $this->adapter);
-    	$scope                     = $this->entities[$entity]['scope'];
-    	$requiredCols              = $this->entities[$entity]['required_columns_for_creation'];
-    	$updateCols                = $this->entities[$entity]['update_columns'];
-    	$manyToOneUpdateColumns    = isset($this->entities[$entity]['many_to_one_update_columns']) ? $this->entities[$entity]['many_to_one_update_columns'] : null;
-    	if (isset($this->entities[$entity]['database_bound_data_preprocessor']) &&
-    			method_exists($this, $preprocessor = $this->entities[$entity]['database_bound_data_preprocessor'])
-    			) {
-    				$data = $this->$preprocessor($data);
-    			}
-    			return $this->createHelper($data, $requiredCols, $updateCols, $tableName, $tableGateway, $scope, $manyToOneUpdateColumns);
+    	$scope                     = $this->entities[$entity]->scope;
+    	$requiredCols              = $this->entities[$entity]->requiredColumnsForCreation;
+    	$updateCols                = $this->entities[$entity]->updateColumns;
+    	$manyToOneUpdateColumns    = $this->entities[$entity]->manyToOneUpdateColumns;
+    	//preprocess the data
+    	if (!is_null($preprocessor = $this->entities[$entity]->databaseBoundDataPreprocessor)) {
+			$data = $this->$preprocessor($data);
+		}
+		return $this->createHelper($data, $requiredCols, $updateCols, $tableName, $tableGateway, $scope, $manyToOneUpdateColumns);
     }
 
+    /**
+     * @todo Factor out scope
+     * @param mixed[] $data
+     * @param string[] $requiredCols
+     * @param string[] $updateCols
+     * @param string $tableName
+     * @param TableGatewayInterface $tableGateway
+     * @param string|null $scope
+     * @param string[]|null $manyToOneUpdateColumns
+     */
     protected function createHelper($data, $requiredCols, $updateCols, $tableName, $tableGateway, $scope = null, $manyToOneUpdateColumns = null)
     {
     	//make sure required cols are being passed

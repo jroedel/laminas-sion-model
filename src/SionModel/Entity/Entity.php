@@ -1,7 +1,6 @@
 <?php
 namespace SionModel\Entity;
 
-use Zend\Filter\Word\UnderscoreToCamelCase;
 use SionModel\Filter\MixedCase;
 class Entity
 {
@@ -13,19 +12,84 @@ class Entity
     public $tableName;
     public $tableKey;
     public $entityKeyField;
+    /**
+     * @deprecated Used for creating associated roles for the Patres database
+     * @var string
+     */
     public $scope;
     public $sionModelClass;
     public $updateReferenceDataFunction;
     public $requiredColumnsForCreation;
-    public $nameColumn;
+    /**
+     * A function to be called upon $data before creating/updating an entity
+     * Example:
+     * 'sortNationalityArray'
+     * @var string $databaseBoundDataPreprocessor
+     */
+    public $databaseBoundDataPreprocessor;
+    /**
+     * The name of the entity's field to use to display the name
+     * @var string $nameColumn
+     */
+    public $nameField;
+    /**
+     * List of fields that should be stored in the Changes table as a text column instead of varchar
+     * @var string[]
+     */
     public $textColumns;
+    /**
+     * List of fields that should be converted from DateTime objects before insert
+     * @var string[]
+     */
     public $dateColumns;
+    /**
+     * A list of mappings from ORM field names to database column names
+     * Example:
+     * ['personId' => 'PersonId', 'email' => 'EmailAddress']
+     * @var string[] $updateColumns
+     */
     public $updateColumns;
+    /**
+     * When a field by the name of the key is updated, the algorithm will search for a field by
+     * the name of the $value.'UpdatedOn' and $value.'UpdatedBy', to update those as well.
+     * Example:
+     * [ 'email1' => 'emails', 'email2' => 'emails]
+     * @var string[]
+     */
+    public $manyToOneUpdateColumns;
+    /**
+     * The route to show this entity
+     * Example: 'persons/person'
+     * @var string $showRoute
+     */
     public $showRoute;
+    /**
+     * The route parameter to pass when generating the URL to the show route
+     * Example: 'person_id'
+     * @var string
+     */
     public $showRouteKey;
+    /**
+     * The entity field to pass as the route parameter
+     * @var unknown
+     */
     public $showRouteKeyField;
+    /**
+     * The route to moderate a suggestion on this entity
+     * Example: 'persons/person/moderate'
+     * @var string $moderateRoute
+     */
     public $moderateRoute;
+    /**
+     * The key used when generating the URL to the moderate route
+     * Example: 'person_id'
+     * @var string $moderateRouteEntityKey
+     */
     public $moderateRouteEntityKey;
+    /**
+     * True if there is a form dedicated to suggestions for this entity
+     * @var bool $hasDedicatedSuggestForm
+     */
     public $hasDedicatedSuggestForm;
 
     public function __construct($name, $entitySpecification)
