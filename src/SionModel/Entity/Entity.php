@@ -2,23 +2,52 @@
 namespace SionModel\Entity;
 
 use SionModel\Filter\MixedCase;
+
 class Entity
 {
     /**
      * Name of the entity. Camelcase.
-     * @var string
+     * Example: 'person'
+     * @var string $name
      */
     public $name;
+    /**
+     * Name of the table
+     * Example: 'sch_persons'
+     * @var string $tableName
+     */
     public $tableName;
+    /**
+     * Name of the table column by which to update on
+     * @var string $tableKey
+     */
     public $tableKey;
+    /**
+     * Name of identifier field
+     * Example: 'personId'
+     * @var string $entityKeyField
+     */
     public $entityKeyField;
     /**
      * @deprecated Used for creating associated roles for the Patres database
-     * @var string
+     * @var string $scope
      */
     public $scope;
+    /**
+     * Service locator name of the class (that extends SionModel), which manages this entity
+     * @var string $sionModelClass
+     */
     public $sionModelClass;
+    /**
+     * Method name from which to get reference data upon updating an entity
+     * It must be in the same SionModel class from which 'updateEntity' is called
+     * @var string $updateReferenceDataFunction
+     */
     public $updateReferenceDataFunction;
+    /**
+     * List of columns needed in order to insert a new entity
+     * @var string[] $requiredColumnsForCreation
+     */
     public $requiredColumnsForCreation;
     /**
      * A function to be called upon $data before creating/updating an entity
