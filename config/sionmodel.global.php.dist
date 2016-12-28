@@ -2,6 +2,14 @@
 return [
 	'sion_model' => [
 		'changes_table' => 'project_changes',
+		
+		/**
+		* If this key is set, it will be used to prime the SionForm with values for suggestions.
+		* The class must implement the SionModel\Person\PersonProviderInterface
+		* I'm not 100% sure this is a good idea...
+		* @todo confirm this should be here
+		*/
+		'person_provider' => 'Project\Model\PersonTable',
 		'entities' => [
             'event' => [
                 'table_name' => 'event',

@@ -16,7 +16,6 @@ class SionForm extends Form
 
     public function __construct($name)
     {
-        //@todo just added this line 2016-08-22, should check for regression error in EditCourseForm
 		parent::__construct($name);
 
 		$this->add([
