@@ -6,7 +6,7 @@ use SionModel\Filter\MixedCase;
 class Entity
 {
     /**
-     * Name of the entity. Camelcase.
+     * Name of the entity. camelCase.
      * Example: 'person'
      * @var string $name
      */
@@ -48,7 +48,7 @@ class Entity
      * List of columns needed in order to insert a new entity
      * @var string[] $requiredColumnsForCreation
      */
-    public $requiredColumnsForCreation;
+    public $requiredColumnsForCreation = [];
     /**
      * A function to be called upon $data before creating/updating an entity
      * Example:
@@ -65,12 +65,12 @@ class Entity
      * List of fields that should be stored in the Changes table as a text column instead of varchar
      * @var string[]
      */
-    public $textColumns;
+    public $textColumns = [];
     /**
      * List of fields that should be converted from DateTime objects before insert
      * @var string[]
      */
-    public $dateColumns;
+    public $dateColumns = [];
     /**
      * A list of mappings from ORM field names to database column names
      * Example:
@@ -85,7 +85,12 @@ class Entity
      * [ 'email1' => 'emails', 'email2' => 'emails]
      * @var string[]
      */
-    public $manyToOneUpdateColumns;
+    public $manyToOneUpdateColumns = [];
+    /**
+     * If true, changes will be registered in the changes table.
+     * @var bool
+     */
+    public $reportChanges = false;
     /**
      * The route to show this entity
      * Example: 'persons/person'

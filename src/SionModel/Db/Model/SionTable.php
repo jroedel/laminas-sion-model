@@ -13,6 +13,11 @@ use Zend\Filter\ToNull;
 use Zend\Validator\EmailAddress;
 use SionModel\Entity\Entity;
 use Zend\Db\TableGateway\TableGatewayInterface;
+use Zend\Uri\Http;
+use Zend\Db\Adapter\AdapterInterface;
+use SionModel\Service\EntitiesService;
+use SionModel\Service\ProblemService;
+use SionModel\Problem\ProblemTable;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -48,7 +53,6 @@ use Zend\Db\TableGateway\TableGatewayInterface;
  * @todo Finish refactoring of reportChange
  * @todo Integrate data problem management
  * @todo Factor out 'changes_table_name' from __contruct method. Make it a required key for entities
- * @todo make a EntitySpecification class that will parse and validate the options.
  */
 class SionTable // implements ResourceProviderInterface
 {
@@ -76,16 +80,27 @@ class SionTable // implements ResourceProviderInterface
 
     /**
      *
-     * @var string $changesTable
+     * @var string $changesTableName
      */
     protected $changesTableName;
 
     /**
      *
-     * @var TableGateway $changesTableGateway
+     * @var string $visitsTableName
+     */
+    protected $visitsTableName;
+
+    /**
+     *
+     * @var TableGatewayInterface $changesTableGateway
      */
     protected $changesTableGateway;
 
+    /**
+     *
+     * @var TableGatewayInterface $visitTableGateway
+     */
+    protected $visitsTableGateway;
     /**
      *
      * @var int
@@ -101,14 +116,32 @@ class SionTable // implements ResourceProviderInterface
      * @param int $actingUserId
      * @param null|string $changesTableName
      */
-    public function __construct(TableGatewayInterface $tableGateway, $entities, $actingUserId, $changesTableName = null, $entityProblemPrototype = null)
+    public function __construct(AdapterInterface $dbAdapter, $serviceLocator, $actingUserId)
     {
-        $this->tableGateway = $tableGateway;
-        $this->adapter      = $tableGateway->getAdapter();
-        $this->entities		= $entities;
+
+        /**
+         * @var EntitiesService $entities
+         */
+        $entities = $serviceLocator->get('SionModel\Service\EntitiesService');
+
+        $config = $serviceLocator->get('SionModel\Config');
+        $this->tableGateway = new TableGateway('', $dbAdapter);
+        $this->adapter      = $dbAdapter;
+        $this->entities		= $entities->getEntities();
         $this->actingUserId = $actingUserId;
-        $this->changeTableName = $changesTableName;
-        $this->entityProblemPrototype = $entityProblemPrototype;
+        $this->changeTableName = isset($config['changes_table']) ? $config['changes_table'] : null;
+        $this->visitsTableName = isset($config['visits_table']) ? $config['visits_table'] : null;
+
+        if (!$this instanceof ProblemTable && // prevent circular dependency
+            isset($config['problem_specifications']) &&
+            !empty($config['problem_specifications'])
+        ) {
+            /**
+             * @var ProblemService $problemService
+             */
+            $problemService = $serviceLocator->get('SionModel\Service\ProblemService');
+            $this->entityProblemPrototype = $problemService->getEntityProblemPrototype();
+        }
     }
 
     /**
@@ -139,74 +172,39 @@ class SionTable // implements ResourceProviderInterface
         return $return;
     }
 
-    protected function updateHelper($id, $data, $tableName, $tableKey, $tableGateway, $updateCols, $referenceEntity, $manyToOneUpdateColumns = null)
+    /**
+     * Validate urls and configure their labels
+     * @param string[] $unprocessedUrls Should be a 2-dimensional array, each element containing a 'url' and 'label' key
+     * @throws \InvalidArgumentException
+     * @return string[]
+     *
+     * @todo check URL against Google Safe Browsing
+     */
+    public static function processUrls($unprocessedUrls)
     {
-    	if (is_null($tableName) || $tableName == '') {
-    		throw new \Exception('No table name provided.');
-    	}
-    	if (is_null($tableKey) || $tableKey == '') {
-    		throw new \Exception('No table key provided');
-    	}
-    	$now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
-    	$updateVals = array();
-    	$changes = array();
-    	foreach ($referenceEntity as $col => $value) {
-    		if (!key_exists($col, $updateCols) || !key_exists($col, $data) || $value == $data[$col]) {
-    			continue;
-    		}
-    		if ($data[$col] instanceof \DateTime) { //convert Date objects to strings
-    			$data[$col] = $data[$col]->format('Y-m-d H:i:s');
-    		}
-    		if (is_array($data[$col])) { //convert arrays to strings
-    			if (empty($data[$col])) {
-    				$data[$col] = null;
-    			} else {
-    				$data[$col] = implode('|', $data[$col]); //pipe (|) is a good unused character for separating
-    			}
-    		}
-    		$updateVals[$updateCols[$col]] = $data[$col];
-    		if (key_exists($col.'UpdatedOn', $updateCols) && !key_exists($col.'UpdatedOn', $data)) { //check if this column has updatedOn column
-    			$updateVals[$updateCols[$col.'UpdatedOn']] = $now;
-    		}
-    		if (key_exists($col.'UpdatedBy', $updateCols) && !key_exists($col.'UpdatedBy', $data) &&
-    				!is_null($this->actingUserId))
-    		{ //check if this column has updatedBy column
-    			$updateVals[$updateCols[$col.'UpdatedBy']] = $this->actingUserId;
-    		}
-    		if (is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
-    			if ( key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $updateCols) &&
-    					!key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $data))
-    			{ //check if this column maps to some other updatedOn column
-    				$updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedOn']] = $now;
-    			}
-    			if ( key_exists($manyToOneUpdateColumns[$col].'UpdatedBy', $updateCols) &&
-    					!key_exists($manyToOneUpdateColumns[$col].'UpdatedBy', $data) &&
-    					!is_null($this->actingUserId))
-    			{ //check if this column  maps to some other updatedBy column
-    				$updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedBy']] = $this->actingUserId;
-    			}
-    		}
-    		$changes[] = array(
-    				'table'    => $tableName,
-    				'column'   => $col,
-    				'id'       => $id,
-    				'oldValue' => $value,
-    				'newValue' => $data[$col],
-    		);
-    	}
-    	if (count($updateVals) > 0) {
-    		if (isset($updateCols['updatedOn']) && !isset($updateVals[$updateCols['updatedOn']])) {
-    			$updateVals[$updateCols['updatedOn']] = $now;
-    		}
-    		if (isset($updateCols['updatedBy']) && !isset($updateVals[$updateCols['updatedBy']]) &&
-    				!is_null($this->actingUserId)) {
-    					$updateVals[$updateCols['updatedBy']] = $this->actingUserId;
-    				}
-    				$result = $tableGateway->update($updateVals, array($tableKey => $id));
-    				$this->reportChange($changes);
-    				return $result;
-    	}
-    	return true;
+        if (is_null($unprocessedUrls)) {
+            return null;
+        }
+        if (!is_array($unprocessedUrls)) {
+            throw new \InvalidArgumentException('unprocessedUrls must be a 2-dimensional array, each element containing keys \'url\' and \'label\'');
+        }
+        $urls = [];
+        foreach ($unprocessedUrls as $urlRow) {
+            if (!key_exists('url', $urlRow) || !key_exists('label', $urlRow)) {
+                throw new \InvalidArgumentException('Each element of unprocessedUrls must contain keys \'url\' and \'label\'');
+            }
+            if (!is_null($urlRow['url'])) {
+                $url = new Http($urlRow['url']);
+                if ($url->isValid()) {
+                    if (is_null($urlRow['label']) || 0 === strlen($urlRow['label'])) {
+                        $urlRow['label'] = $url->getHost();
+                    }
+                    $urlRow['url'] = $url->toString();
+                    $urls[] = $urlRow;
+                }
+            }
+        }
+        return $urls;
     }
 
     public function isReadyToUpdateAndCreate($entity)
@@ -272,14 +270,101 @@ class SionTable // implements ResourceProviderInterface
     	}
     	$updateCols = $this->entities[$entity]->updateColumns;
     	$manyToOneUpdateColumns = isset($this->entities[$entity]->manyToOneUpdateColumns) ?
-    	$this->entities[$entity]->manyToOneUpdateColumns : null;
+    	   $this->entities[$entity]->manyToOneUpdateColumns : null;
+    	$reportChanges = isset($this->entities[$entity]->reportChanges) ?
+    	   $this->entities[$entity]->reportChanges : false;
     	if (isset($this->entities[$entity]->databaseBoundDataPreprocessor) &&
     	    !is_null($this->entities[$entity]->databaseBoundDataPreprocessor)
 		) {
 		    $preprocessor = $this->entities[$entity]->databaseBoundDataPreprocessor;
 			$data = $this->$preprocessor($data);
 		}
-		return $this->updateHelper($id, $data, $tableName, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns);
+		return $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges);
+    }
+
+    /**
+     *
+     * @param int $id
+     * @param mixed[] $data
+     * @param string $entityType
+     * @param string $tableKey
+     * @param TableGatewayInterface $tableGateway
+     * @param string[] $updateCols
+     * @param mixed[] $referenceEntity
+     * @param string[] $manyToOneUpdateColumns
+     * @param bool $reportChanges
+     * @throws \Exception
+     */
+    protected function updateHelper($id, $data, $entityType, $tableKey, TableGatewayInterface $tableGateway, $updateCols, $referenceEntity, $manyToOneUpdateColumns = null, $reportChanges = false)
+    {
+        if (is_null($entityType) || $entityType == '') {
+            throw new \Exception('No entity provided.');
+        }
+        if (is_null($tableKey) || $tableKey == '') {
+            throw new \Exception('No table key provided');
+        }
+        $now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        $updateVals = [];
+        $changes = [];
+        foreach ($referenceEntity as $col => $value) {
+            if (!key_exists($col, $updateCols) || !key_exists($col, $data) || $value == $data[$col]) {
+                continue;
+            }
+            if ($data[$col] instanceof \DateTime) { //convert Date objects to strings
+                $data[$col] = $data[$col]->format('Y-m-d H:i:s');
+            }
+            if (is_array($data[$col])) { //convert arrays to strings
+                if (empty($data[$col])) {
+                    $data[$col] = null;
+                } else {
+                    $data[$col] = implode('|', $data[$col]); //pipe (|) is a good unused character for separating
+                }
+            }
+            $updateVals[$updateCols[$col]] = $data[$col];
+            if (key_exists($col.'UpdatedOn', $updateCols) && !key_exists($col.'UpdatedOn', $data)) { //check if this column has updatedOn column
+                $updateVals[$updateCols[$col.'UpdatedOn']] = $now;
+            }
+            if (key_exists($col.'UpdatedBy', $updateCols) && !key_exists($col.'UpdatedBy', $data) &&
+                !is_null($this->actingUserId))
+            { //check if this column has updatedBy column
+                $updateVals[$updateCols[$col.'UpdatedBy']] = $this->actingUserId;
+            }
+            if (is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
+                if ( key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $updateCols) &&
+                    !key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $data))
+                { //check if this column maps to some other updatedOn column
+                    $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedOn']] = $now;
+                }
+                if ( key_exists($manyToOneUpdateColumns[$col].'UpdatedBy', $updateCols) &&
+                    !key_exists($manyToOneUpdateColumns[$col].'UpdatedBy', $data) &&
+                    !is_null($this->actingUserId))
+                { //check if this column  maps to some other updatedBy column
+                    $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedBy']] = $this->actingUserId;
+                }
+            }
+            $changes[] = array(
+                'entity'   => $entityType,
+                'field'    => $col,
+                'id'       => $id,
+                'oldValue' => $value,
+                'newValue' => $data[$col],
+            );
+        }
+        if (count($updateVals) > 0) {
+            if (isset($updateCols['updatedOn']) && !isset($updateVals[$updateCols['updatedOn']])) {
+                $updateVals[$updateCols['updatedOn']] = $now;
+            }
+            if (isset($updateCols['updatedBy']) && !isset($updateVals[$updateCols['updatedBy']]) &&
+                !is_null($this->actingUserId)) {
+                    $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
+                }
+                $result = $tableGateway->update($updateVals, [$tableKey => $id]);
+                if ($reportChanges) {
+                    $this->reportChange($changes);
+                }
+                return $result;
+        }
+        return true;
     }
 
     public function createEntity($entity, $data)
@@ -294,11 +379,12 @@ class SionTable // implements ResourceProviderInterface
     	$requiredCols              = $this->entities[$entity]->requiredColumnsForCreation;
     	$updateCols                = $this->entities[$entity]->updateColumns;
     	$manyToOneUpdateColumns    = $this->entities[$entity]->manyToOneUpdateColumns;
+    	$reportChanges             = $this->entities[$entity]->reportChanges;
     	//preprocess the data
     	if (!is_null($preprocessor = $this->entities[$entity]->databaseBoundDataPreprocessor)) {
 			$data = $this->$preprocessor($data);
 		}
-		return $this->createHelper($data, $requiredCols, $updateCols, $tableName, $tableGateway, $scope, $manyToOneUpdateColumns);
+		return $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $scope, $manyToOneUpdateColumns, $reportChanges);
     }
 
     /**
@@ -306,12 +392,12 @@ class SionTable // implements ResourceProviderInterface
      * @param mixed[] $data
      * @param string[] $requiredCols
      * @param string[] $updateCols
-     * @param string $tableName
+     * @param string $entityType
      * @param TableGatewayInterface $tableGateway
      * @param string|null $scope
      * @param string[]|null $manyToOneUpdateColumns
      */
-    protected function createHelper($data, $requiredCols, $updateCols, $tableName, $tableGateway, $scope = null, $manyToOneUpdateColumns = null)
+    protected function createHelper($data, $requiredCols, $updateCols, $entityType, $tableGateway, $scope = null, $manyToOneUpdateColumns = null, $reportChanges = false)
     {
     	//make sure required cols are being passed
     	foreach ($requiredCols as $colName) {
@@ -333,14 +419,14 @@ class SionTable // implements ResourceProviderInterface
     			$data[$col] = $this->formatDbArray($data[$col]);
     		}
     		$updateVals[$updateCols[$col]] = $data[$col];
-    		if (key_exists($col.'UpdatedOn', $updateCols) && !key_exists($col.'UpdatedOn', $data)) { //check if this column has updatedOn column
+    		if (!is_null($value) && key_exists($col.'UpdatedOn', $updateCols) && !key_exists($col.'UpdatedOn', $data)) { //check if this column has updatedOn column
     			$updateVals[$updateCols[$col.'UpdatedOn']] = $now;
     		}
-    		if (key_exists($col.'UpdatedBy', $updateCols) && !key_exists($col.'UpdatedBy', $data) &&
+    		if (!is_null($value) && key_exists($col.'UpdatedBy', $updateCols) && !key_exists($col.'UpdatedBy', $data) &&
     				!is_null($this->actingUserId)) { //check if this column has updatedOn column
     					$updateVals[$updateCols[$col.'UpdatedBy']] = $this->actingUserId;
     		}
-    		if (is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
+    		if (!is_null($value) && is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
     			if (key_exists($col, $manyToOneUpdateColumns) &&
     					key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $updateCols) &&
     					!key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $data))
@@ -374,11 +460,13 @@ class SionTable // implements ResourceProviderInterface
     				$resultsInsert = $tableGateway->insert($updateVals);
     				$newId = $tableGateway->getLastInsertValue();
     				$changeVals = array(array(
-    						'table'    => $tableName,
-    						'column'   => 'newEntry',
+    						'entity'   => $entityType,
+    						'field'    => 'newEntry',
     						'id'       => $newId
     				));
-    				$this->reportChange($changeVals);
+    				if ($reportChanges) {
+    				    $this->reportChange($changeVals);
+    				}
     				//@todo FACTOR THIS OUT!, belongs only in Patres
     				//create the roles associated with the newly created entity
     				if ($scope) {
@@ -404,7 +492,7 @@ class SionTable // implements ResourceProviderInterface
     	$i = 0;
     	$date = new \DateTime(null, new \DateTimeZone('utc'));
     	foreach ($data as $values) {
-    		if (isset($values['table']) && isset($values['column']) && isset($values['id'])) {
+    		if (isset($values['entity']) && isset($values['field']) && isset($values['id'])) {
     			if (isset($values['oldValue']) && $values['oldValue'] instanceof \DateTime) {
     				$values['oldValue'] = $this->formatDbDate($values['oldValue']);
     			}
@@ -418,14 +506,14 @@ class SionTable // implements ResourceProviderInterface
     				$values['newValue'] = $this->formatDbArray($values['newValue']);
     			}
     			$params = array(
-    					'IpAddress'        => $_SERVER['REMOTE_ADDR'],
-    					'user_id'          => $this->actingUserId,
-    					'ChangedTable'     => $values['table'],
-    					'ChangedColumn'    => $values['column'],
+    					'ChangedEntity'    => $values['entity'],
+    					'ChangedField'     => $values['field'],
     					'ChangedIDValue'   => $values['id'],
     					'NewValue'         => isset($values['newValue']) ? $values['newValue'] : null,
     					'OldValue'         => isset($values['oldValue']) ? $values['oldValue'] : null,
-    					'UpdateDateTime'   => $date->format('Y-m-d H:i:s'),
+    					'UpdatedOn'        => $date->format('Y-m-d H:i:s'),
+    					'UpdatedBy'        => $this->actingUserId,
+    					'IpAddress'        => $_SERVER['REMOTE_ADDR'],
     			);
     			$changesTableGateway->insert($params);
     			$i++;
@@ -435,20 +523,73 @@ class SionTable // implements ResourceProviderInterface
     	return $i;
     }
 
-    public function getUserTable()
+    /**
+     * Register a visit in the visits table as defined by the config
+     * @param string $entity
+     * @param int $entityId
+     * @throws \InvalidArgumentException
+     */
+    public function registerVisit($entity, $entityId)
     {
-    	return $this->userTable;
+        if (!isset($this->entities[$entity]))
+        {
+            throw new \InvalidArgumentException('Invalid entity submitted for visit registration');
+        }
+
+        if (!is_numeric($entityId)) {
+            throw new \InvalidArgumentException('Invalid entity id submitted for visit registration');
+        }
+
+        $date = new \DateTime(null, new \DateTimeZone('UTC'));
+        $params = [
+            'Entity' => $entity,
+            'EntityId' => $entityId,
+            'UserId' => $this->actingUserId,
+            'IpAddress' => $_SERVER['REMOTE_ADDR'],
+            'VisitedAt' => $date->format('Y-m-d H:i:s'),
+        ];
+        $this->getVisitTableGateway()->insert($params);
     }
 
     /**
-     *
-     * @param UserTable $userTable
-     * @return self
+     * Takes two DateTime objects and returns a string of the range of years the dates involve.
+     * If one date is null, just the one year is returned. If both dates are null, null is returned.
+     * @param \DateTime|null $startDate
+     * @param \DateTime|null $endDate
+     * @throws \InvalidArgumentException
+     * @return string|null
      */
-    public function setUserTable($userTable)
+    public static function getYearRange($startDate, $endDate)
     {
-    	$this->userTable = $userTable;
-    	return $this;
+        if ((!is_null($startDate) && !$startDate instanceof \DateTime) ||
+            (!is_null($endDate) && !$endDate instanceof \DateTime))
+        {
+            throw new \InvalidArgumentException('Date parameters must be either DateTime instances or null.');
+        }
+
+        $text = '';
+        if ((!is_null($startDate) && $startDate instanceof \DateTime) ||
+            (!is_null($endDate) && $startDate instanceof \DateTime))
+        {
+            if (!is_null($startDate) xor !is_null($endDate)) { //only one is set
+                if (!is_null($startDate)) {
+                    $text .=' '. $startDate->format('Y');
+                } else {
+                    $text .=' '. $endDate->format('Y');
+                }
+            } else {
+                $startYear = (int)$startDate->format('Y');
+                $endYear = (int)$endDate->format('Y');
+                if ($startYear == $endYear) {
+                    $text .=' '. $startYear;
+                } else {
+                    $text .=' '. $startYear.'-'.$endYear;
+                }
+            }
+            return $text;
+        } else {
+            return null;
+        }
     }
 
     protected function filterDbId($str)
@@ -671,7 +812,7 @@ class SionTable // implements ResourceProviderInterface
     }
 
     /**
-     * @return TableGateway
+     * @return TableGatewayInterface
      */
     public function getChangesTableGateway()
     {
@@ -686,12 +827,34 @@ class SionTable // implements ResourceProviderInterface
 
     /**
      *
-     * @param TableGateway $gateway
+     * @param TableGatewayInterface $gateway
      * @return self
      */
-    public function setChangesTableGateway($gateway)
+    public function setChangesTableGateway(TableGatewayInterface $gateway)
     {
         $this->changesTableGateway = $gateway;
+        return $this;
+    }
+
+    /**
+     * @return TableGatewayInterface
+     */
+    public function getVisitTableGateway()
+    {
+        if (null == $this->visitsTableGateway) {
+            $this->visitsTableGateway = new TableGateway($this->visitsTableName, $this->adapter);
+        }
+        return $this->visitsTableGateway;
+    }
+
+    /**
+     *
+     * @param TableGatewayInterface $gateway
+     * @return self
+     */
+    public function setVisitTableGateway(TableGatewayInterface $gateway)
+    {
+        $this->visitsTableGateway = $gateway;
         return $this;
     }
 }

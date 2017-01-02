@@ -3,6 +3,9 @@ namespace SionModel;
 
 return [
     'view_helpers' => [
+        'factories' => [
+            'address'				=> 'SionModel\Service\AddressFactory',
+        ],
         'invokables' => [
             'formRow'		        => 'SionModel\Form\View\Helper\SionFormRow',
             'dayFormat'             => 'SionModel\I18n\View\Helper\DayFormat',
@@ -45,6 +48,11 @@ return [
         ],
     ],
     'sion_model' => [
+        'post_place_line_format' => ':zip :cityState',
+        'post_place_line_format_by_country' => [
+            'US' => ':cityState :zip',
+            'CL' => ':cityState :zip',
+        ],
         'entities' => [
             'problem' => [
 //                 'table_name' => 'event',

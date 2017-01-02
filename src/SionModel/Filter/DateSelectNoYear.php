@@ -36,7 +36,7 @@ class DateSelectNoYear extends AbstractFilter
         if ($value instanceof \DateTime) {
             return $value;
         }
-        
+
         if (is_null($value) || $value === '' || $value === '1900--') {
             return null;
         }

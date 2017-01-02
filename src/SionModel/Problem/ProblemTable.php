@@ -14,11 +14,6 @@ class ProblemTable extends SionTable
 
     protected $problemsCache;
 
-    public function __construct($tableGateway, $entities, $actingUserId, $changesTableName)
-    {
-        parent::__construct($tableGateway, $entities, $actingUserId, $changesTableName);
-    }
-
     public function getProblems()
     {
 
