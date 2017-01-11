@@ -5,6 +5,8 @@ return [
     'view_helpers' => [
         'factories' => [
             'address'				=> 'SionModel\Service\AddressFactory',
+            'editPencil'			=> 'SionModel\Service\EditPencilFactory',
+            'formatEntity'		    => 'SionModel\Service\FormatEntityFactory',
         ],
         'invokables' => [
             'formRow'		        => 'SionModel\Form\View\Helper\SionFormRow',

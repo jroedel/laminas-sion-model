@@ -11,7 +11,7 @@ class EntitiesService
      */
     protected $entities = [];
 
-    public function __construct(array $entitySpecifications)
+    public function __construct($entitySpecifications)
     {
         foreach ($entitySpecifications as $entity => $spec) {
             $this->entities[$entity] = new Entity($entity, $spec);

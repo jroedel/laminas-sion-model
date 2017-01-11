@@ -18,6 +18,8 @@ use Zend\Db\Adapter\AdapterInterface;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
 use SionModel\Problem\ProblemTable;
+use Zend\Db\Sql\Where;
+use JUser\Model\UserTable;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -110,6 +112,12 @@ class SionTable // implements ResourceProviderInterface
     protected $entityProblemPrototype;
 
     /**
+     *
+     * @var UserTable $userTable
+     */
+    protected $userTable;
+
+    /**
      * If $changesTableName is left null, no changes will be made.
      * @param TableGatewayInterface $tableGateway
      * @param Entity[] $entities
@@ -118,7 +126,6 @@ class SionTable // implements ResourceProviderInterface
      */
     public function __construct(AdapterInterface $dbAdapter, $serviceLocator, $actingUserId)
     {
-
         /**
          * @var EntitiesService $entities
          */
@@ -131,6 +138,12 @@ class SionTable // implements ResourceProviderInterface
         $this->actingUserId = $actingUserId;
         $this->changeTableName = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName = isset($config['visits_table']) ? $config['visits_table'] : null;
+
+        //if we have it, use it
+        if ($serviceLocator->has('JUser\Model\UserTable')) {
+            $userTable = $serviceLocator->get('JUser\Model\UserTable');
+            $this->setUserTable($userTable);
+        }
 
         if (!$this instanceof ProblemTable && // prevent circular dependency
             isset($config['problem_specifications']) &&
@@ -165,7 +178,7 @@ class SionTable // implements ResourceProviderInterface
             $result = $this->tableGateway->select($where);
         }
 
-        $return = array();
+        $return = [];
         foreach ($result as $row) {
             $return[] = $row;
         }
@@ -342,13 +355,13 @@ class SionTable // implements ResourceProviderInterface
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedBy']] = $this->actingUserId;
                 }
             }
-            $changes[] = array(
+            $changes[] = [
                 'entity'   => $entityType,
                 'field'    => $col,
                 'id'       => $id,
                 'oldValue' => $value,
                 'newValue' => $data[$col],
-            );
+            ];
         }
         if (count($updateVals) > 0) {
             if (isset($updateCols['updatedOn']) && !isset($updateVals[$updateCols['updatedOn']])) {
@@ -407,7 +420,7 @@ class SionTable // implements ResourceProviderInterface
     	}
 
     	$now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
-    	$updateVals = array();
+    	$updateVals = [];
     	foreach ($data as $col => $value) {
     		if (!key_exists($col, $updateCols)) {
     			continue;
@@ -459,11 +472,11 @@ class SionTable // implements ResourceProviderInterface
     			if (count($updateVals) > 0) {
     				$resultsInsert = $tableGateway->insert($updateVals);
     				$newId = $tableGateway->getLastInsertValue();
-    				$changeVals = array(array(
-    						'entity'   => $entityType,
-    						'field'    => 'newEntry',
-    						'id'       => $newId
-    				));
+    				$changeVals = [[
+						'entity'   => $entityType,
+						'field'    => 'newEntry',
+						'id'       => $newId
+    				]];
     				if ($reportChanges) {
     				    $this->reportChange($changeVals);
     				}
@@ -505,22 +518,88 @@ class SionTable // implements ResourceProviderInterface
     			if (isset($values['newValue']) && is_array($values['newValue'])) {
     				$values['newValue'] = $this->formatDbArray($values['newValue']);
     			}
-    			$params = array(
-    					'ChangedEntity'    => $values['entity'],
-    					'ChangedField'     => $values['field'],
-    					'ChangedIDValue'   => $values['id'],
-    					'NewValue'         => isset($values['newValue']) ? $values['newValue'] : null,
-    					'OldValue'         => isset($values['oldValue']) ? $values['oldValue'] : null,
-    					'UpdatedOn'        => $date->format('Y-m-d H:i:s'),
-    					'UpdatedBy'        => $this->actingUserId,
-    					'IpAddress'        => $_SERVER['REMOTE_ADDR'],
-    			);
+    			$params = [
+					'ChangedEntity'    => $values['entity'],
+					'ChangedField'     => $values['field'],
+					'ChangedIDValue'   => $values['id'],
+					'NewValue'         => isset($values['newValue']) ? $values['newValue'] : null,
+					'OldValue'         => isset($values['oldValue']) ? $values['oldValue'] : null,
+					'UpdatedOn'        => $date->format('Y-m-d H:i:s'),
+					'UpdatedBy'        => $this->actingUserId,
+					'IpAddress'        => $_SERVER['REMOTE_ADDR'],
+    			];
     			$changesTableGateway->insert($params);
     			$i++;
     		}
     	}
 
     	return $i;
+    }
+
+    /**
+     * Get list of changes from database
+     * @return \DateTime[][]|string[][]|unknown[][]|string[][][]|boolean[][][]|unknown[][][]|NULL[][]
+     */
+    public function getChanges()
+    {
+        $gateway = $this->getChangesTableGateway();
+        $resultsChanges = $gateway->select();
+
+        $tz = new \DateTimeZone('UTC');
+        $changes = [];
+        foreach ($resultsChanges as $row) {
+            $user = null;
+            if ($row['UpdatedBy']) {
+                if ($this->getUserTable()) {
+                    $user = $this->getUserTable()->getUser($row['UpdatedBy']);
+                } else {
+                    $user = [
+                        'userId' => $this->filterDbId($row['UpdatedBy']),
+                    ];
+                }
+            }
+            $entity = $this->filterDbString($row['ChangedEntity']);
+            $entityId = $this->filterDbString($row['ChangedIDValue']);
+            //only bring in recognized entities
+            if (!key_exists($entity, $this->entities)) {
+                continue;
+            }
+            $change = [
+                'changeId'  => $this->filterDbId($row['ChangeID']),
+                'entity'    => $entity,
+                'entitySpecification' => $this->entities[$entity],
+                'entityId'  => $entityId,
+                'object'    => null,
+                'field'     => $this->filterDbString($row['ChangedField']),
+                'newValue'  => $row['NewValue'],
+                'oldValue'  => $row['OldValue'],
+                'ipAddress' => $this->filterDbString($row['IpAddress']),
+                'updatedOn' => $this->filterDbDate($row['UpdatedOn']),
+                'updatedBy' => $user,
+            ];
+
+            if (!is_null($this->entities[$entity]->updateReferenceDataFunction) &&
+                method_exists($this, $this->entities[$entity]->updateReferenceDataFunction) &&
+                !method_exists('SionTable', $this->entities[$entity]->updateReferenceDataFunction) //make sure noone's being sneaky
+            ) {
+                $objectFunction = $this->entities[$entity]->updateReferenceDataFunction;
+                $change['object'] = $this->$objectFunction($entityId);
+                if (is_null($change['object'])) { //it looks like the object has been deleted, let's fill in some data
+                    $change['object'] = [
+                        'isDeleted' => true,
+                    ];
+                    if ($this->entities[$entity]->entityKeyField) {
+                        $change['object'][$this->entities[$entity]->entityKeyField] = $entityId;
+                    }
+                    if ($this->entities[$entity]->nameField) {
+                        $change['object'][$this->entities[$entity]->nameField] = ucfirst($entity).' Id: '.$entityId;
+                    }
+                }
+            }
+
+            $changes[] = $change;
+        }
+        return $changes;
     }
 
     /**
@@ -552,6 +631,25 @@ class SionTable // implements ResourceProviderInterface
     }
 
     /**
+     * @return UserTable
+     */
+    public function getUserTable()
+    {
+        return $this->userTable;
+    }
+
+    /**
+     *
+     * @param UserTable $userTable
+     * @return self
+     */
+    public function setUserTable($userTable)
+    {
+        $this->userTable = $userTable;
+        return $this;
+    }
+
+    /**
      * Takes two DateTime objects and returns a string of the range of years the dates involve.
      * If one date is null, just the one year is returned. If both dates are null, null is returned.
      * @param \DateTime|null $startDate
@@ -573,9 +671,9 @@ class SionTable // implements ResourceProviderInterface
         {
             if (!is_null($startDate) xor !is_null($endDate)) { //only one is set
                 if (!is_null($startDate)) {
-                    $text .=' '. $startDate->format('Y');
+                    $text .= $startDate->format('Y');
                 } else {
-                    $text .=' '. $endDate->format('Y');
+                    $text .= $endDate->format('Y');
                 }
             } else {
                 $startYear = (int)$startDate->format('Y');
@@ -709,7 +807,7 @@ class SionTable // implements ResourceProviderInterface
     protected function filterDbArray($str, $delimiter = '|', $trim = true)
     {
         if ($str == '') {
-            return array();
+            return [];
         }
         $return = explode($delimiter, $str);
         if ($trim) {
@@ -722,13 +820,13 @@ class SionTable // implements ResourceProviderInterface
 
     public static function keyArray(array $a, $key, $unique = true)
     {
-        $return = array();
+        $return = [];
         foreach ($a as $item) {
             if (!$unique) {
                 if (isset($return[$item[$key]])) {
                     $return[$item[$key]][] = $item;
                 } else {
-                    $return[$item[$key]] = array($item);
+                    $return[$item[$key]] = [$item];
                 }
             } else {
                 $return[$item[$key]] = $item;

@@ -62,6 +62,16 @@ class Entity
      */
     public $nameField;
     /**
+     * Should the name be translated upon display?
+     * @var bool $nameFieldIsTranslateable
+     */
+    public $nameFieldIsTranslateable;
+    /**
+     * Used in FormatEntity to display a flag before the name field.
+     * @var string $countryField
+     */
+    public $countryField;
+    /**
      * List of fields that should be stored in the Changes table as a text column instead of varchar
      * @var string[]
      */
@@ -100,14 +110,33 @@ class Entity
     /**
      * The route parameter to pass when generating the URL to the show route
      * Example: 'person_id'
-     * @var string
+     * @var string $showRouteKey
      */
     public $showRouteKey;
     /**
-     * The entity field to pass as the route parameter
-     * @var unknown
+     * The entity field to pass as the show route parameter
+     * Example: 'personId'
+     * @var string $showRouteKeyField
      */
     public $showRouteKeyField;
+    /**
+     * The route to edit this entity
+     * Example: 'persons/person/edit'
+     * @var string $editRoute
+     */
+    public $editRoute;
+    /**
+     * The route parameter to pass when generating the URL to the edit route
+     * Example: 'person_id'
+     * @var string $editRouteKey
+     */
+    public $editRouteKey;
+    /**
+     * The entity field to pass as the edit route parameter
+     * Example: 'personId'
+     * @var string $editRouteKeyField
+     */
+    public $editRouteKeyField;
     /**
      * The route to moderate a suggestion on this entity
      * Example: 'persons/person/moderate'
