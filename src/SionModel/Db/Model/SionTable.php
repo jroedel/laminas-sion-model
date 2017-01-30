@@ -20,6 +20,7 @@ use SionModel\Service\ProblemService;
 use SionModel\Problem\ProblemTable;
 use Zend\Db\Sql\Where;
 use JUser\Model\UserTable;
+use Zend\Stdlib\StringUtils;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -599,6 +600,14 @@ class SionTable // implements ResourceProviderInterface
 
             $changes[] = $change;
         }
+
+        $sort = [];
+        foreach($changes as $k=>$v) {
+            $sort['updatedOn'][$k] = $v['updatedOn'];
+        }
+        # sort by event_type desc and then title asc
+        array_multisort($sort['updatedOn'], SORT_DESC, $changes);
+
         return $changes;
     }
 
@@ -833,6 +842,57 @@ class SionTable // implements ResourceProviderInterface
             }
         }
         return $return;
+    }
+
+    /**
+     * Pad a string to a certain length with another string
+     *
+     * @param  string  $input
+     * @param  int $padLength
+     * @param  string  $padString
+     * @param  int $padType
+     * @return string
+     */
+    public function strPad($input, $padLength, $padString = ' ', $padType = STR_PAD_RIGHT)
+    {
+        if (StringUtils::isSingleByteEncoding('UTF8')) {
+            return str_pad($input, $padLength, $padString, $padType);
+        }
+
+        $lengthOfPadding = $padLength - strlen($input);
+        if ($lengthOfPadding <= 0) {
+            return $input;
+        }
+
+        $padStringLength = strlen($padString);
+        if ($padStringLength === 0) {
+            return $input;
+        }
+
+        $repeatCount = floor($lengthOfPadding / $padStringLength);
+
+        if ($padType === STR_PAD_BOTH) {
+            $repeatCountLeft = $repeatCountRight = ($repeatCount - $repeatCount % 2) / 2;
+
+            $lastStringLength       = $lengthOfPadding - 2 * $repeatCountLeft * $padStringLength;
+            $lastStringLeftLength   = $lastStringRightLength = floor($lastStringLength / 2);
+            $lastStringRightLength += $lastStringLength % 2;
+
+            $lastStringLeft  = substr($padString, 0, $lastStringLeftLength);
+            $lastStringRight = substr($padString, 0, $lastStringRightLength);
+
+            return str_repeat($padString, $repeatCountLeft) . $lastStringLeft
+            . $input
+            . str_repeat($padString, $repeatCountRight) . $lastStringRight;
+        }
+
+        $lastString = substr($padString, 0, $lengthOfPadding % $padStringLength);
+
+        if ($padType === STR_PAD_LEFT) {
+            return str_repeat($padString, $repeatCount) . $lastString . $input;
+        }
+
+        return $input . str_repeat($padString, $repeatCount) . $lastString;
     }
 
     /**
