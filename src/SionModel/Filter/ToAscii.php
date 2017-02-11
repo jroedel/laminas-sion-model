@@ -27,16 +27,17 @@ class ToAscii extends AbstractFilter
      * @param  string $value
      * @return int|mixed
      */
-    public function filter($str)
-    {
-        if (is_null($str) || $str === '') {
-            return $str;
-        }
+    public function filter($str, $delimiter=' ', $replace=[]) {
 		$str = \ForceUTF8\Encoding::toUTF8($str);
+		
+		if( is_array($replace) && !empty($replace) ) {
+			$str = str_replace((array)$replace, ' ', $str);
+		}
         
 		$clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
-		$clean = preg_replace("/[^a-zA-Z0-9 -]/", '', $clean);
+		$clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);
 		$clean = strtolower(trim($clean, '-'));
+		$clean = preg_replace('/[\/_|+ -]/', $delimiter, $clean);
         $clean = iconv("ASCII", "UTF-8", $clean);
 		//$clean = mb_convert_encoding ( $clean , 'UTF-8'); 
 		//var_dump("I'm converting");

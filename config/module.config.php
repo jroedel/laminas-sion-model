@@ -93,4 +93,53 @@ return [
             ],
         ],
     ],
+    'controllers' => [
+        'invokables' => [
+            'SionModel\Controller\Sion'    => 'SionModel\Controller\SionController',
+        ],
+    ],
+    'router' => [
+        'routes' => [
+            'sion-model' => [
+                'type'    => 'Literal',
+                'options' => [
+                    'route'    => '/sm',
+                    'defaults' => [
+                        'controller' => 'SionModel\Controller\Sion',
+                        'action'     => 'index',
+                    ],
+                ],
+                'may_terminate' => false,
+                'child_routes' => [
+                    'data-problems' => [
+                        'type'    => 'Zend\Mvc\Router\Http\Literal',
+                        'options' => [
+                            'route'    => '/data-problems',
+                            'defaults' => [
+                                'action'     => 'dataProblems',
+                            ],
+                        ],
+                    ],
+                    'auto-fix-data-problems' => [
+                        'type'    => 'Zend\Mvc\Router\Http\Literal',
+                        'options' => [
+                            'route'    => '/auto-fix-data-problems',
+                            'defaults' => [
+                                'action'     => 'autoFixDataProblems',
+                            ],
+                        ],
+                    ],
+                    'view-changes' => [
+                        'type'    => 'Literal',
+                        'options' => [
+                            'route'    => '/view-changes',
+                            'defaults' => [
+                                'action'     => 'viewChanges',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ],
 ];

@@ -53,6 +53,13 @@ class Entity
      * A function to be called upon $data before creating/updating an entity
      * Example:
      * 'sortNationalityArray'
+     * 
+     * @see Entity
+     * it must accepts two parameters: $data, $entityData
+     * @param $data array[] is the data to be updated
+     * @param $entityData array[] is the current data in the function
+     * @returns array[] updated data to be inserted/updated in the database
+     * 
      * @var string $databaseBoundDataPreprocessor
      */
     public $databaseBoundDataPreprocessor;

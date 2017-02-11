@@ -175,4 +175,19 @@ class ProblemService
 
         return $this->problemProviders[$serviceName]['service'] = $service;
     }
+    
+    /**
+     * Autofix any possible problems in all provider services. 
+     * @param bool $simulate
+     */
+    public function autoFixProblems($simulate = true)
+    {
+        $problems = [];
+        foreach ($this->problemProviders as $providerInfo) {
+            $currentProblems = $this->getProblemProviderService($providerInfo['serviceName'])
+                ->autoFixProblems($simulate);
+            $problems = ArrayUtils::merge($problems, $currentProblems);
+        }
+        return $problems;
+    }
 }

@@ -287,11 +287,15 @@ class SionTable // implements ResourceProviderInterface
     	   $this->entities[$entity]->manyToOneUpdateColumns : null;
     	$reportChanges = isset($this->entities[$entity]->reportChanges) ?
     	   $this->entities[$entity]->reportChanges : false;
+    	
+    	/*
+    	 * Run the new/old data throught the preprocessor function if it exists
+    	 */
     	if (isset($this->entities[$entity]->databaseBoundDataPreprocessor) &&
     	    !is_null($this->entities[$entity]->databaseBoundDataPreprocessor)
 		) {
 		    $preprocessor = $this->entities[$entity]->databaseBoundDataPreprocessor;
-			$data = $this->$preprocessor($data);
+			$data = $this->$preprocessor($data, $entityData);
 		}
 		return $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges);
     }

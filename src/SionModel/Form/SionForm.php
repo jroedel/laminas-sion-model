@@ -228,6 +228,13 @@ class SionForm extends Form
 	    $this->setInputFilterSpecification($inputSpec);
 	}
 
+	/**
+	 * Normally setData is called on an edit action. This will automatically decode html 
+	 * entity fields to prevent entities from being double-encoded.
+	 * {@inheritDoc}
+	 * @see \Zend\Form\Form::setData()
+	 * @todo I'm not positive this works 100%, it seemed to decode script tags well, but not apostrophes. I ended up using StripTags instead.
+	 */
 	public function setData($data)
 	{
 	    $filterSpec = $this->getInputFilterSpecification();

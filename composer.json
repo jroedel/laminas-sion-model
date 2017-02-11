@@ -9,7 +9,7 @@
         "tedivm/jshrink": "^1.1",
         "voku/html2text": "^3.4",
         "tijsverkoyen/css-to-inline-styles": "^2.2",
-        "neilime/zf2-twb-bundle": "^3.0",
+        "neilime/zf2-twb-bundle": "^3.0"
     },
     "license": "MIT",
     "minimum-stability": "stable",
