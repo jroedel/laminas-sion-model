@@ -11,6 +11,7 @@ return [
         'invokables' => [
             'formRow'		        => 'SionModel\Form\View\Helper\SionFormRow',
             'dayFormat'             => 'SionModel\I18n\View\Helper\DayFormat',
+            'debugEncoding'			=> 'SionModel\View\Helper\DebugEncoding',
             'diffForHumans'         => 'SionModel\View\Helper\DiffForHumans',
             'email'					=> 'SionModel\View\Helper\Email',
             'jshrink'		        => 'SionModel\View\Helper\Jshrink',
@@ -36,7 +37,7 @@ return [
     ],
     'view_manager' => [
         'template_path_stack' => [
-            'sionmodel' => __DIR__ . '/../view',
+            'sion-model' => __DIR__ . '/../view',
         ],
     ],
     'service_manager' => [

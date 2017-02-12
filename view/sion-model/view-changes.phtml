@@ -24,9 +24,12 @@ foreach ($this->changes as $row):
 	<?php endif;
 	$geoText = $row['ipAddress'].' ';
     $geo = $this->geoip($row['ipAddress']);
-    $filter = new HtmlEntities();
-	if ($geo&&$geo->getCity()) $geoText .= ' ' . $filter->filter(mb_convert_encoding($geo->getCity(),"UTF-8","auto")).", ";
-	if ($geo&&$geo->getCountryName()) $geoText .= $filter->filter(mb_convert_encoding($geo->getCountryName(),"UTF-8","auto"));?>
+	if ($geo&&$geo->getCity()) {
+	    $geoText .= ' ' . mb_convert_encoding($geo->getCity(),"UTF-8","Windows-1252").", ";
+	}
+	if ($geo&&$geo->getCountryName()) {
+	    $geoText .= mb_convert_encoding($geo->getCountryName(),"UTF-8","Windows-1252");
+	}?>
 	<tr>
     	<td><span <?php if ($geoText):?>data-toggle="tooltip" data-placement="bottom" data-container="body"
     	title="<?php echo $this->escapeHtmlAttr($geoText);

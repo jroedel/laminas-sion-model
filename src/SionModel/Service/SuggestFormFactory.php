@@ -19,7 +19,17 @@ class SuggestFormFactory implements FactoryInterface
      */
     public function createService(ServiceLocatorInterface $serviceLocator)
     {
-		$form = new SuggestForm();
+        /**
+         * @var EntitiesService $entitiesService
+         */
+        $entitiesService = $serviceLocator->get ( 'SionModel\Service\EntitiesService' );
+        $entities = $entitiesService->getEntities();
+        $entityHaystack = [];
+        foreach ($entities as $entity) {
+            $entityHaystack[] = $entity->name;
+        }
+        
+		$form = new SuggestForm($entityHaystack);
         $form->prepareForSuggestion($serviceLocator);
 
 		return $form;

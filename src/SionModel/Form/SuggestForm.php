@@ -6,39 +6,68 @@ use Zend\InputFilter\InputFilterProviderInterface;
 
 class SuggestForm extends SionForm implements InputFilterProviderInterface
 {
-	public function __construct()
+    /**
+     * These are the possible values for the haystack
+     * @var array
+     */
+    protected $entityHaystack = [];
+    
+	public function __construct(array $entityHaystack)
 	{
 		// we want to ignore the name passed
 		parent::__construct('suggest');
 		$this->setAttribute('data-loading-text', 'Please wait...');
-
-		$this->add(array(
+        $this->setEntityHaystack($entityHaystack);
+		
+		$this->add([
 		    'name' => 'entity',
 		    'type' => 'Hidden',
-		));
-		$this->add(array(
+		]);
+		$this->add([
 		    'name' => 'entityId',
 		    'type' => 'Hidden',
-		));
-		$this->add(array(
+		]);
+		$this->add([
 			'name' => 'submit',
 			'type' => 'Submit',
-			'attributes' => array(
+			'attributes' => [
 				'value' => 'Submit',
 				'id' => 'submit',
 				'class' => 'btn-primary',
-			),
-		));
-		$this->add(array(
+			],
+		]);
+		$this->add([
 			'name' => 'cancel',
 			'type' => 'Button',
-			'attributes' => array(
+			'attributes' => [
 				'value' => 'Cancel',
 				'id' => 'submit',
 				'data-dismiss' => 'modal'
 // 				'class' => 'btn-danger'
-			),
-		));
+			],
+		]);
+	}
+	
+	/**
+	 * Set the haystack of acceptable values for the entity field
+	 * @return array
+	 */
+	public function getEntityHaystack()
+	{
+	    return $this->entityHaystack;
+	}
+	
+	/**
+	 * Set the haystack of acceptable values for the entity field
+	 * @todo update the input filter if it's already been set
+	 * 
+	 * @param array $entityHaystack
+	 * @return \SionModel\Form\SuggestForm
+	 */
+	public function setEntityHaystack(array $entityHaystack)
+	{
+	    $this->entityHaystack = $entityHaystack;
+	    return $this;
 	}
 
 	public function setInputFilterSpecification($spec)
@@ -51,35 +80,29 @@ class SuggestForm extends SionForm implements InputFilterProviderInterface
 	    if ($this->filterSpec) {
 	        return $this->filterSpec;
 	    }
-		$this->filterSpec = array(
-		    'entity' => array(
+		$this->filterSpec = [
+		    'entity' => [
 		        'required' => false,
-		        'validators' => array(
-		            array(
+		        'validators' => [
+		            [
 		                'name' => 'InArray',
-		                'options' => array(
-		                    'haystack' => array( //@todo make this list automatic
-// 		                        'filiation',
-// 		                        'generation',
-// 		                        'house',
-// 		                        'person',
-// 		                        'person-misc',
-		                    ),
-		                ),
-		            ),
-		        ),
-		        'filters' => array(
-                    array('name' => 'ToNull'),
-		        ),
-		    ),
-		    'entityId' => array(
+		                'options' => [
+		                    'haystack' => $this->entityHaystack,
+		                ],
+		            ],
+		        ],
+		        'filters' => [
+                    ['name' => 'ToNull'],
+		        ],
+		    ],
+		    'entityId' => [
 		        'required' => false,
-		        'filters' => array(
-                    array('name' => 'ToInt'),
-                    array('name' => 'ToNull'),
-		        ),
-		    ),
-		);
+		        'filters' => [
+                    ['name' => 'ToInt'],
+                    ['name' => 'ToNull'],
+		        ],
+		    ],
+		];
 		return $this->filterSpec;
 	}
 }

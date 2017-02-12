@@ -400,7 +400,7 @@ class SionTable // implements ResourceProviderInterface
     	$reportChanges             = $this->entities[$entity]->reportChanges;
     	//preprocess the data
     	if (!is_null($preprocessor = $this->entities[$entity]->databaseBoundDataPreprocessor)) {
-			$data = $this->$preprocessor($data);
+			$data = $this->$preprocessor($data, []);
 		}
 		return $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $scope, $manyToOneUpdateColumns, $reportChanges);
     }
@@ -701,6 +701,28 @@ class SionTable // implements ResourceProviderInterface
         } else {
             return null;
         }
+    }
+
+    /**
+     * Check if an assignment should be considered active based on the start/end date
+     * @param null|\DateTime $startDate
+     * @param null|\DateTime $endDate
+     * @throws \InvalidArgumentException
+     * @return boolean
+     */
+    public static function areWeWithinDateRange($startDate, $endDate)
+    {
+        if ((!is_null($startDate) && !$startDate instanceof \DateTime) ||
+            (!is_null($endDate) && !$endDate instanceof \DateTime)
+        ) {
+            throw new \InvalidArgumentException('Invalid value passed to `isAssignmentActive`');
+        }
+        static $now;
+        if (!isset($now)) {
+            $timeZone = new \DateTimeZone('UTC');
+            $now = new \DateTime(null, $timeZone);
+        }
+        return ($startDate < $now && (is_null($endDate) || $endDate > $now)) || (is_null($startDate) && (is_null($endDate) || $endDate > $now));
     }
 
     protected function filterDbId($str)

@@ -39,9 +39,6 @@ class ToAscii extends AbstractFilter
 		$clean = strtolower(trim($clean, '-'));
 		$clean = preg_replace('/[\/_|+ -]/', $delimiter, $clean);
         $clean = iconv("ASCII", "UTF-8", $clean);
-		//$clean = mb_convert_encoding ( $clean , 'UTF-8'); 
-		//var_dump("I'm converting");
-		//$clean = \ForceUTF8\Encoding::toUTF8($clean);
 		return $clean;
     }
 }
