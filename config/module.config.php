@@ -96,7 +96,7 @@ return [
     ],
     'controllers' => [
         'invokables' => [
-            'SionModel\Controller\Sion'    => 'SionModel\Controller\SionController',
+            'SionModel\Controller\Sion'    => 'SionModel\Controller\SionModelController',
         ],
     ],
     'router' => [
