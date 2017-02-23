@@ -81,7 +81,7 @@ class Entity
      * ['personId' => 'PersonId', 'email' => 'EmailAddress']
      * @var string[] $updateColumns
      */
-    public $updateColumns;
+    public $updateColumns = [];
     /**
      * When a field by the name of the key is updated, the algorithm will search for a field by
      * the name of the $value.'UpdatedOn' and $value.'UpdatedBy', to update those as w3ell.
@@ -137,13 +137,13 @@ class Entity
      * @var string $createActionForm
      */
     public $createActionForm;
-    
+
     /**
      * Route to which the user will be redirected upon a successful entity creation
      * @var string $createActionRedirectRoute
      */
     public $createActionRedirectRoute;
-    
+
     /**
      * The route parameter to be paired with the $createActionRedirectRoute.
      * The value will be the new PRIMARYKEY value of the newly created entity.
@@ -151,26 +151,32 @@ class Entity
      * @var string $createActionRedirectRouteKey
      */
     public $createActionRedirectRouteKey;
-    
+
+    /**
+     * Entity field to use as route key value upon successfully creating an entity instance
+     * @var string $createActionRedirectRouteKeyField
+     */
+    public $createActionRedirectRouteKeyField;
+
     /**
      * A view template in the template stack to render in the SionController->createAction.
      * If it is not specified, the default view template will be used.
      * @var unknown
      */
     public $createActionTemplate;
-    
+
     /**
      * A function to be called upon $data before creating/updating an entity
      * Example:
      * 'sortNationalityArray'
-     * 
+     *
      * @see Entity
      * it must accepts two parameters: $data, $entityData
      * @param $data mixed[] is the data to be updated
      * @param $entityData mixed[] the queried pre-action data, empty array on create
      * @param $entityAction one of the SionTable::ENTITY_ACTION_ consts
      * @returns mixed[] updated data to be inserted/updated in the database
-     * 
+     *
      * @var string $databaseBoundDataPreprocessor
      */
     public $databaseBoundDataPreprocessor;
@@ -217,7 +223,7 @@ class Entity
      */
     public $deleteActionAclPermission;
     /**
-     * 
+     *
      * The route to which the user should be redirected after deleting an entity
      * @var string
      */
@@ -240,16 +246,27 @@ class Entity
             }
         }
     }
-    
+
     /**
-     * Check that entity has specified all required information for deleting 
+     * Check that entity has specified all required information for deleting
      * an instance using the SionController::deleteEntityAction
      * @return boolean
      */
     public function isEnabledForEntityDelete()
     {
         return (bool)$this->enableDeleteAction &&
-            $this->sionModelClass && $this->deleteActionRedirectRoute &&
-            $this->tableName && $this->tableKey;
+            $this->tableName && 0 !== strlen($this->tableName) &&
+            $this->tableKey && 0 !== strlen($this->tableKey);
+    }
+
+    /**
+     * Check that the entity has the necessary configuration to update/create using SionTable
+     * @return boolean
+     */
+    public function isEnabledForUpdateAndCreate()
+    {
+        return !is_null($this->tableName) && !is_null($this->tableKey) &&
+            !is_null($this->updateReferenceDataFunction) &&
+            !is_null($this->updateColumns) && !empty($this->updateColumns);
     }
 }

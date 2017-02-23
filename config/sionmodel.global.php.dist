@@ -26,7 +26,7 @@ return [
 		* If this key is set, it will be used to prime the SionForm with persons for suggestions.
 		* The class must implement the SionModel\Person\PersonProviderInterface
 		*/
-		'person_provider' => 'Project\Model\PersonTable',
+		'person_provider' => 'Project\Model\EventTable',
 		'entities' => [
 			/**
 			 * For more information on entity config:
@@ -50,6 +50,7 @@ return [
                 'moderate_route' => 'events/event/moderate',
                 'moderate_route_entity_key' => 'event_id',
                 'enable_delete_action' => true,
+                'delete_action_redirect_route' => 'events',
                 'delete_action_acl_resource' => 'event_:id',
                 'delete_action_acl_permission' => 'delete',
                 'text_columns' => [

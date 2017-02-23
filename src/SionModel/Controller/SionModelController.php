@@ -19,8 +19,8 @@ use Zend\Mvc\Controller\Plugin\FlashMessenger;
 
 class SionModelController extends AbstractActionController
 {
-    
-    /** 
+
+    /**
      * Example route: /sm/delete/person/4
      * Only allow deleting if the entity specifically specifies that it is allowed
      * Also check an optional resource/permission identifier if the current user is allowed
@@ -32,23 +32,23 @@ class SionModelController extends AbstractActionController
         $entity = $this->getEntity();
         $entityId = (Int)$this->params()->fromRoute('entity_id');
         $defaultRedirectRoute = $this->getDefaultRedirectRoute();
-        $entitySpec = $this->getEntitySpecification();
-        
+        $entitySpec = $this->getEntitySpecification(); //@todo
+
         $request = $this->getRequest();
         $sm = $this->getServiceLocator();
-        
+
         //make sure we have all the information that we need to delete
         if (!$entitySpec->isEnabledForEntityDelete()) {
-            $redirectRoute = $defaultRedirectRoute;
+            $redirectRoute = $defaultRedirectRoute; //@todo check $entitySpec->deleteActionRedirectRoute, since it is not included in isEnabledForEntityDelete, also $entitySpec->sionTable
             $this->flashMessenger()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )
                 ->addMessage ( 'This entity cannot be deleted, please check the configuration.');
             $this->redirect()->toRoute($redirectRoute);
         }
-        
+
         //make sure the user has permission to delete the entity
-        if (!is_null($entitySpec->deleteActionAclResource) && 
-            !$this->isAllowed($entitySpec->deleteActionAclResource, 
-                $entitySpec->deleteActionAclPermission ? 
+        if (!is_null($entitySpec->deleteActionAclResource) &&
+            !$this->isAllowed($entitySpec->deleteActionAclResource,
+                $entitySpec->deleteActionAclPermission ?
                     $entitySpec->deleteActionAclPermission : null)
         ) {
             $redirectRoute = $defaultRedirectRoute;
@@ -56,10 +56,10 @@ class SionModelController extends AbstractActionController
                 ->addMessage ( 'You do not have permission to delete this entity.');
             $this->redirect()->toRoute($redirectRoute);
         }
-        
+
         //make sure our table exists
         $table = $this->getSionTable();
-        
+
         //make sure our entity exists
         if (!$table->existsEntity($entity, $id)) {
             $this->getResponse()->setStatusCode(401);
@@ -67,7 +67,7 @@ class SionModelController extends AbstractActionController
                 ->addMessage ( 'The entity you\'re trying to delete doesn\'t exists.' );
             $this->redirect()->toRoute('roles');
         }
-        
+
         $form = new DeleteEntityForm($entitySpec->tableName, $entitySpec->tableKey);
         if ( $request->isPost ()) {
             $data = $request->getPost();
@@ -81,7 +81,7 @@ class SionModelController extends AbstractActionController
                 $this->getResponse()->setStatusCode(401); //exists, but either didn't match params or bad csrf
             }
         }
-        
+
         return new ViewModel ( [
             'form' => $form,
             'entityId' => $entityId,
@@ -98,25 +98,25 @@ class SionModelController extends AbstractActionController
         $sm = $this->getServiceLocator();
         /** @var ProblemService $table */
         $table = $sm->get('SionModel\Service\ProblemService');
-    
+
         $problems = $table->getCurrentProblems();
-    
+
         return new ViewModel([
             'problems' => $problems,
         ]);
     }
-    
+
     /**
      * Autofix data problems. User must accept the changes to be applied.
      */
     public function autoFixDataProblemsAction()
     {
         $simulate = true;
-    
+
         $sm = $this->getServiceLocator();
         /** @var ProblemService $table */
         $table = $sm->get('SionModel\Service\ProblemService');
-    
+
         $form = new ConfirmForm();
         $request = $this->getRequest();
         if ($request->isPost ()) {
@@ -127,7 +127,7 @@ class SionModelController extends AbstractActionController
             }
         }
         $problems = $table->autoFixProblems($simulate);
-    
+
         $view = new ViewModel([
             'problems' => $problems,
             'isSimulation' => $simulate,
@@ -136,7 +136,7 @@ class SionModelController extends AbstractActionController
         $view->setTemplate('sion-model/sion/data-problems');
         return $view;
     }
-    
+
     /**
      *
      * @return \Zend\View\Model\ViewModel
@@ -151,7 +151,7 @@ class SionModelController extends AbstractActionController
         /** @var SionTable $table */
         $table = $sm->get($config['visits_model']);
         $results = $table->getChanges();
-    
+
         return new ViewModel([
             'changes' => $results,
         ]);

@@ -25,28 +25,28 @@ class SionController extends AbstractActionController
      * @var Entity $entitySpecification
      */
     protected $entitySpecification;
-    
+
     /**
      * @var SionTable $sionTable
      */
     protected $sionTable;
-    
-    
+
+
     /**
     * @var string $entity
     */
     protected $entity;
-    
+
     /**
     * @var defaultRedirectRoute $defaultRedirectRoute
     */
     protected $defaultRedirectRoute;
-    
+
     /**
     * @var array $sionModelConfig
     */
     protected $sionModelConfig;
-    
+
     /**
      * @param string $entity
      * @throws \Exception
@@ -55,7 +55,7 @@ class SionController extends AbstractActionController
     {
         $this->setEntity($entity);
     }
-    
+
     public function createAction()
     {
         $sm = $this->getServiceLocator ();
@@ -63,7 +63,7 @@ class SionController extends AbstractActionController
         $table = $this->getSionTable();
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-    
+
         if (is_null($entitySpec->createActionForm)) {
             throw new \InvalidArgumentException('If the createAction for \''.$entity.'\' is to be used, it must specify the create_action_form configuration.');
         }
@@ -76,7 +76,7 @@ class SionController extends AbstractActionController
         } else {
             throw new \InvalidArgumentException('Invalid create_action_form specified for \''.$entity.'\' entity.');
         }
-        
+
         $request = $this->getRequest();
         if ($request->isPost ()) {
             $data = $request->getPost ()->toArray ();
@@ -90,9 +90,21 @@ class SionController extends AbstractActionController
                         ->addMessage ( ucwords($entity).' successfully created.' );
                     //check if user has the redirect route set
                     if (!is_null($entitySpec->createActionRedirectRoute)) {
-                        $this->redirect ()->toRoute ($entitySpec->createActionRedirectRoute, 
-                            !is_null($entitySpec->createActionRedirectRouteKey) ? 
-                            [$entitySpec->createActionRedirectRouteKey => $newId] : []);
+                        if (is_null($entitySpec->createActionRedirectRouteKeyField) ||
+                            $entitySpec->createActionRedirectRouteKeyField == $entitySpec->entityKeyField ||
+                            is_null($entitySpec->createActionRedirectRouteKey)
+                        ) {
+                            $this->redirect ()->toRoute ($entitySpec->createActionRedirectRoute,
+                                !is_null($entitySpec->createActionRedirectRouteKey) ?
+                                [$entitySpec->createActionRedirectRouteKey => $newId] : []);
+                        } else {
+                            $entityObj = $table->getEntity($entity, $newId);
+                            if (!key_exists($entitySpec->createActionRedirectRouteKeyField, $entityObj)) {
+                                throw new \Exception('create_action_redirect_route_key_field is misconfigured for entity \''.$entity.'\'');
+                            }
+                            $this->redirect ()->toRoute ($entitySpec->createActionRedirectRoute,
+                                [$entitySpec->createActionRedirectRouteKey => $entityObj[$entitySpec->createActionRedirectRouteKeyField]]);
+                        }
                     } else {
                         $this->redirect ()->toRoute ($this->getDefaultRedirectRoute());
                     }
@@ -104,7 +116,7 @@ class SionController extends AbstractActionController
         $view = new ViewModel([
             'form' => $form,
         ]);
-        
+
         //check if the user has the createActionTemplate option set, if not they'll go to the default
         if (!is_null($entitySpec->createActionTemplate)) {
             $template = $entitySpec->createActionTemplate;
@@ -132,7 +144,7 @@ class SionController extends AbstractActionController
         }
         return $this->entitySpecification;
     }
-    
+
     /**
      *
      * @param Entity $entitySpecification
@@ -143,7 +155,7 @@ class SionController extends AbstractActionController
         $this->entitySpecification = $entitySpecification;
         return $this;
     }
-    
+
     /**
      * Get the sionTable value
      * @return SionTable
@@ -160,7 +172,7 @@ class SionController extends AbstractActionController
         }
         return $this->sionTable;
     }
-    
+
     /**
      * @param SionTable $sionTable
      * @return self
@@ -182,7 +194,7 @@ class SionController extends AbstractActionController
     {
         return $this->entity;
     }
-    
+
     /**
      *
      * @param string $entity
@@ -207,7 +219,7 @@ class SionController extends AbstractActionController
         }
         return $this->defaultRedirectRoute;
     }
-    
+
     /**
      *
      * @param defaultRedirectRoute $defaultRedirectRoute
@@ -231,7 +243,7 @@ class SionController extends AbstractActionController
         }
         return $this->sionModelConfig;
     }
-    
+
     /**
      *
      * @param array $sionModelConfig
