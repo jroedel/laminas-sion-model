@@ -19,6 +19,9 @@ return [
 //            'US' => ':cityState :zip',
 //            'CL' => ':cityState :zip',
 //        ],
+		
+	    'default_redirect_route' => 'home',
+	    
 		/**
 		* If this key is set, it will be used to prime the SionForm with persons for suggestions.
 		* The class must implement the SionModel\Person\PersonProviderInterface
@@ -39,12 +42,16 @@ return [
                 'has_dedicated_suggest_form' => false,
                 'update_reference_data_function' => 'getEvent',
                 'database_bound_data_preprocessor' => 'preprocessEvent',
+                'database_bound_data_postprocessor' => 'postprocessEvent',
                 'required_columns_for_creation' => [
         	        'title'
         	    ],
                 'name_column' => 'title',
-                'moderate_route' => 'courses/course/moderate',
-                'moderate_route_entity_key' => 'course_id',
+                'moderate_route' => 'events/event/moderate',
+                'moderate_route_entity_key' => 'event_id',
+                'enable_delete_action' => true,
+                'delete_action_acl_resource' => 'event_:id',
+                'delete_action_acl_permission' => 'delete',
                 'text_columns' => [
 
                 ],

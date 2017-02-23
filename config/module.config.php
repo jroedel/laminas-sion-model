@@ -113,7 +113,7 @@ return [
                 'may_terminate' => false,
                 'child_routes' => [
                     'data-problems' => [
-                        'type'    => 'Zend\Mvc\Router\Http\Literal',
+                        'type'    => 'Literal',
                         'options' => [
                             'route'    => '/data-problems',
                             'defaults' => [
@@ -122,7 +122,7 @@ return [
                         ],
                     ],
                     'auto-fix-data-problems' => [
-                        'type'    => 'Zend\Mvc\Router\Http\Literal',
+                        'type'    => 'Literal',
                         'options' => [
                             'route'    => '/auto-fix-data-problems',
                             'defaults' => [
@@ -136,6 +136,19 @@ return [
                             'route'    => '/view-changes',
                             'defaults' => [
                                 'action'     => 'viewChanges',
+                            ],
+                        ],
+                    ],
+                    'delete-entity' => [
+                        'type'    => 'Segment',
+                        'options' => [
+                            'route'    => '/delete/:entity/:entity_id',
+                            'defaults' => [
+                                'action' => 'deleteEntity',
+                            ],
+                            'constraints' => [
+                                'entity_id' => '[0-9]{1,5}',
+                                'entity' => '[a-zA-Z_-]{1,25}',
                             ],
                         ],
                     ],

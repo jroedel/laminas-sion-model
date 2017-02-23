@@ -53,24 +53,26 @@ entity. The problems may be submitted to the database to be tracked when they ar
 resolved. Also, the user can choose to ignore a particular error. A pre-made GUI is 
 included which shows all the collected problems. 
 
-Steps to use:
+### Steps to use:
 
-* Extend `SionModel\Problem\EntityProblem` for each of the entities you wish to detect problems.
-In the `__construct` function make sure to call `addEntitySpecifications` and 
-`addProblemSpecifications`.
-* Implement the `ProblemProviderInterface`. 
-* Register the implemented `ProblemProviderInterface` in the config under the 
-`problem_providers` key.
-```
-    'sion_model' => [
-	'problem_providers' => [
-	    'Patres\Problem\PersonProblemProvider',
+1. Define 1 or more problems under the `['sion_model']['problem_specifications']` config key in `module.config.php`:```
+
+	'sion_model' => [
+		'problem_providers' => [
+	        'Project\Model\ProjectTable',
+	    ],
+		'problem_specifications' => [
+	        'person-no-email' => [
+	            'entity'            => 'person',
+	            'defaultSeverity'   => EntityProblem::SEVERITY_ERROR,
+	            'text'              => 'No email associated with person',
+	    	],
+		],
 	],
-    ],
-```
+2. Implement the `ProblemProviderInterface` in the `Project\Model\ProjectTable` class. 
 
 ## Coming soon
 
 * Integrated mailing support
-* Integrated data problem management (display data errors and warnings to admins through a GUI)
+* Integrated data problem management (display data errors and warnings to admins through a GUI) (Completed!)
 * Support entity-level ACL rules

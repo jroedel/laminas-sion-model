@@ -21,6 +21,7 @@ use SionModel\Problem\ProblemTable;
 use Zend\Db\Sql\Where;
 use JUser\Model\UserTable;
 use Zend\Stdlib\StringUtils;
+use SionModel\Problem\EntityProblem;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -53,7 +54,6 @@ use Zend\Stdlib\StringUtils;
 /**
  *
  * @author jeffr
- * @todo Finish refactoring of reportChange
  * @todo Integrate data problem management
  * @todo Factor out 'changes_table_name' from __contruct method. Make it a required key for entities
  */
@@ -68,9 +68,15 @@ class SionTable // implements ResourceProviderInterface
 
     /**
      *
-     * @var Adapter
+     * @var Adapter $adapter
      */
     protected $adapter;
+    
+    /**
+     * A cache of already created table gateways, keyed by the table name
+     * @var TableGateway[] $tableGatewaysCache
+     */
+    protected $tableGatewaysCache = [];
 
     protected $select;
 
@@ -79,7 +85,7 @@ class SionTable // implements ResourceProviderInterface
     /**
      * @var Entity[] $entities
      */
-    protected $entities;
+    protected $entities = [];
 
     /**
      *
@@ -110,6 +116,10 @@ class SionTable // implements ResourceProviderInterface
      */
     protected $actingUserId;
 
+    /**
+     * A prototype of an EntityProblem to clone
+     * @var EntityProblem $entityProblemPrototype
+     */
     protected $entityProblemPrototype;
 
     /**
@@ -117,6 +127,22 @@ class SionTable // implements ResourceProviderInterface
      * @var UserTable $userTable
      */
     protected $userTable;
+
+    /**
+     * Represents the action of updating an entity
+     * @var string
+     */
+    const ENTITY_ACTION_UPDATE = 'entity-action-update';
+    /**
+     * Represents the action of creating an entity
+     * @var string
+     */
+    const ENTITY_ACTION_CREATE = 'entity-action-create';
+    /**
+     * Represents the action of suggesting an edit to an entity
+     * @var string
+     */
+    const ENTITY_ACTION_SUGGEST = 'entity-action-suggest';
 
     /**
      * If $changesTableName is left null, no changes will be made.
@@ -292,12 +318,28 @@ class SionTable // implements ResourceProviderInterface
     	 * Run the new/old data throught the preprocessor function if it exists
     	 */
     	if (isset($this->entities[$entity]->databaseBoundDataPreprocessor) &&
-    	    !is_null($this->entities[$entity]->databaseBoundDataPreprocessor)
+    	    !is_null($this->entities[$entity]->databaseBoundDataPreprocessor) &&
+            method_exists($this, $this->entities[$entity]->databaseBoundDataPreprocessor) &&
+            !method_exists('SionTable', $this->entities[$entity]->databaseBoundDataPreprocessor) //make sure noone's being sneaky)
 		) {
 		    $preprocessor = $this->entities[$entity]->databaseBoundDataPreprocessor;
-			$data = $this->$preprocessor($data, $entityData);
+			$data = $this->$preprocessor($data, $entityData, self::ENTITY_ACTION_UPDATE);
 		}
-		return $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges);
+		$return = $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges);
+		
+		/*
+		 * Run the changed/new data throught the preprocessor function if it exists
+		 */
+		if (isset($this->entities[$entity]->databaseBoundDataPostprocessor) &&
+            !is_null($this->entities[$entity]->databaseBoundDataPostprocessor) && 
+            method_exists($this, $this->entities[$entity]->databaseBoundDataPostprocessor) &&
+            !method_exists('SionTable', $this->entities[$entity]->databaseBoundDataPostprocessor) //make sure noone's being sneaky
+        ) {
+            $newEntityData = $this->$entityFunction($id);
+            $postprocessor = $this->entities[$entity]->databaseBoundDataPostprocessor;
+            $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_UPDATE);
+        }
+        return $return;
     }
 
     /**
@@ -392,17 +434,40 @@ class SionTable // implements ResourceProviderInterface
         }
 
     	$tableName                 = $this->entities[$entity]->tableName;
-    	$tableGateway              = new TableGateway($tableName, $this->adapter);
+    	$tableGateway              = $this->getTableGateway($tableName);
     	$scope                     = $this->entities[$entity]->scope;
     	$requiredCols              = $this->entities[$entity]->requiredColumnsForCreation;
     	$updateCols                = $this->entities[$entity]->updateColumns;
     	$manyToOneUpdateColumns    = $this->entities[$entity]->manyToOneUpdateColumns;
     	$reportChanges             = $this->entities[$entity]->reportChanges;
-    	//preprocess the data
+    	
+		/**
+		 * Run the changed/new data through the preprocessor function if it exists
+		 * @see Entity
+		 */
     	if (!is_null($preprocessor = $this->entities[$entity]->databaseBoundDataPreprocessor)) {
-			$data = $this->$preprocessor($data, []);
+			$data = $this->$preprocessor($data, [], self::ENTITY_ACTION_CREATE);
 		}
-		return $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $scope, $manyToOneUpdateColumns, $reportChanges);
+		
+		$return = $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $scope, $manyToOneUpdateColumns, $reportChanges);
+
+		/**
+		 * Run the changed/new data through the postprocessor function if it exists
+		 * @see Entity
+		 * @todo Code for the case of no AUTO_INCREMENT (look for the $tableKey set in the $data)
+		 */
+		if ($return && //$return is should be the AUTO_INCREMENT value of the inserted row
+		    isset($this->entities[$entity]->databaseBoundDataPostprocessor) &&
+            !is_null($this->entities[$entity]->databaseBoundDataPostprocessor && 
+            !is_null($this->entities[$entity]->updateReferenceDataFunction))
+        ) {
+            $entityFunction = $this->entities[$entity]->updateReferenceDataFunction;
+            $newEntityData = $this->$entityFunction($return);
+            $postprocessor = $this->entities[$entity]->databaseBoundDataPostprocessor;
+            $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_CREATE);
+        }
+        
+        return $return;
     }
 
     /**
@@ -420,7 +485,7 @@ class SionTable // implements ResourceProviderInterface
     	//make sure required cols are being passed
     	foreach ($requiredCols as $colName) {
     		if (!isset($data[$colName])) {
-    			return false;
+    			throw new \InvalidArgumentException('Not all required fields for the creation of an entity were provided.');
     		}
     	}
 
@@ -464,35 +529,55 @@ class SionTable // implements ResourceProviderInterface
     		$updateVals[$updateCols['updatedOn']] = $now;
     	}
     	if (isset($updateCols['updatedBy']) && !isset($updateVals[$updateCols['updatedBy']]) &&
-    			!is_null($this->actingUserId)) {
-    				$updateVals[$updateCols['updatedBy']] = $this->actingUserId;
-    			}
-    			if (key_exists('createdOn', $updateCols) && !key_exists('createdOn', $data)) { //check if this column has updatedOn column
-    				$updateVals[$updateCols['createdOn']] = $now;
-    			}
-    			if (key_exists('createdBy', $updateCols) && !key_exists('createdBy', $data) &&
-    					!is_null($this->actingUserId)) { //check if this column has updatedOn column
-    						$updateVals[$updateCols['createdBy']] = $this->actingUserId;
-    			}
-    			if (count($updateVals) > 0) {
-    				$resultsInsert = $tableGateway->insert($updateVals);
-    				$newId = $tableGateway->getLastInsertValue();
-    				$changeVals = [[
-						'entity'   => $entityType,
-						'field'    => 'newEntry',
-						'id'       => $newId
-    				]];
-    				if ($reportChanges) {
-    				    $this->reportChange($changeVals);
-    				}
-    				//@todo FACTOR THIS OUT!, belongs only in Patres
-    				//create the roles associated with the newly created entity
-    				if ($scope) {
-    					$this->createAssociatedRoles($scope, $newId);
-    				}
-    				return $newId;
-    			}
-    			return false;
+    	    !is_null($this->actingUserId)
+        ) {
+			$updateVals[$updateCols['updatedBy']] = $this->actingUserId;
+		}
+		if (key_exists('createdOn', $updateCols) && !key_exists('createdOn', $data)) { //check if this column has updatedOn column
+			$updateVals[$updateCols['createdOn']] = $now;
+		}
+		if (key_exists('createdBy', $updateCols) && !key_exists('createdBy', $data) &&
+			!is_null($this->actingUserId)
+        ) { //check if this column has updatedOn column
+            $updateVals[$updateCols['createdBy']] = $this->actingUserId;
+		}
+		if (count($updateVals) > 0) {
+			$resultsInsert = $tableGateway->insert($updateVals);
+			$newId = $tableGateway->getLastInsertValue();
+			$changeVals = [[
+				'entity'   => $entityType,
+				'field'    => 'newEntry',
+				'id'       => $newId
+			]];
+			if ($reportChanges) {
+			    $this->reportChange($changeVals);
+			}
+			//@todo FACTOR THIS OUT!, belongs only in Patres
+			//create the roles associated with the newly created entity
+// 			if ($scope) {
+// 				$this->createAssociatedRoles($newId, $scope);
+// 			}
+			return $newId;
+		}
+		return false;
+    }
+    
+    /**
+     * Get an instance of a TableGateway for a particular table name
+     * @param string $tableName
+     */
+    protected function getTableGateway($tableName)
+    {
+        if (key_exists($tableName, $this->tableGatewaysCache)) {
+            return $this->tableGatewayCache[$tableName];
+        }
+        return $this->tableGatewaysCache[$tableName] = 
+            new TableGateway($tableName, $this->adapter);
+    }
+    
+    public function deleteEntity($entity, $id)
+    {
+        
     }
 
     /**
