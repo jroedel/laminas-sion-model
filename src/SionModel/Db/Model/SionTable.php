@@ -335,14 +335,14 @@ class SionTable // implements ResourceProviderInterface
         $return = $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges);
 
         /*
-         * Run the changed/new data throught the preprocessor function if it exists
+         * Run the changed/new data through the preprocessor function if it exists
          */
         if (isset($entitySpec->databaseBoundDataPostprocessor) &&
             !is_null($entitySpec->databaseBoundDataPostprocessor) &&
             method_exists($this, $entitySpec->databaseBoundDataPostprocessor) &&
             !method_exists('SionTable', $entitySpec->databaseBoundDataPostprocessor) //make sure noone's being sneaky
         ) {
-            $newEntityData = $this->$entityFunction($id);
+            $newEntityData = $this->getEntity($entity, $id);
             $postprocessor = $entitySpec->databaseBoundDataPostprocessor;
             $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_UPDATE);
         }

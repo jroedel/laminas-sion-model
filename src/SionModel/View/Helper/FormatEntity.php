@@ -36,7 +36,7 @@ class FormatEntity extends AbstractHelper
             'displayFlag' => isset($options['displayFlag']) ? (bool)$options['displayFlag'] : true,
             'displayAsLink' => isset($options['displayAsLink']) ? (bool)$options['displayAsLink'] : true,
             'displayEditPencil' => isset($options['displayEditPencil']) ? (bool)$options['displayEditPencil'] : true,
-            'failSilently' => isset($options['failSilently']) ? (bool)$options['failSilently'] : false,
+            'failSilently' => isset($options['failSilently']) ? (bool)$options['failSilently'] : true,
             'displayInactiveAsLabel' => isset($options['displayInactiveAsLabel']) ? (bool)$options['displayInactiveAsLabel'] : false,
         ];
 
