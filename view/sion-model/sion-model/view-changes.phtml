@@ -38,7 +38,7 @@ foreach ($this->changes as $row):
 		<td><?php
             if (isset($row['object']) && !is_null($row['object'])) {
 
-                echo $this->formatEntity($row['entity'], $row['object'],
+                echo $this->formatEntity($row['entityType'], $row['object'],
                     [
                         'displayEditPencil' => !isset($row['object']['isDeleted']),
                         'failSilently' => true,

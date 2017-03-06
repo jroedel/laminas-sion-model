@@ -30,11 +30,6 @@ class Entity
      */
     public $entityKeyField;
     /**
-     * @deprecated Used for creating associated roles for the Patres database
-     * @var string $scope
-     */
-    public $scope;
-    /**
      * Service locator name of the class (that extends SionModel), which manages this entity
      * @var string $sionModelClass
      */
@@ -42,9 +37,14 @@ class Entity
     /**
      * Method name from which to get reference data upon updating an entity
      * It must be in the same SionModel class from which 'updateEntity' is called
-     * @var string $updateReferenceDataFunction
+     * @var string $getObjectFunction
      */
-    public $updateReferenceDataFunction;
+    public $getObjectFunction;
+    /**
+     * Function name to get all objects. This function is called from getObjects.
+     * @var string getObjectsFunction
+     */
+    public $getObjectsFunction;
     /**
      * List of columns needed in order to insert a new entity
      * @var string[] $requiredColumnsForCreation
@@ -59,7 +59,7 @@ class Entity
      * Should the name be translated upon display?
      * @var bool $nameFieldIsTranslateable
      */
-    public $nameFieldIsTranslateable;
+    public $nameFieldIsTranslateable = false;
     /**
      * Used in FormatEntity to display a flag before the name field.
      * @var string $countryField
@@ -96,6 +96,18 @@ class Entity
      */
     public $reportChanges = false;
     /**
+     * A route name where an index of the entities can be found.
+     * The SionController will redirect here if an invalid entity was attempted to be edited.
+     * @var string $indexRoute
+     */
+    public $indexRoute;
+
+    /**
+     * A template stack address to render the SionController::indexAction
+     * @var string $indexTemplate
+     */
+    public $indexTemplate;
+    /**
      * The route to show this entity
      * Example: 'persons/person'
      * @var string $showRoute
@@ -113,6 +125,16 @@ class Entity
      * @var string $showRouteKeyField
      */
     public $showRouteKeyField;
+    /**
+     * String representing either a service, or a class name
+     * @var string $editActionForm
+     */
+    public $editActionForm;
+    /**
+     * Template stack address to render on the SionController::editAction
+     * @var string $editActionTemplate
+     */
+    public $editActionTemplate;
     /**
      * The route to edit this entity
      * Example: 'persons/person/edit'
@@ -266,7 +288,7 @@ class Entity
     public function isEnabledForUpdateAndCreate()
     {
         return !is_null($this->tableName) && !is_null($this->tableKey) &&
-            !is_null($this->updateReferenceDataFunction) &&
+            !is_null($this->getObjectFunction) &&
             !is_null($this->updateColumns) && !empty($this->updateColumns);
     }
 }

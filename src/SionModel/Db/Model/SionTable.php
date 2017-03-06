@@ -84,9 +84,9 @@ class SionTable // implements ResourceProviderInterface
     protected $sql;
 
     /**
-     * @var Entity[] $entities
+     * @var Entity[] $entitySpecifications
      */
-    protected $entities = [];
+    protected $entitySpecifications = [];
 
     /**
      *
@@ -162,7 +162,7 @@ class SionTable // implements ResourceProviderInterface
         $config = $serviceLocator->get('SionModel\Config');
         $this->tableGateway     = new TableGateway('', $dbAdapter);
         $this->adapter          = $dbAdapter;
-        $this->entities         = $entities->getEntities();
+        $this->entitySpecifications         = $entities->getEntities();
         $this->actingUserId     = $actingUserId;
         $this->changeTableName  = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
@@ -183,6 +183,46 @@ class SionTable // implements ResourceProviderInterface
             $problemService = $serviceLocator->get('SionModel\Service\ProblemService');
             $this->entityProblemPrototype = $problemService->getEntityProblemPrototype();
         }
+    }
+
+    /**
+     * Get entity data for the specified entity and id
+     * @param string $entity
+     * @param number|string $id
+     * @throws \Exception
+     * @throws \InvalidArgumentException
+     * @return mixed[]
+     */
+    public function getObject($entity, $id, $failSilently = false)
+    {
+        $entitySpec = $this->getEntitySpecification($entity);
+        $entityFunction = $entitySpec->getObjectFunction;
+        if (!method_exists($this, $entityFunction) ||
+            method_exists('SionTable', $entityFunction)
+        ) {
+            throw new \Exception('Invalid get_object_function set for entity \''.$entity.'\'');
+        }
+        $entityData = $this->$entityFunction($id);
+        if (!$entityData && !$failSilently) {
+            throw new \InvalidArgumentException('No entity provided.');
+        }
+        return $entityData;
+    }
+
+    public function getObjects($entity, $failSilently = false)
+    {
+        $entitySpec = $this->getEntitySpecification($entity);
+        $objectsFunction = $entitySpec->getObjectsFunction;
+        if (!method_exists($this, $objectsFunction) ||
+            method_exists('SionTable', $objectsFunction)
+        ) {
+            throw new \Exception('Invalid get_objects_function set for entity \''.$entity.'\'');
+        }
+        $objects = $this->$objectsFunction();
+        if (!$objects && !$failSilently) {
+            throw new \InvalidArgumentException('No entity provided.');
+        }
+        return $objects;
     }
 
     /**
@@ -257,13 +297,13 @@ class SionTable // implements ResourceProviderInterface
      */
     protected function getEntitySpecification($entity)
     {
-        if (empty($this->entities)) {
+        if (empty($this->entitySpecifications)) {
             throw new \Exception('No entity specifications are loaded. Please see sionmodel.global.php.dist');
         }
-        if (!key_exists($entity, $this->entities)) {
+        if (!key_exists($entity, $this->entitySpecifications)) {
             throw new \InvalidArgumentException('The request entity is unspecified. \''.$entity.'\'');
         }
-        return $this->entities[$entity];
+        return $this->entitySpecifications[$entity];
     }
 
     /**
@@ -277,16 +317,16 @@ class SionTable // implements ResourceProviderInterface
         $entitySpec = $this->getEntitySpecification($entity);
         if (!$entitySpec->isEnabledForUpdateAndCreate()) {
             throw new \Exception('The following config keys are required to update entity \''.
-                '\': table_name, table_key, update_reference_data_function, update_columns');
+                '\': table_name, table_key, get_object_function, update_columns');
         }
-        if (!method_exists($this, $this->entities[$entity]->updateReferenceDataFunction) ||
-            method_exists('SionTable', $this->entities[$entity]->updateReferenceDataFunction)
+        if (!method_exists($this, $this->entitySpecifications[$entity]->getObjectFunction) ||
+            method_exists('SionTable', $this->entitySpecifications[$entity]->getObjectFunction)
         ) {
             throw new \Exception('\'updateReferenceDataFunction\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
         }
-        if (isset($this->entities[$entity]->databaseBoundDataPreprocessor) &&
-            !is_null($this->entities[$entity]->databaseBoundDataPreprocessor) &&
-            !method_exists($this, $this->entities[$entity]->databaseBoundDataPreprocessor)
+        if (isset($this->entitySpecifications[$entity]->databaseBoundDataPreprocessor) &&
+            !is_null($this->entitySpecifications[$entity]->databaseBoundDataPreprocessor) &&
+            !method_exists($this, $this->entitySpecifications[$entity]->databaseBoundDataPreprocessor)
         ) {
             throw new \Exception('\'databaseBoundDataPreprocessor\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
         }
@@ -314,7 +354,7 @@ class SionTable // implements ResourceProviderInterface
         if (!is_numeric($id)) {
             throw new \InvalidArgumentException('Invalid id provided.');
         }
-        $entityData = $this->getEntity($entity, $id);
+        $entityData = $this->getObject($entity, $id);
         $updateCols = $entitySpec->updateColumns;
         $manyToOneUpdateColumns = isset($entitySpec->manyToOneUpdateColumns) ?
            $entitySpec->manyToOneUpdateColumns : null;
@@ -334,6 +374,10 @@ class SionTable // implements ResourceProviderInterface
         }
         $return = $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges);
 
+        //@todo setup a caching system in SionTable to handle clearing the caches
+        if (method_exists($this, 'clearCaches')) {
+            $this->clearCaches();
+        }
         /*
          * Run the changed/new data through the preprocessor function if it exists
          */
@@ -342,7 +386,7 @@ class SionTable // implements ResourceProviderInterface
             method_exists($this, $entitySpec->databaseBoundDataPostprocessor) &&
             !method_exists('SionTable', $entitySpec->databaseBoundDataPostprocessor) //make sure noone's being sneaky
         ) {
-            $newEntityData = $this->getEntity($entity, $id);
+            $newEntityData = $this->getObject($entity, $id);
             $postprocessor = $entitySpec->databaseBoundDataPostprocessor;
             $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_UPDATE);
         }
@@ -442,7 +486,6 @@ class SionTable // implements ResourceProviderInterface
         $entitySpec                = $this->getEntitySpecification($entity);
         $tableName                 = $entitySpec->tableName;
         $tableGateway              = $this->getTableGateway($tableName);
-        $scope                     = $entitySpec->scope;
         $requiredCols              = $entitySpec->requiredColumnsForCreation;
         $updateCols                = $entitySpec->updateColumns;
         $manyToOneUpdateColumns    = $entitySpec->manyToOneUpdateColumns;
@@ -456,8 +499,12 @@ class SionTable // implements ResourceProviderInterface
             $data = $this->$preprocessor($data, [], self::ENTITY_ACTION_CREATE);
         }
 
-        $return = $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $scope, $manyToOneUpdateColumns, $reportChanges);
+        $return = $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $manyToOneUpdateColumns, $reportChanges);
 
+        //@todo setup a caching system in SionTable to handle clearing the caches
+        if (method_exists($this, 'clearCaches')) {
+            $this->clearCaches();
+        }
         /**
          * Run the changed/new data through the postprocessor function if it exists
          * @see Entity
@@ -467,7 +514,7 @@ class SionTable // implements ResourceProviderInterface
             isset($entitySpec->databaseBoundDataPostprocessor) &&
             !is_null($entitySpec->databaseBoundDataPostprocessor)
         ) {
-            $newEntityData = $this->getEntity($entity, $return);
+            $newEntityData = $this->getObject($entity, $return);
             $postprocessor = $entitySpec->databaseBoundDataPostprocessor;
             $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_CREATE);
         }
@@ -485,7 +532,7 @@ class SionTable // implements ResourceProviderInterface
      * @param string|null $scope
      * @param string[]|null $manyToOneUpdateColumns
      */
-    protected function createHelper($data, $requiredCols, $updateCols, $entityType, $tableGateway, $scope = null, $manyToOneUpdateColumns = null, $reportChanges = false)
+    protected function createHelper($data, $requiredCols, $updateCols, $entityType, $tableGateway, $manyToOneUpdateColumns = null, $reportChanges = false)
     {
         //make sure required cols are being passed
         foreach ($requiredCols as $colName) {
@@ -575,30 +622,6 @@ class SionTable // implements ResourceProviderInterface
         $gateway = new TableGateway($tableName, $this->adapter);
         //@todo is there a way to make sure the table exists?
         return $this->tableGatewaysCache[$tableName] = $gateway;
-    }
-
-    /**
-     * Get entity data for the specified entity and id
-     * @param string $entity
-     * @param number|string $id
-     * @throws \Exception
-     * @throws \InvalidArgumentException
-     * @return mixed[]
-     */
-    public function getEntity($entity, $id)
-    {
-        $entitySpec = $this->getEntitySpecification($entity);
-        $entityFunction = $entitySpec->updateReferenceDataFunction;
-        if (!method_exists($this, $entityFunction) ||
-            method_exists('SionTable', $entitySpec->updateReferenceDataFunction)
-        ) {
-            throw new \Exception('Invalid update_reference_data_function set for entity \''.$entity.'\'');
-        }
-        $entityData = $this->$entityFunction($id);
-        if (!$entityData) {
-            throw new \InvalidArgumentException('No entity provided.');
-        }
-        return $entityData;
     }
 
     /**
@@ -735,34 +758,33 @@ class SionTable // implements ResourceProviderInterface
             $entity = $this->filterDbString($row['ChangedEntity']);
             $entityId = $this->filterDbString($row['ChangedIDValue']);
             //only bring in recognized entities
-            if (!key_exists($entity, $this->entities)) {
+            if (!key_exists($entity, $this->entitySpecifications)) {
                 continue;
             }
             $change = [
-                'changeId'  => $this->filterDbId($row['ChangeID']),
-                'entity'    => $entity,
-                'entitySpecification' => $this->entities[$entity],
-                'entityId'  => $entityId,
-                'object'    => null,
-                'field'     => $this->filterDbString($row['ChangedField']),
-                'newValue'  => $row['NewValue'],
-                'oldValue'  => $row['OldValue'],
-                'ipAddress' => $this->filterDbString($row['IpAddress']),
-                'updatedOn' => $this->filterDbDate($row['UpdatedOn']),
-                'updatedBy' => $user,
+                'changeId'              => $this->filterDbId($row['ChangeID']),
+                'entityType'            => $entity,
+                'entitySpecification'   => $this->entitySpecifications[$entity],
+                'entityId'              => $entityId,
+                'object'                => null,
+                'field'                 => $this->filterDbString($row['ChangedField']),
+                'newValue'              => $row['NewValue'],
+                'oldValue'              => $row['OldValue'],
+                'ipAddress'             => $this->filterDbString($row['IpAddress']),
+                'updatedOn'             => $this->filterDbDate($row['UpdatedOn']),
+                'updatedBy'             => $user,
             ];
 
-            //@todo maybe I need to catch exceptions here
-            $change['object'] = $this->getEntity($entity, $entityId);
+            $change['object'] = $this->getObject($entity, $entityId, true);
             if (is_null($change['object'])) { //it looks like the object has been deleted, let's fill in some data
                 $change['object'] = [
                     'isDeleted' => true,
                 ];
-                if ($this->entities[$entity]->entityKeyField) {
-                    $change['object'][$this->entities[$entity]->entityKeyField] = $entityId;
+                if ($this->entitySpecifications[$entity]->entityKeyField) {
+                    $change['object'][$this->entitySpecifications[$entity]->entityKeyField] = $entityId;
                 }
-                if ($this->entities[$entity]->nameField) {
-                    $change['object'][$this->entities[$entity]->nameField] = ucfirst($entity).' Id: '.$entityId;
+                if ($this->entitySpecifications[$entity]->nameField) {
+                    $change['object'][$this->entitySpecifications[$entity]->nameField] = ucfirst($entity).' Id: '.$entityId;
                 }
             }
 

@@ -89,7 +89,6 @@ class SionModelController extends AbstractActionController
     }
 
     /**
-     * @todo Add a way to count the amount of errors
      *
      * @return \Zend\View\Model\ViewModel
      */

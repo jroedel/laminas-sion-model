@@ -61,7 +61,7 @@ return [
 //                 'table_name' => 'event',
                 'table_key' => 'event_id',
                 'scope' => 'problem',
-                'update_reference_data_function' => 'getProblem',
+                'get_object_function' => 'getProblem',
                 'required_columns_for_creation' => [
         	        'project',
                     'entity',

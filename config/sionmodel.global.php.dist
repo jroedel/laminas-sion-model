@@ -40,7 +40,7 @@ return [
                 'show_route_key' => 'event_id',
                 'show_route_key_field' => 'eventId',
                 'has_dedicated_suggest_form' => false,
-                'update_reference_data_function' => 'getEvent',
+                'get_object_function' => 'getEvent',
                 'database_bound_data_preprocessor' => 'preprocessEvent',
                 'database_bound_data_postprocessor' => 'postprocessEvent',
                 'required_columns_for_creation' => [
