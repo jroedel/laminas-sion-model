@@ -89,6 +89,7 @@ class ProblemService
     /**
      * Get the current entity problems from all the providers
      * @param string[] $entityKeys
+     * @return EntityProblem[]
      */
     public function getCurrentProblems(array $entityKeys = null)
     {
@@ -175,9 +176,9 @@ class ProblemService
 
         return $this->problemProviders[$serviceName]['service'] = $service;
     }
-    
+
     /**
-     * Autofix any possible problems in all provider services. 
+     * Autofix any possible problems in all provider services.
      * @param bool $simulate
      */
     public function autoFixProblems($simulate = true)

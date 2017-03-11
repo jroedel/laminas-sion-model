@@ -4,7 +4,7 @@ namespace SionModel\Problem;
 use SionModel\Entity\Entity;
 class EntityProblem
 {
-    const SEVERITY_ERROR = 'error';
+    const SEVERITY_ERROR = 'danger';
     const SEVERITY_WARNING = 'warning';
     const SEVERITY_INFO = 'info';
 

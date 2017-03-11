@@ -226,6 +226,37 @@ class SionTable // implements ResourceProviderInterface
     }
 
     /**
+     * Sort an entity object
+     * @param mixed[] $array
+     * @param array $fieldsAndSortParameter ex. ['name' => SORT_ASC, 'country' = SORT_DESC]
+     */
+    public static function sortEntityObject(&$array, $fieldsAndSortParameter)
+    {
+        foreach ($fieldsAndSortParameter as $field => $sortParameter) {
+            if (!is_string($field) || ($sortParameter !== SORT_ASC &&
+                $sortParameter !== SORT_DESC)
+            ) {
+                throw new \InvalidArgumentException('The $fieldsAndSortParamer should be in format [\'name\' => SORT_ASC, \'country\' = SORT_DESC]');
+            }
+        }
+
+        $sort = [];
+        foreach($array as $k=>$v) {
+            foreach ($fieldsAndSortParameter as $field => $sortParameter) {
+                $sort[$field][$k] = $v[$field];
+            }
+        }
+        # sort by event_type desc and then title asc
+        $params = [];
+        foreach ($fieldsAndSortParameter as $field => $sortParameter) {
+            $params[] = $sort[$field];
+            $params[] = $sortParameter;
+        }
+        $params[] = &$array;
+        call_user_func_array('array_multisort', $params);
+    }
+
+    /**
      * @param Where|\Closure|string|array $where
      * @param null|string
      * @param null|array
@@ -916,7 +947,7 @@ class SionTable // implements ResourceProviderInterface
         return (int) $str;
     }
 
-    protected function filterDbString($str)
+    protected static function filterDbString($str)
     {
         if (is_null($str) || $str === '') {
             return null;
@@ -1034,6 +1065,33 @@ class SionTable // implements ResourceProviderInterface
             }
         }
         return $return;
+    }
+
+    /**
+     * Check a URL and, if it is valid, return an array of format:
+     * [ 'url' => 'https://...', 'label' => 'google.com']
+     * @param string $str
+     * @return NULL|string[]
+     */
+    public static function filterUrl($str, $label = null)
+    {
+        $str = self::filterDbString($str);
+        if (is_null($str)) {
+            return null;
+        }
+        $label = self::filterDbString($label);
+
+        $url = new Http($str);
+        if ($url->isValid()) {
+            if (is_null($label)) {
+                $label = $url->getHost();
+            }
+            $result = ['url' => $url->toString(), 'label' => $label];
+        } else {
+            $result = null;
+        }
+
+        return $result;
     }
 
     public static function keyArray(array $a, $key, $unique = true)

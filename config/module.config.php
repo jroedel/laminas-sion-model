@@ -14,6 +14,7 @@ return [
             'debugEncoding'			=> 'SionModel\View\Helper\DebugEncoding',
             'diffForHumans'         => 'SionModel\View\Helper\DiffForHumans',
             'email'					=> 'SionModel\View\Helper\Email',
+            'formatUrlObject'       => 'SionModel\View\Helper\FormatUrlObject',
             'jshrink'		        => 'SionModel\View\Helper\Jshrink',
             'shortDateRange'		=> 'SionModel\View\Helper\ShortDateRange',
             'telephone'				=> 'SionModel\View\Helper\Telephone',
