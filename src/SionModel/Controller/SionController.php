@@ -72,6 +72,68 @@ class SionController extends AbstractActionController
         return $view;
     }
 
+    /**
+     * Retrieve a requested entityObject by the route parameter specified by the entity's show_route_key.
+     * The consumer of the SionController should implement the view template
+     * @todo introduce resource-level checks
+     * @throws \Exception
+     * @return \Zend\View\Model\ViewModel
+     */
+    public function showAction()
+    {
+        $entity = $this->getEntity();
+        $entitySpec = $this->getEntitySpecification();
+        if (is_null($entitySpec->showRouteKey)) {
+            throw new \Exception("Please set the show_route_key config key of $entity in order to use the showAction.");
+        }
+        $id = ( int ) $this->params ()->fromRoute ( $entitySpec->showRouteKey );
+        if (!$id) {
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
+                ->addMessage(ucwords($entity).' not found.');
+            $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
+            $this->redirect ()->toRoute ( $redirectRoute);
+        }
+
+        $entityObject = $this->getEntityObject($id);
+        //if the entity doesn't exist, redirect to the index or the default route
+        if (is_null($entityObject)) {
+            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
+            $this->redirect ()->toRoute ( $redirectRoute );
+        }
+
+        /** @var SionTable $table */
+        $table = $this->getSionTable();
+        $table->registerVisit($entity, $entityObject[$entitySpec->entityKeyField]);
+
+        $sm = $this->getServiceLocator ();
+        /** @var SionForm $suggestForm **/
+        if (is_null($entitySpec->suggestForm)) {
+            $suggestForm = $sm->get('SionModel\Form\SuggestForm');
+        } elseif ($sm->has($entitySpec->suggestForm)) {
+            $suggestForm = $sm->get($entitySpec->suggestForm);
+        } elseif (class_exists($entitySpec->suggestForm)) {
+            $suggestFormName = $entitySpec->suggestForm;
+            $suggestForm = new $suggestFormName;
+        } else {
+            throw new \InvalidArgumentException('Invalid suggest_form specified for \''.$entity.'\' entity.');
+        }
+
+        $view = new ViewModel([
+            'entityId'      => $id,
+            'entity'        => $entityObject,
+            'suggestForm'   => $suggestForm,
+//             'deviceType'    => $deviceType,
+        ]);
+
+        //check if the user has the showActionTemplate option set, if not they'll go to the default
+        if (!is_null($entitySpec->showActionTemplate)) {
+            $template = $entitySpec->showActionTemplate;
+            $view->setTemplate($template);
+        }
+        return $view;
+    }
+
     public function createAction()
     {
         $sm = $this->getServiceLocator ();
@@ -190,6 +252,7 @@ class SionController extends AbstractActionController
         if (is_null($entitySpec->editActionForm)) {
             throw new \InvalidArgumentException('If the editAction for \''.$entity.'\' is to be used, it must specify the edit_action_form configuration.');
         }
+        $sm = $this->getServiceLocator();
         /** @var SionForm $form **/
         if ($sm->has($entitySpec->editActionForm)) {
             $form = $sm->get($entitySpec->editActionForm);
@@ -234,7 +297,7 @@ class SionController extends AbstractActionController
             'form'      => $form,
         ]);
 
-        //check if the user has the createActionTemplate option set, if not they'll go to the default
+        //check if the user has the editActionTemplate option set, if not they'll go to the default
         if (!is_null($entitySpec->editActionTemplate)) {
             $template = $entitySpec->editActionTemplate;
             $view->setTemplate($template);

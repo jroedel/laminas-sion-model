@@ -108,6 +108,11 @@ class Entity
      */
     public $indexTemplate;
     /**
+     * Template stack address to render on the SionController::showAction
+     * @var string $showActionTemplate
+     */
+    public $showActionTemplate;
+    /**
      * The route to show this entity
      * Example: 'persons/person'
      * @var string $showRoute
@@ -227,8 +232,14 @@ class Entity
     /**
      * True if there is a form dedicated to suggestions for this entity
      * @var bool $hasDedicatedSuggestForm
+     * @deprecated will be replaced by suggestForm
      */
-    public $hasDedicatedSuggestForm;
+    public $hasDedicatedSuggestForm = false;
+    /**
+     * String representing either a service, or a class name
+     * @var string $suggestForm
+     */
+    public $suggestForm;
     /**
      * Allow the entity to be deleted using the SionModel delete action
      * @var bool
