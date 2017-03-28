@@ -11,13 +11,13 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
      * @var string
      */
     protected $tableName;
-    
+
     /**
      * The primary key column of the table to make sure it exists before deleting.
      * @var string
      */
     protected $tableKey;
-    
+
     /**
      * Get the tableKey value
      * @return string
@@ -26,9 +26,9 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
     {
         return $this->tableKey;
     }
-   
+
     /**
-     * 
+     *
      * @param string $tableKey
      * @return self
      */
@@ -37,7 +37,7 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
         $this->tableKey = $tableKey;
         return $this;
     }
-    
+
     /**
     * Get the tableName value
     * @return string
@@ -46,9 +46,9 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
     {
         return $this->tableName;
     }
-    
+
     /**
-    * 
+    *
     * @param string $tableName
     * @return self
     */
@@ -57,18 +57,19 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
         $this->tableName = $tableName;
         return $this;
     }
-    
+
+    /**
+     * I don't think we really need the table name
+     * @param unknown $tableName
+     * @param unknown $tableKey
+     */
 	public function __construct($tableName, $tableKey)
 	{
-		parent::__construct('delete_entity');
-		
+		parent::__construct('entity');
+
 		$this->tableName = $tableName;
 		$this->tableKey = $tableKey;
-		
-		$this->add([
-			'name' => 'entityId',
-			'type' => 'Hidden',
-		]);
+
 		$this->add([
 			'name' => 'security',
 			'type' => 'csrf',
@@ -79,10 +80,10 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
 	        ],
 		]);
 		$this->add([
-			'name' => 'delete',
+			'name' => 'submit',
 			'type' => 'Submit',
 			'attributes' => [
-				'value' => 'Delete',
+				'value' => 'Submit',
 				'id' => 'submit',
 				'class' => 'btn-danger'
 			],
@@ -97,28 +98,28 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
 // 				'class' => 'btn-danger'
 			],
 		]);
-		
+
 	}
-	
+
 	public function getInputFilterSpecification()
 	{
 		return [
-			'entityId' => [
-				'required' => true,
-	            'validators' => [
-	                [
-	                    'name'    => 'Zend\Validator\Db\RecordExists',
-	                    'options' => [
-	                        'table' => $this->tableName,
-	                        'field' => $this->tableKey,
-	                        'adapter' => \Zend\Db\TableGateway\Feature\GlobalAdapterFeature::getStaticAdapter(),
-	                        'messages' => [
-	                            \Zend\Validator\Db\RecordExists::ERROR_NO_RECORD_FOUND => 'Entity not found in database' 
-	                        ],
-	                    ],
-	                ],
-	            ],
-			],
+// 			'entityId' => [
+// 				'required' => true,
+// 	            'validators' => [
+// 	                [
+// 	                    'name'    => 'Zend\Validator\Db\RecordExists',
+// 	                    'options' => [
+// 	                        'table' => $this->tableName,
+// 	                        'field' => $this->tableKey,
+// 	                        'adapter' => \Zend\Db\TableGateway\Feature\GlobalAdapterFeature::getStaticAdapter(),
+// 	                        'messages' => [
+// 	                            \Zend\Validator\Db\RecordExists::ERROR_NO_RECORD_FOUND => 'Entity not found in database'
+// 	                        ],
+// 	                    ],
+// 	                ],
+// 	            ],
+// 			],
 		];
 	}
 }

@@ -7,6 +7,7 @@ return [
             'address'				=> 'SionModel\Service\AddressFactory',
             'editPencil'			=> 'SionModel\Service\EditPencilFactory',
             'formatEntity'		    => 'SionModel\Service\FormatEntityFactory',
+            'touchButton'			=> 'SionModel\Service\TouchButtonFactory',
         ],
         'invokables' => [
             'formRow'		        => 'SionModel\Form\View\Helper\SionFormRow',

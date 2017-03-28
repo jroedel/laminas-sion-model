@@ -18,6 +18,7 @@ use SionModel\Form\SionForm;
 use SionModel\Entity\Entity;
 use Zend\Mvc\Controller\Plugin\FlashMessenger;
 use JTranslate\Controller\Plugin\NowMessenger;
+use SionModel\Form\TouchForm;
 
 class SionController extends AbstractActionController
 {
@@ -94,6 +95,14 @@ class SionController extends AbstractActionController
             $this->redirect ()->toRoute ( $redirectRoute);
         }
 
+        /** @var SionTable $table */
+        $table = $this->getSionTable();
+        if (!$table->existsEntity($entity, $id)) {
+            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
+            $this->redirect ()->toRoute ( $redirectRoute );
+        }
+
         $entityObject = $this->getEntityObject($id);
         //if the entity doesn't exist, redirect to the index or the default route
         if (is_null($entityObject)) {
@@ -102,8 +111,6 @@ class SionController extends AbstractActionController
             $this->redirect ()->toRoute ( $redirectRoute );
         }
 
-        /** @var SionTable $table */
-        $table = $this->getSionTable();
         $table->registerVisit($entity, $entityObject[$entitySpec->entityKeyField]);
 
         $sm = $this->getServiceLocator ();
@@ -306,6 +313,152 @@ class SionController extends AbstractActionController
     }
 
     /**
+     * @todo test!
+     * @throws \Exception
+     * @return \Zend\View\Model\ViewModel
+     */
+    public function touchAction()
+    {
+        $entity = $this->getEntity();
+        $entitySpec = $this->getEntitySpecification();
+        if (is_null($entitySpec->editRouteKey)) {
+            throw new \Exception("Please set the edit_route_key config key of $entity in order to use the editAction.");
+        }
+        $id = ( int ) $this->params ()->fromRoute ( $entitySpec->editRouteKey );
+        //if the entity doesn't exist, redirect to the index or the default route
+        if (! $id) {
+            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
+            $this->redirect ()->toRoute ( $redirectRoute);
+        }
+        $entityObject = $this->getEntityObject($id);
+        //if the entity doesn't exist, redirect to the index or the default route
+        if (is_null($entityObject)) {
+            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
+            $this->redirect ()->toRoute ( $redirectRoute );
+        }
+
+        $form = new TouchForm();
+
+        $request = $this->getRequest ();
+        if ($request->isPost ()) {
+            $data = $request->getPost ()->toArray ();
+            $form->setData($data);
+            if ($form->isValid()) {
+                $data = $form->getData();
+                /** @var SionTable $table **/
+                $table = $this->getSionTable();
+                $fieldToTouch = $this->whichFieldToTouch();
+                $table->touchEntity($entity, $id, $fieldToTouch);
+                $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )->addMessage ( ucfirst($entity).' successfully marked up-to-date.' );
+                if ($entitySpec->showRouteKey && $entitySpec->showRouteKey &&
+                    $entitySpec->showRouteKeyField
+                ) {
+                    if (!key_exists($entitySpec->showRouteKeyField, $entityObject)) {
+                        throw new \Exception("show_route_key_field config for entity '$entity' refers to a key that doesn't exist");
+                    }
+                    $this->redirect ()->toRoute ($entitySpec->showRoute,
+                        [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]);
+                } else {
+                    $this->redirect ()->toRoute ( $this->getDefaultRedirectRoute() );
+                }
+            } else {
+                $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+            }
+        } else {
+            $form->setData($entityObject);
+        }
+        return new ViewModel([
+            'entity'    => $entityObject,
+            'entityId'  => $id,
+            'form'      => $form,
+        ]);
+    }
+
+    /**
+     * Touch the entity, and return the status through the HTTP code
+     * @return \Zend\Stdlib\ResponseInterface|\SionModel\Controller\JsonModel
+     */
+    public function touchJsonAction()
+    {
+        $entity = $this->getEntity();
+        $entitySpec = $this->getEntitySpecification();
+
+        if (!is_null($entitySpec->touchJsonRouteKey)) {
+            $id = ( int ) $this->params ()->fromRoute ($entitySpec->touchJsonRouteKey);
+        }
+        if (!isset($id) || is_null($id)) {
+            return $this->sendFailedMessage('Invalid id passed.');
+        }
+        $callback = $this->params ()->fromQuery ('callback', null);
+        if (is_null($callback)) {
+            return $this->sendFailedMessage('All requests must include a callback function set as a query parameter \'callback\'.');
+        }
+
+        $form = new TouchForm();
+
+        $request = $this->getRequest();
+        if (!$request->isPost ()) {
+            return $this->sendFailedMessage('Please use post method.');
+        }
+        $data = $request->getPost()->toArray();
+        $form->setData($data);
+        if (!$form->isValid()) {
+            return $this->sendFailedMessage('The following fields are invalid: '.
+                implode(', ', array_keys($form->getInputFilter()->getInvalidInput())));
+        }
+
+        $sm = $this->getServiceLocator();
+        /** @var SionTable $table */
+        $table = $this->getSionTable();
+        $fieldToTouch = $this->whichFieldToTouch();
+        $return = $table->touchEntity($entity, $id, $fieldToTouch);
+
+        $view = new JsonModel([
+            'return' => $return,
+            'message' => 'Success',
+        ]);
+        $view->setJsonpCallback($callback);
+        return $view;
+    }
+
+    protected function sendFailedMessage($message)
+    {
+        $response = $this->getResponse();
+        $response->setStatusCode(401);
+        $response->sendHeaders();
+        $response->setContent($message);
+        return $response;
+    }
+
+    /**
+     * Election rules:
+     * 1. If there is a route parameter to specify the field, and the field exists, use it.
+     * 2. Else, if the touchDefaultField exists, use it.
+     * 3. Else, touch the entityKeyField if it exists
+     */
+    protected function whichFieldToTouch()
+    {
+        $entity = $this->getEntity();
+        $entitySpec = $this->getEntitySpecification();
+        $touchField = null;
+        if (!is_null($entitySpec->touchFieldRouteKey)) {
+            $touchField = $this->params ()->fromRoute ($entitySpec->touchFieldRouteKey);
+            if (key_exists($touchField, $entitySpec->updateColumns)) {
+                return $touchField;
+            }
+        }
+        if (!is_null($entitySpec->touchDefaultField) && key_exists($entitySpec->touchDefaultField, $entitySpec->updateColumns)) {
+            return $entitySpec->touchDefaultField;
+        }
+        if (!is_null($entitySpec->entityKeyField) && key_exists($entitySpec->entityKeyField, $entitySpec->updateColumns)) {
+            return $entitySpec->entityKeyField;
+        }
+        throw new \Exception("Cannot find a field to touch for entity '$entity'");
+    }
+
+    /**
      * Get the entitySpecification value
      * @return Entity
      */
@@ -415,7 +568,6 @@ class SionController extends AbstractActionController
             $redirectRoute = $config['default_redirect_route'];
             $this->setDefaultRedirectRoute($redirectRoute);
         }
-        var_dump($this->defaultRedirectRoute);
         return $this->defaultRedirectRoute;
     }
 

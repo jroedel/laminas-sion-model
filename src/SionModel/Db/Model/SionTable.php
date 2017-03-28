@@ -365,22 +365,48 @@ class SionTable // implements ResourceProviderInterface
     }
 
     /**
-     *
+     * Simply incur an update of the 'updatedOn' field of an entity.
+     * If a  field is indicated, it may incur a field-specific updatedOn update.
      * @param string $entity
-     * @param int $id
-     * @param array $data
+     * @param number $id
+     * @param array|string $field
      * @throws \InvalidArgumentException
      * @return boolean|unknown
      */
-    public function updateEntity($entity, $id, $data)
+    public function touchEntity($entity, $id, $field = null)
+    {
+        if (!$this->existsEntity($entity, $id)) {
+            throw new \InvalidArgumentException('Entity doesn\'t exist.');
+        }
+        $entitySpec = $this->getEntitySpecification($entity);
+        if (is_null($field) && !is_null($entitySpec->entityKeyField)) {
+            throw new \InvalidArgumentException("Please specify the entity_key_field configuration for entity '$entity' to use the touchEntity function.");
+        }
+        if (!is_null($field) && !is_array($field)) {
+            $field = [$field];
+        }
+        $fields = !is_null($field) ? $field : [$entitySpec->entityKeyField];
+        return $this->updateEntity($entity, $id, [], $fields);
+    }
+
+    /**
+     *
+     * @param string $entity
+     * @param number $id
+     * @param array $data
+     * @param array $fieldsToTouch
+     * @throws \InvalidArgumentException
+     * @return boolean|unknown
+     */
+    public function updateEntity($entity, $id, $data, array $fieldsToTouch = [])
     {
         if (!$this->isReadyToUpdateAndCreate($entity)) {
             throw new \InvalidArgumentException('Improper configuration for entity \''.$entity.'\'');
         }
         $entitySpec     = $this->getEntitySpecification($entity);
-        $tableName= $entitySpec->tableName;
-        $tableKey      = $entitySpec->tableKey;
-        $tableGateway  = new TableGateway($tableName, $this->adapter);
+        $tableName      = $entitySpec->tableName;
+        $tableKey       = $entitySpec->tableKey;
+        $tableGateway   = new TableGateway($tableName, $this->adapter);
 
         if (!is_numeric($id)) {
             throw new \InvalidArgumentException('Invalid id provided.');
@@ -403,12 +429,22 @@ class SionTable // implements ResourceProviderInterface
             $preprocessor = $entitySpec->databaseBoundDataPreprocessor;
             $data = $this->$preprocessor($data, $entityData, self::ENTITY_ACTION_UPDATE);
         }
-        $return = $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges);
+        $return = $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges, $fieldsToTouch);
 
         //@todo setup a caching system in SionTable to handle clearing the caches
         if (method_exists($this, 'clearCaches')) {
             $this->clearCaches();
         }
+
+        //if the id is being changed, update it
+        $keyField = $entitySpec->entityKeyField;
+        if (isset($data[$keyField]) && !is_null($data[$keyField]) &&
+            isset($entityData[$keyField]) && !is_null($entityData[$keyField]) &&
+            $data[$keyField] !== $entityData[$keyField]
+        ) {
+            $id = $data[$keyField];
+        }
+
         /*
          * Run the changed/new data through the preprocessor function if it exists
          */
@@ -437,7 +473,7 @@ class SionTable // implements ResourceProviderInterface
      * @param bool $reportChanges
      * @throws \Exception
      */
-    protected function updateHelper($id, $data, $entityType, $tableKey, TableGatewayInterface $tableGateway, $updateCols, $referenceEntity, $manyToOneUpdateColumns = null, $reportChanges = false)
+    protected function updateHelper($id, $data, $entityType, $tableKey, TableGatewayInterface $tableGateway, $updateCols, $referenceEntity, $manyToOneUpdateColumns = null, $reportChanges = false, array $fieldsToTouch = [])
     {
         if (is_null($entityType) || $entityType == '') {
             throw new \Exception('No entity provided.');
@@ -448,48 +484,54 @@ class SionTable // implements ResourceProviderInterface
         $now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         $updateVals = [];
         $changes = [];
-        foreach ($referenceEntity as $col => $value) {
-            if (!key_exists($col, $updateCols) || !key_exists($col, $data) || $value == $data[$col]) {
+        foreach ($referenceEntity as $field => $value) {
+            if (!key_exists($field, $fieldsToTouch) &&
+                (!key_exists($field, $updateCols) || !key_exists($field, $data) || $value == $data[$field])
+            ) {
                 continue;
+            } elseif (key_exists($field, $fieldsToTouch) && !key_exists($field, $data)) {
+                $data[$field] = $value;
             }
-            if ($data[$col] instanceof \DateTime) { //convert Date objects to strings
-                $data[$col] = $data[$col]->format('Y-m-d H:i:s');
+            if ($data[$field] instanceof \DateTime) { //convert Date objects to strings
+                $data[$field] = $data[$field]->format('Y-m-d H:i:s');
             }
-            if (is_array($data[$col])) { //convert arrays to strings
-                if (empty($data[$col])) {
-                    $data[$col] = null;
+            if (is_array($data[$field])) { //convert arrays to strings
+                if (empty($data[$field])) {
+                    $data[$field] = null;
                 } else {
-                    $data[$col] = implode('|', $data[$col]); //pipe (|) is a good unused character for separating
+                    $data[$field] = implode('|', $data[$field]); //pipe (|) is a good unused character for separating
                 }
             }
-            $updateVals[$updateCols[$col]] = $data[$col];
-            if (key_exists($col.'UpdatedOn', $updateCols) && !key_exists($col.'UpdatedOn', $data)) { //check if this column has updatedOn column
-                $updateVals[$updateCols[$col.'UpdatedOn']] = $now;
+            $updateVals[$updateCols[$field]] = $data[$field];
+            if (key_exists($field.'UpdatedOn', $updateCols) && !key_exists($field.'UpdatedOn', $data) //check if this column has updatedOn column
+            ) {
+                $updateVals[$updateCols[$field.'UpdatedOn']] = $now;
             }
-            if (key_exists($col.'UpdatedBy', $updateCols) && !key_exists($col.'UpdatedBy', $data) &&
-                !is_null($this->actingUserId))
-            { //check if this column has updatedBy column
-                $updateVals[$updateCols[$col.'UpdatedBy']] = $this->actingUserId;
+            if (key_exists($field.'UpdatedBy', $updateCols) && !key_exists($field.'UpdatedBy', $data) &&
+                !is_null($this->actingUserId)
+            ) { //check if this column has updatedBy column
+                $updateVals[$updateCols[$field.'UpdatedBy']] = $this->actingUserId;
             }
-            if (is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
-                if ( key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $updateCols) &&
-                    !key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $data))
+            if (is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$field])) {
+                if ( key_exists($manyToOneUpdateColumns[$field].'UpdatedOn', $updateCols) &&
+                    !key_exists($manyToOneUpdateColumns[$field].'UpdatedOn', $data))
                 { //check if this column maps to some other updatedOn column
-                    $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedOn']] = $now;
+                    $updateVals[$updateCols[$manyToOneUpdateColumns[$field].'UpdatedOn']] = $now;
                 }
-                if ( key_exists($manyToOneUpdateColumns[$col].'UpdatedBy', $updateCols) &&
-                    !key_exists($manyToOneUpdateColumns[$col].'UpdatedBy', $data) &&
+                if ( key_exists($manyToOneUpdateColumns[$field].'UpdatedBy', $updateCols) &&
+                    !key_exists($manyToOneUpdateColumns[$field].'UpdatedBy', $data) &&
                     !is_null($this->actingUserId))
                 { //check if this column  maps to some other updatedBy column
-                    $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedBy']] = $this->actingUserId;
+                    $updateVals[$updateCols[$manyToOneUpdateColumns[$field].'UpdatedBy']] = $this->actingUserId;
                 }
             }
+
             $changes[] = [
                 'entity'   => $entityType,
-                'field'    => $col,
+                'field'    => $field,
                 'id'       => $id,
                 'oldValue' => $value,
-                'newValue' => $data[$col],
+                'newValue' => $data[$field],
             ];
         }
         if (count($updateVals) > 0) {

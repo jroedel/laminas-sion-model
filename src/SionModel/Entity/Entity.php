@@ -191,6 +191,31 @@ class Entity
      * @var unknown
      */
     public $createActionTemplate;
+    /**
+     * The field of entity to touch if none is specified.
+     * If not specified, the $entityKeyField will be touched
+     * @var string
+     */
+    public $touchDefaultField;
+    /**
+     * A route key that specifies the entity field to touch for the touchAction
+     * and touchJsonAction of SionController.
+     * If not specified, the $touchDefaultField will be touched
+     * @var string
+     */
+    public $touchFieldRouteKey;
+    /**
+     * The route to edit this entity
+     * Example: 'persons/person/touch'
+     * @var string $editRoute
+     */
+    public $touchJsonRoute;
+    /**
+     * The route parameter to pass when generating the URL to the edit route
+     * Example: 'person_id'
+     * @var string $editRouteKey
+     */
+    public $touchJsonRouteKey;
 
     /**
      * A function to be called upon $data before creating/updating an entity

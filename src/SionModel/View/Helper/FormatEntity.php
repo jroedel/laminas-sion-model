@@ -37,7 +37,7 @@ class FormatEntity extends AbstractHelper
             'displayAsLink' => isset($options['displayAsLink']) ? (bool)$options['displayAsLink'] : true,
             'displayEditPencil' => isset($options['displayEditPencil']) ? (bool)$options['displayEditPencil'] : true,
             'failSilently' => isset($options['failSilently']) ? (bool)$options['failSilently'] : true,
-            'displayInactiveAsLabel' => isset($options['displayInactiveAsLabel']) ? (bool)$options['displayInactiveAsLabel'] : false,
+            'displayInactiveLabel' => isset($options['displayInactiveLabel']) ? (bool)$options['displayInactiveLabel'] : false,
         ];
 
         if (!isset($entityType) || !isset($this->entities[$entityType])) {
@@ -109,7 +109,7 @@ class FormatEntity extends AbstractHelper
     	    $editId = $data[$this->entities[$entityType]->editRouteKeyField];
     		$finalMarkup .= $this->view->editPencil($entityType, $editId);
     	}
-    	if ($options['displayInactiveAsLabel'] &&
+    	if ($options['displayInactiveLabel'] &&
     	    (isset($data['isActive']) && is_bool($active = $data['isActive']) ||
 	        isset($data['active']) && is_bool($active = $data['active']))
         ) {
