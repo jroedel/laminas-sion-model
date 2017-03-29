@@ -386,6 +386,7 @@ class SionTable // implements ResourceProviderInterface
             $field = [$field];
         }
         $fields = !is_null($field) ? $field : [$entitySpec->entityKeyField];
+//         var_dump($fields);
         return $this->updateEntity($entity, $id, [], $fields);
     }
 
@@ -485,11 +486,11 @@ class SionTable // implements ResourceProviderInterface
         $updateVals = [];
         $changes = [];
         foreach ($referenceEntity as $field => $value) {
-            if (!key_exists($field, $fieldsToTouch) &&
+            if (!in_array($field, $fieldsToTouch) &&
                 (!key_exists($field, $updateCols) || !key_exists($field, $data) || $value == $data[$field])
             ) {
                 continue;
-            } elseif (key_exists($field, $fieldsToTouch) && !key_exists($field, $data)) {
+            } elseif (in_array($field, $fieldsToTouch) && !key_exists($field, $data)) {
                 $data[$field] = $value;
             }
             if ($data[$field] instanceof \DateTime) { //convert Date objects to strings

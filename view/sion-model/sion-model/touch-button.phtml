@@ -8,50 +8,56 @@ use SionModel\Form\TouchForm;
  * @param string $class, text to be added to the class html attribute of the button
  */
 ?>
-<button type="button" name="touch" class="<?php //@todo add an id to the name
+<button type="button" name="touch" class="<?php
     if (isset($this->class)){
         echo $this->escapeHtmlAttr($this->class);
     } else {
         echo 'btn-default btn';
     }
-?>" data-toggle="modal" data-target="#touchModal" value="<?php //@todo add data-touch-url
-echo $this->translate("Confirm");?>"><?php //@todo factor in buttonText
-echo $this->translate("Confirm");?></button>
-<?php if ($this->outputModal):?>
+?>" data-toggle="modal" data-target="#touchModal" data-action-url="<?php
+echo $this->escapeHtmlAttr($this->url);?>" value="<?php
+echo $this->translate($this->buttonText);?>"><?php
+echo $this->translate($this->buttonText);?></button>
+<?php if ($this->outputModal):
+$form = $this->form;
+$form->prepare();
+$formText = '<p>'.$this->escapeHtml($this->translate(
+        'This will update the "last updated" date of this person\'s contact info.'
+    )).'</p>'.
+    $this->form()->openTag($form).
+    $this->formRow($form->get('security')).
+    $this->formSubmit($form->get('submit')).
+    '&nbsp;'.
+    $this->formButton($form->get('cancel')).
+    $this->form()->closeTag();?>
 <!-- Modal -->
 <div class="modal fade bs-example-modal-md" id="touchModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
 <div class="modal-dialog modal-md">
 <div class="modal-content">
-<div class="modal-header">
-<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-<h4 class="modal-title"><?php echo $this->translate('Thanks for your help.');?>...</h4>
-      </div>
-      <div class="modal-body">
-        <?php //@todo add text to modal
-        $form = $this->form;
-    	$form->prepare();
-		echo $this->form()->openTag($form);
-		echo $this->formRow($form->get('security'));
-		echo $this->formSubmit($form->get('submit'));
-		echo '&nbsp;';
-		echo $this->formButton($form->get('cancel'));
-		echo $this->form()->closeTag();
-		$url = $this->url;
-        $this->inlineScript()->captureStart(); //@todo make submit url dynamic depending on which button was pressed
-        echo <<<JS
-$(function () {
-  $("#touch_entity").submit(function(event ) {
+	<div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title"><?php echo $this->escapeHtml($this->translate('Confirm contact info'));?></h4>
+	</div>
+	<div id ="touchModalBody" class="modal-body"><?php
+        echo $formText;
+	?></div>
+</div>
+</div>
+</div>
+
+<?php
+$url = $this->url;
+$submitInstructions = <<<JS
+$("#touch_entity").submit(function(event) {
      event.preventDefault();
-     console.log(event);
      var requestData = $('#touch_entity').serializeArray().reduce(function(obj, item) {
       obj[item.name] = item.value;
       return obj;
     }, {});
-    console.log(requestData);
+    var url = $('#touch_entity').attr('action');
     $.ajax({
         method: "post",
-	    "url": "$url",
-	    contentType: "application/json; charset=utf-8",
+	    "url": url,
 	    // The name of the callback parameter
 	    jsonp: "callback",
 	    // Tell jQuery we're expecting JSONP
@@ -64,16 +70,26 @@ $(function () {
 	})
 	.fail(function(data) {
 		console.log("There was a problem: "+JSON.stringify(data));
-        $(".modal-body").html("<p class=\"text-danger\">"+data['responseJSON']['message']+"</p>");
+        $(".modal-body").html("<p class=\"text-danger\">"+data['message']+"</p>");
 	});
     $(this).button('loading');
-  });
 });
 JS;
-        $this->inlineScript()->captureEnd();
-        ?>
-      </div>
-    </div>
-  </div>
-</div>
+$formText = str_replace( '"', '\\"', $formText);
+// When someone clicks the button, copy the data-action-url to the action of the form
+$this->inlineScript()->captureStart();
+echo <<<JS
+$(function () {
+    $("button[name='touch']").click(function(event) {
+        $("#touchModalBody").html("$formText");
+        $("#touch_entity").attr('action', event.target.getAttribute("data-action-url"));
+        $submitInstructions
+    });
+});
+$(function () {
+$submitInstructions
+});
+JS;
+$this->inlineScript()->captureEnd();
+?>
 <?php endif;?>

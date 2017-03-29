@@ -19,6 +19,8 @@ use SionModel\Entity\Entity;
 use Zend\Mvc\Controller\Plugin\FlashMessenger;
 use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
+use Zend\Json\Json;
+use Zend\View\Model\JsonModel;
 
 class SionController extends AbstractActionController
 {
@@ -402,11 +404,13 @@ class SionController extends AbstractActionController
         if (!$request->isPost ()) {
             return $this->sendFailedMessage('Please use post method.');
         }
+        //$data = Json::decode($request->getContent(), Json::TYPE_ARRAY);
         $data = $request->getPost()->toArray();
         $form->setData($data);
         if (!$form->isValid()) {
             return $this->sendFailedMessage('The following fields are invalid: '.
-                implode(', ', array_keys($form->getInputFilter()->getInvalidInput())));
+                implode(', ', array_keys($form->getInputFilter()->getInvalidInput())).
+                    $request->getContent());
         }
 
         $sm = $this->getServiceLocator();
@@ -416,8 +420,9 @@ class SionController extends AbstractActionController
         $return = $table->touchEntity($entity, $id, $fieldToTouch);
 
         $view = new JsonModel([
-            'return' => $return,
-            'message' => 'Success',
+            'return'    => $return,
+            'field'     => $fieldToTouch,
+            'message'   => 'Success',
         ]);
         $view->setJsonpCallback($callback);
         return $view;
