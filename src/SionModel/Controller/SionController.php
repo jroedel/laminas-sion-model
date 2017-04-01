@@ -19,7 +19,6 @@ use SionModel\Entity\Entity;
 use Zend\Mvc\Controller\Plugin\FlashMessenger;
 use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
-use Zend\Json\Json;
 use Zend\View\Model\JsonModel;
 
 class SionController extends AbstractActionController
@@ -291,6 +290,8 @@ class SionController extends AbstractActionController
                     }
                     $this->redirect ()->toRoute ($entitySpec->showRoute,
                         [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]);
+                } elseif ($entitySpec->indexRoute) {
+                    $this->redirect ()->toRoute ($entitySpec->indexRoute);
                 } else {
                     $this->redirect ()->toRoute ( $this->getDefaultRedirectRoute() );
                 }

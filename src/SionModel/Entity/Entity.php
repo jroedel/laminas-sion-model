@@ -71,11 +71,6 @@ class Entity
      */
     public $textColumns = [];
     /**
-     * List of fields that should be converted from DateTime objects before insert
-     * @var string[]
-     */
-    public $dateColumns = [];
-    /**
      * A list of mappings from ORM field names to database column names
      * Example:
      * ['personId' => 'PersonId', 'email' => 'EmailAddress']
