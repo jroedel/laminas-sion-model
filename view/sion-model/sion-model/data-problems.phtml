@@ -28,7 +28,8 @@ elseif (isset($this->isSimulation) && !$this->isSimulation):?>
 <?php foreach ($problems as $entity) :?>
 <tr>
 	<td><?php echo $this->formatEntity($entity->getEntity(), $entity->getData(), ['displayEditPencil' => true]);?></td>
-	<td class="<?php echo $entity->getProblemTextClass()?>"><?php echo $this->escapeHtml($this->translate($entity->getProblemText()));?></td>
+	<td class="<?php echo $entity->getProblemTextClass()?>"><?php
+	echo $this->escapeHtml($this->translate($entity->getProblemText(), $entity->getTranslatorTextDomain()));?></td>
 </tr>
 <?php endforeach;?>
 	</tbody>

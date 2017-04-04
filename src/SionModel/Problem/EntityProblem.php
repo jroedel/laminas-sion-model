@@ -14,6 +14,8 @@ class EntityProblem
         self::SEVERITY_INFO => 'text-info',
     ];
 
+    const TEXT_DOMAIN_DEFAULT = 'SionModel';
+
     /**
      * Associative array of Entity's, keyed by the Entity name
      * @var Entity[] $entities
@@ -40,6 +42,11 @@ class EntityProblem
     protected $problem;
 
     protected $severity;
+
+    /**
+     * @var string $translatorTextDomain
+     */
+    protected $translatorTextDomain;
 
     /**
      *
@@ -82,17 +89,19 @@ class EntityProblem
     protected function addProblemSpecifications($problemSpecifications)
     {
         $specsToAdd = [];
-            foreach ($problemSpecifications as $problem => $spec) {
-                //validate the problem specification
-                if (isset($spec['entity']) && is_string($spec['entity']) &&
-                    strlen($spec['entity']) <= 50 &&
-                    isset($spec['defaultSeverity']) &&
-                    array_key_exists($spec['defaultSeverity'], EntityProblem::SEVERITY_TEXT_CLASSES) &&
-                    isset($spec['text']) && is_string($spec['text'])
-                ) {
-                    $specsToAdd[$problem] = $spec;
-                }
+        foreach ($problemSpecifications as $problem => $spec) {
+            //validate the problem specification
+            if (isset($spec['entity']) && is_string($spec['entity']) &&
+                strlen($spec['entity']) <= 50 &&
+                isset($spec['defaultSeverity']) &&
+                array_key_exists($spec['defaultSeverity'], EntityProblem::SEVERITY_TEXT_CLASSES) &&
+                isset($spec['text']) && is_string($spec['text'])
+            ) {
+                $specsToAdd[$problem] = $spec;
+            } else {
+                throw new \Exception("Invalid problem specification '$problem'. Specify entity, defaultSeverity, and text.");
             }
+        }
         $this->problemSpecifications = array_merge($this->problemSpecifications, $specsToAdd);
     }
 
@@ -228,6 +237,35 @@ class EntityProblem
         }
 
         return $this->problemSpecifications[$this->problem]['text'];
+    }
+
+    /**
+    * Get the translatorTextDomain value
+    * @return string
+    */
+    public function getTranslatorTextDomain()
+    {
+        if (is_null($this->translatorTextDomain)) {
+            if (isset($this->problemSpecifications[$this->problem]['textDomain']) &&
+                !is_null($this->problemSpecifications[$this->problem]['textDomain'])
+            ) {
+                $this->translatorTextDomain = $this->problemSpecifications[$this->problem]['textDomain'];
+            } else {
+                $this->translatorTextDomain = self::TEXT_DOMAIN_DEFAULT;
+            }
+        }
+        return $this->translatorTextDomain;
+    }
+
+    /**
+    *
+    * @param string $translatorTextDomain
+    * @return self
+    */
+    public function setTranslatorTextDomain($translatorTextDomain)
+    {
+        $this->translatorTextDomain = $translatorTextDomain;
+        return $this;
     }
 
     /**
