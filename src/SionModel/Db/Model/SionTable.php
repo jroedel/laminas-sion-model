@@ -831,8 +831,10 @@ class SionTable // implements ResourceProviderInterface
             }
             $entity = $this->filterDbString($row['ChangedEntity']);
             $entityId = $this->filterDbString($row['ChangedIDValue']);
-            //only bring in recognized entities
-            if (!key_exists($entity, $this->entitySpecifications)) {
+            //only bring in recognized entities from this class
+            if (!key_exists($entity, $this->entitySpecifications) ||
+                $this->entitySpecifications[$entity]->sionModelClass !== get_class($this)
+            ) {
                 continue;
             }
             $change = [

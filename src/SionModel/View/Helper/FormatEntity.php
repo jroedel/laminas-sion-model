@@ -82,10 +82,16 @@ class FormatEntity extends AbstractHelper
     		$finalMarkup .= $this->view->flag($data[$this->entities[$entityType]->countryField])."&nbsp;";
     	}
 
-    	$name = $data[$this->entities[$entityType]->nameField];
-	    if ($this->entities[$entityType]->nameFieldIsTranslateable) {
-	        $name = $this->view->translate($name);
-	    }
+    	//if our name field is a date, format it as a medium date
+    	if ($data[$this->entities[$entityType]->nameField] instanceof \DateTime) {
+    	    $this->view->dateFormat($data[$this->entities[$entityType]->nameField],
+	            IntlDateFormatter::MEDIUM, IntlDateFormatter::NONE);
+    	} else {
+        	$name = $data[$this->entities[$entityType]->nameField];
+    	    if ($this->entities[$entityType]->nameFieldIsTranslateable) {
+    	        $name = $this->view->translate($name);
+    	    }
+    	}
 
     	if ($options['displayAsLink'] &&
     	    $this->entities[$entityType]->showRoute &&
@@ -97,7 +103,7 @@ class FormatEntity extends AbstractHelper
     	    $routeKey = $this->entities[$entityType]->showRouteKey;
     	    $id = $data[$this->entities[$entityType]->showRouteKeyField];
     	    $finalMarkup .= '<a href="'.$this->view->url($route, [$routeKey => $id]).'">'.
-    	       $this->view->escapeHtml($name).'</a>';
+    	        $this->view->escapeHtml($name).'</a>';
     	} else {
     	    $finalMarkup .= $this->view->escapeHtml($name);
     	}

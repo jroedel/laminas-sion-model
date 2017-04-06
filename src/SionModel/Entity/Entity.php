@@ -161,6 +161,14 @@ class Entity
     public $createActionForm;
 
     /**
+     * A function within the SionController child class to handle functionality once
+     * the entity has been validated. The function will receive one parameter, the
+     * validated data.
+     * @var string $createActionCreateHandler
+     */
+    public $createActionValidDataHandler;
+
+    /**
      * Route to which the user will be redirected upon a successful entity creation
      * @var string $createActionRedirectRoute
      */

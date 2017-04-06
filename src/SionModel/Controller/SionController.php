@@ -169,12 +169,23 @@ class SionController extends AbstractActionController
             $form->setData($data);
             if ($form->isValid()) {
                 $data = $form->getData();
-                if (!($newId = $table->createEntity($entity, $data))) {
-                    $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
-                } else {
-                    $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )
-                        ->addMessage ( ucwords($entity).' successfully created.' );
-                    $this->redirectAfterCreate((int) $newId);
+                //if we have a dataHandler registered, call it
+                if (!is_null($entitySpec->createActionValidDataHandler)) {
+                    $handlerFunction = $entitySpec->createActionValidDataHandler;
+                    if (!method_exists($this, $handlerFunction) ||
+                        method_exists('SionController', $handlerFunction)
+                    ) {
+                        throw new \Exception('Invalid create_action_valid_data_handler set for entity \''.$entity.'\'');
+                    }
+                    return $this->$handlerFunction($data);
+                } else { //if we have no data handler, we'll do it ourselves
+                    if (!($newId = $table->createEntity($entity, $data))) {
+                        $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+                    } else {
+                        $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )
+                            ->addMessage ( ucwords($entity).' successfully created.' );
+                        $this->redirectAfterCreate((int) $newId);
+                    }
                 }
             } else {
                 $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );

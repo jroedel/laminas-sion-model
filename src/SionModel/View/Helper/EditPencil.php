@@ -25,7 +25,7 @@ class EditPencil extends AbstractHelper
      * @param string $entityType
      * @param int $id
      */
-    public function __invoke($entityType, $id)
+    public function __invoke($entityType, $id, $openInNewTab = false)
     {
     	//if there's not enough info we won't do anything
     	if (!$id || $id == '' || !isset($this->entities[$entityType]) ||
@@ -42,10 +42,12 @@ class EditPencil extends AbstractHelper
     	if (!$isAllowed) {
     	    return '';
     	}
-		$pattern = ' <a href="%s"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></a>';
+    	$otherAttributes = $openInNewTab ? 'target="_blank"' : '';
+		$pattern = ' <a href="%s" %s><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></a>';
 		$finalMarkup = sprintf($pattern,
 		    $this->view->url($this->entities[$entityType]->editRoute,
-	        [$this->entities[$entityType]->editRouteKey => $id]));
+	        [$this->entities[$entityType]->editRouteKey => $id]),
+	        $otherAttributes);
     	return $finalMarkup;
     }
 }
