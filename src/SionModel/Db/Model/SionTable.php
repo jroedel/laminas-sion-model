@@ -867,12 +867,14 @@ class SionTable // implements ResourceProviderInterface
             $changes[] = $change;
         }
 
-        $sort = [];
-        foreach($changes as $k=>$v) {
-            $sort['updatedOn'][$k] = $v['updatedOn'];
+        if (!is_null($changes) && !empty($changes)) {
+            $sort = [];
+            foreach($changes as $k=>$v) {
+                $sort['updatedOn'][$k] = $v['updatedOn'];
+            }
+            # sort by event_type desc and then title asc
+            array_multisort($sort['updatedOn'], SORT_DESC, $changes);
         }
-        # sort by event_type desc and then title asc
-        array_multisort($sort['updatedOn'], SORT_DESC, $changes);
 
         return $changes;
     }

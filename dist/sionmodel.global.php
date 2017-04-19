@@ -11,17 +11,17 @@ return [
         'visits_table' => 'project_visits',
 		/**
 		 * This is the service name of a SionTable instance to call the getChanges() method
-		 */ 
+		 */
 		'visits_model' => 'Project\Model\ProjectTable',
-		
+
 //        'post_place_line_format' => ':zip :cityState',
 //        'post_place_line_format_by_country' => [
 //            'US' => ':cityState :zip',
 //            'CL' => ':cityState :zip',
 //        ],
-		
+
 	    'default_redirect_route' => 'home',
-	    
+
 		/**
 		* If this key is set, it will be used to prime the SionForm with persons for suggestions.
 		* The class must implement the SionModel\Person\PersonProviderInterface
@@ -40,6 +40,7 @@ return [
                 'sion_model_class'               		=> 'Project\Model\EventTable',
                 'get_object_function' 					=> 'getEvent',
                 'get_objects_function'               	=> 'getEvents',
+                'format_view_helper'                    => 'formatEvent',
                 'required_columns_for_creation' 		=> [
         	        'title'
         	    ],

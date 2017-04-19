@@ -31,6 +31,20 @@ class FormatEntity extends AbstractHelper
      */
     public function __invoke($entityType, $data, array $options = [])
     {
+        if (!isset($entityType) || !key_exists($entityType, $this->entities)) {
+            if ($options['failSilently']) {
+                return '';
+            } else {
+                throw new \InvalidArgumentException('Unknown entity type passed: '.$entityType);
+            }
+        }
+        $entitySpecification = $this->entities[$entityType];
+        //forward request to registered view helper if we have one
+        if (!is_null($entitySpecification->formatViewHelper)) {
+            $viewHelperName = $entitySpecification->formatViewHelper;
+            return $this->view->$viewHelperName($entityType, $data, $options);
+        }
+
         //set default options
         $options = [
             'displayFlag' => isset($options['displayFlag']) ? (bool)$options['displayFlag'] : true,
@@ -40,13 +54,6 @@ class FormatEntity extends AbstractHelper
             'displayInactiveLabel' => isset($options['displayInactiveLabel']) ? (bool)$options['displayInactiveLabel'] : false,
         ];
 
-        if (!isset($entityType) || !isset($this->entities[$entityType])) {
-            if ($options['failSilently']) {
-                return '';
-            } else {
-                throw new \InvalidArgumentException('Unknown entity type passed: '.$entityType);
-            }
-        }
         if (!is_array($data)) {
             if ($options['failSilently']) {
                 return '';
@@ -54,8 +61,8 @@ class FormatEntity extends AbstractHelper
                 throw new \InvalidArgumentException('$data should be an array.');
             }
         }
-        if (!$this->entities[$entityType]->entityKeyField ||
-            !isset($data[$this->entities[$entityType]->entityKeyField])
+        if (!$entitySpecification->entityKeyField ||
+            !isset($data[$entitySpecification->entityKeyField])
         ) {
             if ($options['failSilently']) {
                 return '';
@@ -63,8 +70,8 @@ class FormatEntity extends AbstractHelper
                 throw new \InvalidArgumentException('Id field not set for entity '.$entityType);
             }
         }
-        if (!$this->entities[$entityType]->nameField ||
-            !isset($data[$this->entities[$entityType]->nameField])
+        if (!$entitySpecification->nameField ||
+            !isset($data[$entitySpecification->nameField])
         ) {
             if ($options['failSilently']) {
                 return '';
@@ -75,33 +82,33 @@ class FormatEntity extends AbstractHelper
 
     	$finalMarkup = '';
     	if ($options['displayFlag'] &&
-    	    $this->entities[$entityType]->countryField &&
-    	    isset($data[$this->entities[$entityType]->countryField]) &&
-    	    2 === strlen($data[$this->entities[$entityType]->countryField])
+    	    $entitySpecification->countryField &&
+    	    isset($data[$entitySpecification->countryField]) &&
+    	    2 === strlen($data[$entitySpecification->countryField])
     	) {
-    		$finalMarkup .= $this->view->flag($data[$this->entities[$entityType]->countryField])."&nbsp;";
+    		$finalMarkup .= $this->view->flag($data[$entitySpecification->countryField])."&nbsp;";
     	}
 
     	//if our name field is a date, format it as a medium date
-    	if ($data[$this->entities[$entityType]->nameField] instanceof \DateTime) {
-    	    $this->view->dateFormat($data[$this->entities[$entityType]->nameField],
+    	if ($data[$entitySpecification->nameField] instanceof \DateTime) {
+    	    $this->view->dateFormat($data[$entitySpecification->nameField],
 	            IntlDateFormatter::MEDIUM, IntlDateFormatter::NONE);
     	} else {
-        	$name = $data[$this->entities[$entityType]->nameField];
-    	    if ($this->entities[$entityType]->nameFieldIsTranslateable) {
+        	$name = $data[$entitySpecification->nameField];
+    	    if ($entitySpecification->nameFieldIsTranslateable) {
     	        $name = $this->view->translate($name);
     	    }
     	}
 
     	if ($options['displayAsLink'] &&
-    	    $this->entities[$entityType]->showRoute &&
-    	    $this->entities[$entityType]->showRouteKey &&
-    	    $this->entities[$entityType]->showRouteKeyField &&
-    	    isset($data[$this->entities[$entityType]->showRouteKeyField])
+    	    $entitySpecification->showRoute &&
+    	    $entitySpecification->showRouteKey &&
+    	    $entitySpecification->showRouteKeyField &&
+    	    isset($data[$entitySpecification->showRouteKeyField])
     	) {
-    	    $route = $this->entities[$entityType]->showRoute;
-    	    $routeKey = $this->entities[$entityType]->showRouteKey;
-    	    $id = $data[$this->entities[$entityType]->showRouteKeyField];
+    	    $route = $entitySpecification->showRoute;
+    	    $routeKey = $entitySpecification->showRouteKey;
+    	    $id = $data[$entitySpecification->showRouteKeyField];
     	    $finalMarkup .= '<a href="'.$this->view->url($route, [$routeKey => $id]).'">'.
     	        $this->view->escapeHtml($name).'</a>';
     	} else {
@@ -109,10 +116,10 @@ class FormatEntity extends AbstractHelper
     	}
 
     	if ($options['displayEditPencil'] &&
-    	    $this->entities[$entityType]->editRouteKeyField &&
-            isset($data[$this->entities[$entityType]->editRouteKeyField])
+    	    $entitySpecification->editRouteKeyField &&
+            isset($data[$entitySpecification->editRouteKeyField])
 	    ) {
-    	    $editId = $data[$this->entities[$entityType]->editRouteKeyField];
+    	    $editId = $data[$entitySpecification->editRouteKeyField];
     		$finalMarkup .= $this->view->editPencil($entityType, $editId);
     	}
     	if ($options['displayInactiveLabel'] &&

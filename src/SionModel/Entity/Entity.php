@@ -42,9 +42,14 @@ class Entity
     public $getObjectFunction;
     /**
      * Function name to get all objects. This function is called from getObjects.
-     * @var string getObjectsFunction
+     * @var string $getObjectsFunction
      */
     public $getObjectsFunction;
+    /**
+     * A registered alias of a view helper to render the entity
+     * @var string $formatViewHelper
+     */
+    public $formatViewHelper;
     /**
      * List of columns needed in order to insert a new entity
      * @var string[] $requiredColumnsForCreation
