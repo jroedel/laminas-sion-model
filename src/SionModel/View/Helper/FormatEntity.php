@@ -13,12 +13,18 @@ class FormatEntity extends AbstractHelper
     protected $entities = [];
 
     /**
+     * @var bool $routePermissionCheckingEnabled
+     */
+    protected $routePermissionCheckingEnabled = false;
+
+    /**
      *
      * @param EntitiesService $entityService
      */
-    public function __construct($entityService)
+    public function __construct($entityService, $routePermissionCheckingEnabled = false)
     {
         $this->entities = $entityService->getEntities();
+        $this->setRoutePermissionCheckingEnabled($routePermissionCheckingEnabled);
     }
 
     /**
@@ -104,7 +110,8 @@ class FormatEntity extends AbstractHelper
     	    $entitySpecification->showRoute &&
     	    $entitySpecification->showRouteKey &&
     	    $entitySpecification->showRouteKeyField &&
-    	    isset($data[$entitySpecification->showRouteKeyField])
+    	    isset($data[$entitySpecification->showRouteKeyField]) &&
+	        $this->view->isAllowed('route/'.$entitySpecification->showRoute)
     	) {
     	    $route = $entitySpecification->showRoute;
     	    $routeKey = $entitySpecification->showRouteKey;
@@ -131,5 +138,25 @@ class FormatEntity extends AbstractHelper
             }
     	}
     	return $finalMarkup;
+    }
+
+    /**
+    * Get the routePermissionCheckingEnabled value
+    * @return bool
+    */
+    public function getRoutePermissionCheckingEnabled()
+    {
+        return $this->routePermissionCheckingEnabled;
+    }
+
+    /**
+    *
+    * @param bool $routePermissionCheckingEnabled
+    * @return self
+    */
+    public function setRoutePermissionCheckingEnabled($routePermissionCheckingEnabled)
+    {
+        $this->routePermissionCheckingEnabled = $routePermissionCheckingEnabled;
+        return $this;
     }
 }

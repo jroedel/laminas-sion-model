@@ -23,6 +23,10 @@ use JUser\Model\UserTable;
 use Zend\Stdlib\StringUtils;
 use SionModel\Problem\EntityProblem;
 use Zend\Db\ResultSet\ResultSet;
+use Zend\Cache\Storage\StorageInterface;
+use Zend\Filter\StringToLower;
+use Zend\Filter\PregReplace;
+use Zend\Mvc\MvcEvent;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -55,7 +59,6 @@ use Zend\Db\ResultSet\ResultSet;
 /**
  *
  * @author jeffr
- * @todo Integrate data problem management
  * @todo Factor out 'changes_table_name' from __contruct method. Make it a required key for entities
  */
 class SionTable // implements ResourceProviderInterface
@@ -130,6 +133,55 @@ class SionTable // implements ResourceProviderInterface
     protected $userTable;
 
     /**
+    * @var StorageInterface $cache
+    */
+    protected $persistentCache;
+
+    /**
+    * @var mixed[] $memoryCache
+    */
+    protected $memoryCache = [];
+
+    /**
+     * List of keys that should be persisted onFinish
+     * @var array
+     */
+    protected $newPersistentCacheItems = [];
+
+//     /**
+//     * Get the memoryCache value
+//     * @return StorageInterface
+//     */
+//     public function getMemoryCache()
+//     {
+//         return $this->memoryCache;
+//     }
+
+//     /**
+//     *
+//     * @param StorageInterface $memoryCache
+//     * @return self
+//     */
+//     public function setMemoryCache($memoryCache)
+//     {
+//         $this->memoryCache = $memoryCache;
+//         return $this;
+//     }
+
+    /**
+     * For each cache key, the list of entities they depend on.
+     * For example:
+     * [
+     *      'events' => ['event', 'dates',  'emails', 'persons'],
+     *      'unlinked-events => ['event'],
+     * ]
+     * That is to say, each time an entity of that type is created or updated,
+     * the cache will be invalidated.
+     * @var array
+     */
+    protected $cacheDependencies = [];
+
+    /**
      * Represents the action of updating an entity
      * @var string
      */
@@ -160,9 +212,22 @@ class SionTable // implements ResourceProviderInterface
         $entities = $serviceLocator->get('SionModel\Service\EntitiesService');
 
         $config = $serviceLocator->get('SionModel\Config');
+        if ($serviceLocator->has('SionModel\PersistentCache')) {
+            $this->persistentCache = $serviceLocator->get('SionModel\PersistentCache');
+            $hasCacheDependencies = false;
+            $cacheDependencies = $this->persistentCache->getItem($this->getSionTableIdentifier().'cachedependencies', $hasCacheDependencies);
+            if ($hasCacheDependencies) {
+                $this->cacheDependencies = $cacheDependencies;
+            }
+
+            //setup listener for onFinish, so move objects to persistent storage
+            $em = $serviceLocator->get('Application')->getEventManager();
+            $em->attach( MvcEvent::EVENT_FINISH, [$this, 'onFinish'], -1);
+        }
+
         $this->tableGateway     = new TableGateway('', $dbAdapter);
         $this->adapter          = $dbAdapter;
-        $this->entitySpecifications         = $entities->getEntities();
+        $this->entitySpecifications = $entities->getEntities();
         $this->actingUserId     = $actingUserId;
         $this->changeTableName  = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
@@ -182,6 +247,39 @@ class SionTable // implements ResourceProviderInterface
              */
             $problemService = $serviceLocator->get('SionModel\Service\ProblemService');
             $this->entityProblemPrototype = $problemService->getEntityProblemPrototype();
+        }
+    }
+
+    /**
+     * Get a string to identify this SionTable amongst others. Based on a transformed class name.
+     * @return string
+     */
+    public function getSionTableIdentifier()
+    {
+        static $filter;
+        if (!is_object($filter)) {
+            $filter = new FilterChain();
+            $filter->attach(new StringToLower())
+            ->attach(new PregReplace(['pattern' => '/\\\\/', 'replacement' => '']));
+        }
+        return $filter->filter(get_class($this));
+    }
+
+    public function onFinish()
+    {
+        $maxObjects = 2;
+        $count = 0;
+        if (is_object($this->persistentCache)) {
+            $this->persistentCache->setItem($this->getSionTableIdentifier().'cachedependencies', $this->cacheDependencies);
+            foreach ($this->newPersistentCacheItems as $key) {
+                if (key_exists($key, $this->memoryCache)) {
+                    $this->persistentCache->setItem($key, $this->memoryCache[$key]);
+                    $count++;
+                }
+                if ($count >= $maxObjects) {
+                    break;
+                }
+            }
         }
     }
 
@@ -432,10 +530,7 @@ class SionTable // implements ResourceProviderInterface
         }
         $return = $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges, $fieldsToTouch);
 
-        //@todo setup a caching system in SionTable to handle clearing the caches
-        if (method_exists($this, 'clearCaches')) {
-            $this->clearCaches();
-        }
+        $this->removeDependentCacheItems($entity);
 
         //if the id is being changed, update it
         $keyField = $entitySpec->entityKeyField;
@@ -575,10 +670,8 @@ class SionTable // implements ResourceProviderInterface
 
         $return = $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $manyToOneUpdateColumns, $reportChanges);
 
-        //@todo setup a caching system in SionTable to handle clearing the caches
-        if (method_exists($this, 'clearCaches')) {
-            $this->clearCaches();
-        }
+        $this->removeDependentCacheItems($entity);
+
         /**
          * Run the changed/new data through the postprocessor function if it exists
          * @see Entity
@@ -920,6 +1013,96 @@ class SionTable // implements ResourceProviderInterface
     public function setUserTable($userTable)
     {
         $this->userTable = $userTable;
+        return $this;
+    }
+
+    /**
+     * Cache some entities. A simple proxy of the cache's setItem method with dependency support.
+     *
+     * @param string $cacheKey
+     * @param mixed[] $objects
+     * @param array $entityDependencies
+     * @return boolean
+     */
+    public function cacheEntityObjects($cacheKey, &$objects, array $cacheDependencies = [])
+    {
+        if (!$this->persistentCache) {
+            throw new \Exception('The cache must be configured to cache entites.');
+        }
+        $cacheKey = $this->getSionTableIdentifier().'-'.$cacheKey;
+        $this->memoryCache[$cacheKey] = $objects;
+        $this->newPersistentCacheItems[] = $cacheKey;
+        $this->cacheDependencies[$cacheKey] = $cacheDependencies;
+        return true;
+    }
+
+    /**
+     * Retrieve a cache item. A simple proxy of the cache's getItem method.
+     * First we check the memoryCache, if it's not there, we look in the
+     * persistent cache. If it's in the persistent cache, we set it in the
+     * memory cache and return the objects. If we don't find the key we
+     * return null.
+     * @param string $key
+     * @param bool $success
+     * @param mixed $casToken
+     * @throws \Exception
+     * @return mixed|null
+     */
+    public function &fetchCachedEntityObjects($key, &$success = null, $casToken = null)
+    {
+        if (is_null($this->persistentCache)) {
+            throw new \Exception('Please set a cache before fetching cached entities.');
+        }
+        $key = $this->getSionTableIdentifier().'-'.$key;
+        if (key_exists($key, $this->memoryCache)) {
+            return $this->memoryCache[$key];
+        }
+        $objects = $this->persistentCache->getItem($key, $success, $casToken);
+        if ($success) {
+            return $this->memoryCache[$key];
+        }
+        $null = null;
+        return $null;
+    }
+
+    /**
+     * Examine the $this->cacheDependencies array to see if any depends on the entity passed.
+     * @param string $entity
+     * @return bool
+     */
+    public function removeDependentCacheItems($entity)
+    {
+        $cache = $this->getPersistentCache();
+        foreach ($this->cacheDependencies as $key => $dependentEntities) {
+            if (in_array($entity, $dependentEntities)) {
+                if (is_object($cache)) {
+                    $cache->removeItem($key);
+                }
+                if (key_exists($key, $this->memoryCache)) {
+                    unset($this->memoryCache[$key]);
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Get the cache value
+     * @return StorageInterface
+     */
+    public function getPersistentCache()
+    {
+        return $this->persistentCache;
+    }
+
+    /**
+     *
+     * @param StorageInterface $cache
+     * @return self
+     */
+    public function setPersistentCache($cache)
+    {
+        $this->persistentCache = $cache;
         return $this;
     }
 

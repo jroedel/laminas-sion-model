@@ -4,6 +4,7 @@ namespace SionModel\Service;
 use Zend\ServiceManager\FactoryInterface;
 use Zend\ServiceManager\ServiceLocatorInterface;
 use SionModel\View\Helper\FormatEntity;
+use Zend\Mvc\Application;
 
 /**
  * Factory responsible of constructing the FormatEntity view helper
@@ -21,7 +22,12 @@ class FormatEntityFactory implements FactoryInterface
     {
         $entityService = $serviceLocator->get ( 'SionModel\Service\EntitiesService' );
 
-        $viewHelper = new FormatEntity($entityService);
+        $config = $serviceLocator->get('SionModel\Config');
+
+        $routePermissionCheckingEnabled = isset($config['route_permission_checking_enabled']) ?
+            (bool)$config['route_permission_checking_enabled'] : false;
+
+        $viewHelper = new FormatEntity($entityService, $routePermissionCheckingEnabled);
 		return $viewHelper;
     }
 }

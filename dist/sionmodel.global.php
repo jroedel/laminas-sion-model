@@ -27,6 +27,14 @@ return [
 		* The class must implement the SionModel\Person\PersonProviderInterface
 		*/
 		'person_provider' => 'Project\Model\EventTable',
+
+	    /**
+	     * Route permission checking is designed to work with BjyAuthorize, calling the
+	     * isAllowed view helper and checking for route permissions with the 'route/' prefix as
+	     * a resource_id
+	     */
+	    'route_permission_checking_enabled' => false,
+
 		'entities' => [
 			/**
 			 * For more information on entity config:

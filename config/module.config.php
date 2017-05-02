@@ -15,7 +15,7 @@ return [
             'debugEncoding'			=> 'SionModel\View\Helper\DebugEncoding',
             'diffForHumans'         => 'SionModel\View\Helper\DiffForHumans',
             'email'					=> 'SionModel\View\Helper\Email',
-            'formatUrlObject'       => 'SionModel\SView\Helper\FormatUrlObject',
+            'formatUrlObject'       => 'SionModel\View\Helper\FormatUrlObject',
             'jshrink'		        => 'SionModel\View\Helper\Jshrink',
             'shortDateRange'		=> 'SionModel\View\Helper\ShortDateRange',
             'telephone'				=> 'SionModel\View\Helper\Telephone',
@@ -46,10 +46,11 @@ return [
         'factories' => [
             'CountryValueOptions'                   => 'SionModel\Service\CountryValueOptionsFactory',
             'SionModel\Config'                      => 'SionModel\Service\ConfigServiceFactory',
-            'SionModel\Service\EntitiesService'     => 'SionModel\Service\EntitiesServiceFactory',
-            'SionModel\Problem\ProblemTable'        => 'SionModel\Service\ProblemTableFactory',
-            'SionModel\Service\ProblemService'      => 'SionModel\Service\ProblemServiceFactory',
             'SionModel\Form\SuggestForm'            => 'SionModel\Service\SuggestFormFactory',
+            'SionModel\PersistentCache'             => 'SionModel\Service\PersistentCacheFactory',
+            'SionModel\Problem\ProblemTable'        => 'SionModel\Service\ProblemTableFactory',
+            'SionModel\Service\EntitiesService'     => 'SionModel\Service\EntitiesServiceFactory',
+            'SionModel\Service\ProblemService'      => 'SionModel\Service\ProblemServiceFactory',
         ],
     ],
     'sion_model' => [
@@ -118,42 +119,20 @@ return [
                 'label'     => 'Blog',
             ],
         ],
+//         'persistent_cache_config' => [
+//             'adapter' => [
+//                 'name' => 'filesystem',
+//                 'options' => [
+//                     'dirLevel' => 2,
+//                     'cacheDir' => 'data/cache',
+//                     'dirPermission' => 0755,
+//                     'filePermission' => 0666,
+//                     'namespaceSeparator' => '-db-'
+//                 ],
+//             ],
+//             'plugins' => ['serializer'],//   - See more at: https://arjunphp.com/zend-framework-2-cache-example/#sthash.1P0kgSma.dpuf
+//         ],
         'entities' => [
-            'problem' => [
-//                 'table_name' => 'event',
-                'table_key' => 'event_id',
-                'scope' => 'problem',
-                'get_object_function' => 'getProblem',
-                'required_columns_for_creation' => [
-        	        'project',
-                    'entity',
-                    'entityId',
-                    'problem',
-        	    ],
-                'name_column' => 'problemName',
-                'date_columns' => [
-                    'ignoredOn',
-                    'resolvedOn',
-                    'updatedOn',
-                    'createdOn',
-                ],
-                'update_columns' => [
-                    'problemId' => 'ProblemId',
-                    'project' => 'Project',
-                    'entity' => 'Entity',
-                    'entityId' => 'EntityId',
-                    'problem' => 'Problem',
-                    'severity' => 'Severity',
-                    'ignoredOn' => 'IgnoredOn',
-                    'ignoredBy' => 'IgnoredBy',
-                    'resolvedOn' => 'ResolvedOn',
-                    'resolvedBy' => 'ResolvedBy',
-                    'updatedOn' => 'UpdatedOn',
-                    'updatedBy' => 'UpdatedBy',
-                    'createdOn' => 'CreatedOn',
-                    'createdBy' => 'CreatedBy',
-        	    ],
-            ],
         ],
     ],
     'controllers' => [

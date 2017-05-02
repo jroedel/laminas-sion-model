@@ -1,5 +1,5 @@
 <?php
-namespace Patres\Form;
+namespace SionModel\Form;
 
 use Zend\Form\Form;
 use Zend\InputFilter\InputFilterProviderInterface;
