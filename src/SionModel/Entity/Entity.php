@@ -107,6 +107,12 @@ class Entity
      * @var string $indexTemplate
      */
     public $indexTemplate;
+
+    /**
+     * The route parameter to pass the entity id, if a more specific one isn't specified
+     * @var string
+     */
+    public $defaultRouteKey;
     /**
      * Template stack address to render on the SionController::showAction
      * @var string $showActionTemplate
@@ -206,6 +212,11 @@ class Entity
      */
     public $touchDefaultField;
     /**
+     * A route key that specifies the entity id to touch in the touchAction
+     * @var string
+     */
+    public $touchRouteKey;
+    /**
      * A route key that specifies the entity field to touch for the touchAction
      * and touchJsonAction of SionController.
      * If not specified, the $touchDefaultField will be touched
@@ -278,6 +289,11 @@ class Entity
      * @var bool
      */
     public $enableDeleteAction = false;
+    /**
+     * The route parameter key from which to get the entity's id in the deleteAction
+     * @var string
+     */
+    public $deleteRouteKey;
     /**
      * Acl resource identifier to check for permissions to delete a concrete entity
      * @var string

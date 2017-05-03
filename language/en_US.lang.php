@@ -1,17 +1,10 @@
 <?php
 
 return array(
-    'Burundi' => 'Burundi',
-    'Database edits' => 'Database edits',
-    'Entity' => 'Entity',
-    'Field' => 'Field',
-    'New Value' => 'New Value',
-    'Nigeria' => 'Nigeria',
-    'Old Value' => 'Old Value',
-    'Patres Sion' => 'Patres Sion',
-    'Pentecostes-Provinz' => 'Pentecost Province',
+    'No email associated with person' => 'No email associated with person',
+    'No main role specified for national association' => 'No main role specified for national association',
     'Problem' => 'Problem',
-    'Sion Central' => 'Sion Central',
+    'Schoenstatt Link' => 'Schoenstatt Link',
+    'Sr.' => 'Sr.',
     'Total problems' => 'Total problems',
-    'View Changes' => 'View Changes',
 );

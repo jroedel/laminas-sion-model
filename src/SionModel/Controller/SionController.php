@@ -16,6 +16,7 @@ use SionModel\Service\EntitiesService;
 use SionModel;
 use SionModel\Form\SionForm;
 use SionModel\Entity\Entity;
+use SionModel\Form\DeleteEntityForm;
 use Zend\Mvc\Controller\Plugin\FlashMessenger;
 use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
@@ -47,6 +48,14 @@ class SionController extends AbstractActionController
     * @var array $sionModelConfig
     */
     protected $sionModelConfig;
+
+    protected $actionRouteKeys = [
+        'show'      => 'showRouteKey',
+        'edit'      => 'editRouteKey',
+        'delete'    => 'deleteRouteKey',
+        'touch'     => 'touchRouteKey',
+        'touchJson' => 'touchJsonRouteKey',
+    ];
 
     /**
      * @param string $entity
@@ -88,7 +97,7 @@ class SionController extends AbstractActionController
         if (is_null($entitySpec->showRouteKey)) {
             throw new \Exception("Please set the show_route_key config key of $entity in order to use the showAction.");
         }
-        $id = ( int ) $this->params ()->fromRoute ( $entitySpec->showRouteKey );
+        $id = (Int)$this->getEntityIdParam('show');
         if (!$id) {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
                 ->addMessage(ucwords($entity).' not found.');
@@ -253,7 +262,7 @@ class SionController extends AbstractActionController
         if (is_null($entitySpec->editRouteKey)) {
             throw new \Exception("Please set the edit_route_key config key of $entity in order to use the editAction.");
         }
-        $id = ( int ) $this->params ()->fromRoute ( $entitySpec->editRouteKey );
+        $id = (Int)$this->getEntityIdParam('edit');
         //if the entity doesn't exist, redirect to the index or the default route
         if (! $id) {
             $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
@@ -312,10 +321,12 @@ class SionController extends AbstractActionController
         } else {
             $form->setData($entityObject);
         }
+        $deleteForm = new DeleteEntityForm();
         $view = new ViewModel([
             'entity'    => $entityObject,
             'entityId'  => $id,
             'form'      => $form,
+            'deleteForm'=> $deleteForm,
         ]);
 
         //check if the user has the editActionTemplate option set, if not they'll go to the default
@@ -335,10 +346,7 @@ class SionController extends AbstractActionController
     {
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-        if (is_null($entitySpec->editRouteKey)) {
-            throw new \Exception("Please set the edit_route_key config key of $entity in order to use the editAction.");
-        }
-        $id = ( int ) $this->params ()->fromRoute ( $entitySpec->editRouteKey );
+        $id = (Int)$this->getEntityIdParam('touch');
         //if the entity doesn't exist, redirect to the index or the default route
         if (! $id) {
             $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
@@ -399,9 +407,7 @@ class SionController extends AbstractActionController
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
 
-        if (!is_null($entitySpec->touchJsonRouteKey)) {
-            $id = ( int ) $this->params ()->fromRoute ($entitySpec->touchJsonRouteKey);
-        }
+        $id = (Int)$this->getEntityIdParam('touchJson');
         if (!isset($id) || is_null($id)) {
             return $this->sendFailedMessage('Invalid id passed.');
         }
@@ -438,6 +444,122 @@ class SionController extends AbstractActionController
         ]);
         $view->setJsonpCallback($callback);
         return $view;
+    }
+
+    /**
+     * If the form has been posted, confirm the CSRF. If all is well, delete the entity.
+     * If the request is a GET, ask the user to confirm the deletion
+     * @return \Zend\View\Model\ViewModel
+     *
+     * @todo Create a view template to ask for confirmation
+     * @todo check if client expects json, and make it AJAX friendly
+     */
+    public function deleteAction()
+    {
+        $entity = $this->getEntity();
+        $id = (Int)$this->getEntityIdParam('delete');
+        $entitySpec = $this->getEntitySpecification();
+
+        $request = $this->getRequest();
+        $sm = $this->getServiceLocator();
+
+        //make sure we have all the information that we need to delete
+        if (!$entitySpec->isEnabledForEntityDelete()) {
+            $this->flashMessenger()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )
+            ->addMessage ( 'This entity cannot be deleted, please check the configuration.');
+            $this->redirectAfterDelete(false);
+        }
+
+        //make sure the user has permission to delete the entity
+        if (!is_null($entitySpec->deleteActionAclResource) &&
+            !$this->isAllowed($entitySpec->deleteActionAclResource,
+                $entitySpec->deleteActionAclPermission ?
+                $entitySpec->deleteActionAclPermission : null)
+        ) {
+            $this->flashMessenger()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )
+            ->addMessage ( 'You do not have permission to delete this entity.');
+            $this->redirectAfterDelete(false);
+        }
+
+        //make sure our table exists
+        $table = $this->getSionTable();
+
+        //make sure our entity exists
+        if (!$table->existsEntity($entity, $id)) {
+            $this->getResponse()->setStatusCode(401);
+            $this->flashMessenger()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )
+            ->addMessage ( 'The entity you\'re trying to delete doesn\'t exists.' );
+//             $this->redirectAfterDelete(false);
+        }
+
+        $form = new DeleteEntityForm();
+        if ( $request->isPost ()) {
+            $data = $request->getPost();
+            $form->setData($data);
+            if ($form->isValid()) {
+                $result = $table->deleteEntity($entity, $id);
+                $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )
+                ->addMessage ( 'Entity successfully deleted.' );
+                $this->redirectAfterDelete(true);
+            } else {
+                $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+                $this->getResponse()->setStatusCode(401); //exists, but either didn't match params or bad csrf
+            }
+        }
+
+        $entityObject = $this->getEntityObject($id);
+
+        return new ViewModel ( [
+            'form' => $form,
+            'entityId' => $entityId,
+            'entityObject' => $entityObject,
+        ] );
+    }
+
+    /**
+     * Called in order to redirect after error or success on deleteAction
+     * @param bool $actionWasSuccessful
+     * @throws \Exception
+     */
+    protected function redirectAfterDelete($actionWasSuccessful = true)
+    {
+        $entity = $this->getEntity();
+        $entitySpec = $this->getEntitySpecification();
+        if (!is_null($entitySpec->deleteActionRedirectRoute)) {
+            $this->redirect()->toRoute($entitySpec->deleteActionRedirectRoute);
+        } else {
+            if (is_null($defaultRedirectRoute = $this->getDefaultRedirectRoute())) {
+                throw new \Exception("Please configure the deleteActionRedirectRoute for $entity, or the sion_model default_redirect_route.");
+            }
+            $this->redirect()->toRoute($defaultRedirectRoute);
+        }
+    }
+
+    /**
+     * Get the value of the entityId route parameter given the action. If no parameter is
+     * set in the Request, $default is returned
+     * @param string $action
+     * @param mixed $default
+     * @throws \Exception
+     * @return mixed
+     */
+    protected function getEntityIdParam($action = 'show', $default = null)
+    {
+        $entity = $this->getEntity();
+        $entitySpec = $this->getEntitySpecification();
+        $actionRouteKey = null;
+        if (key_exists($action, $this->actionRouteKeys)) {
+            $actionRouteKey = $this->actionRouteKeys[$action];
+            if (!is_null($entitySpec->$actionRouteKey)) {
+                return $this->params()->fromRoute($entitySpec->$actionRouteKey, $default);
+            }
+        } else {
+            $actionRouteKey = 'defaultRouteKey';
+        }
+        if (!is_null($entitySpec->defaultRouteKey)) {
+            return $this->params()->fromRoute($entitySpec->defaultRouteKey, $default);
+        }
+        throw new \Exception("Please configure the $actionRouteKey for the $entity entity to use the $action action.");
     }
 
     protected function sendFailedMessage($message)

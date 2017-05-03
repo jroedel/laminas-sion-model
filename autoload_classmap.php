@@ -14,7 +14,6 @@ return array(
     'SionModel\Service\PersistentCacheFactory'     => __DIR__ . '/src/SionModel/Service/PersistentCacheFactory.php',
     'SionModel\Service\CountryValueOptionsFactory' => __DIR__ . '/src/SionModel/Service/CountryValueOptionsFactory.php',
     'SionModel\Service\ProblemServiceFactory'      => __DIR__ . '/src/SionModel/Service/ProblemServiceFactory.php',
-    'SionModel\Service\MemoryCacheFactory'         => __DIR__ . '/src/SionModel/Service/MemoryCacheFactory.php',
     'SionModel\Entity\Entity'                      => __DIR__ . '/src/SionModel/Entity/Entity.php',
     'SionModel\Person\PersonProviderInterface'     => __DIR__ . '/src/SionModel/Person/PersonProviderInterface.php',
     'SionModel\Controller\SionModelController'     => __DIR__ . '/src/SionModel/Controller/SionModelController.php',
