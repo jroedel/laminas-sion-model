@@ -13,10 +13,39 @@ use Zend\View\Model\ViewModel;
 use Zend\Mvc\Controller\AbstractActionController;
 use SionModel\Db\Model\SionTable;
 use SionModel;
-use SionModel\Entity\Entity;
+use Zend\Cache\Storage\FlushableInterface;
+use Zend\View\Model\JsonModel;
+use BjyAuthorize\Exception\UnAuthorizedException;
 
 class SionModelController extends AbstractActionController
 {
+    public function clearPersistentCacheAction()
+    {
+        $key = $this->params()->fromQuery('key', null);
+        if (is_null($key)) {
+            throw new UnAuthorizedException();
+        }
+        $config = $this->getSionModelConfig();
+        $apiKeys = isset($config['api_keys']) && is_array($config['api_keys']) ? $config['api_keys'] : [];
+        if (!in_array($key, $apiKeys)) {
+            throw new UnAuthorizedException();
+        }
+        $cache = $this->getPersistentCache();
+        if (!is_object($cache)) {
+            throw new \Exception('Please configure the persistent cache to clear the cache.');
+        }
+        if (!$cache instanceof FlushableInterface) {
+            throw new \Exception('Configured persistent cache does not support flushing.');
+        }
+        if (!$cache->flush()) {
+            $this->getResponse()->setStatusCode(401);
+            $message = 'Unsuccessful flush';
+        } else {
+            $message = 'Success';
+        }
+        return new JsonModel(['message' => $message]);
+    }
+
     /**
      *
      * @return \Zend\View\Model\ViewModel
@@ -72,7 +101,7 @@ class SionModelController extends AbstractActionController
     public function viewChangesAction()
     {
         $sm = $this->getServiceLocator();
-        $config = $sm->get('SionModel\Config');
+        $config = $this->getSionModelConfig();
         if (!$sm->has($config['visits_model'])) {
             throw new \InvalidArgumentException('The \'visits_model\' configuration is incorrect.');
         }
@@ -83,5 +112,20 @@ class SionModelController extends AbstractActionController
         return new ViewModel([
             'changes' => $results,
         ]);
+    }
+
+    protected function getSionModelConfig()
+    {
+        $sm = $this->getServiceLocator();
+        return $sm->get('SionModel\Config');
+    }
+
+    protected function getPersistentCache()
+    {
+        $sm = $this->getServiceLocator();
+        if ($sm->has('SionModel\PersistentCache')) {
+            return $sm->get('SionModel\PersistentCache');
+        }
+        return null;
     }
 }

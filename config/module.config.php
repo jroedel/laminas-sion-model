@@ -54,6 +54,7 @@ return [
         ],
     ],
     'sion_model' => [
+        'api_keys' => [], //users should specify long, random authentication keys here
         'post_place_line_format' => ':zip :cityState',
         'post_place_line_format_by_country' => [
             'US' => ':cityState :zip',
@@ -137,7 +138,7 @@ return [
     ],
     'controllers' => [
         'invokables' => [
-            'SionModel\Controller\Sion'    => 'SionModel\Controller\SionModelController',
+            'SionModel\Controller\Sion' => 'SionModel\Controller\SionModelController',
         ],
     ],
     'router' => [
@@ -153,6 +154,15 @@ return [
                 ],
                 'may_terminate' => false,
                 'child_routes' => [
+                    'clear-persistent-cache' => [
+                        'type'    => 'Literal',
+                        'options' => [
+                            'route'    => '/clear-persistent-cache',
+                            'defaults' => [
+                                'action'     => 'clearPersistentCache',
+                            ],
+                        ],
+                    ],
                     'data-problems' => [
                         'type'    => 'Literal',
                         'options' => [
