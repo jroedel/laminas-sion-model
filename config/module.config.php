@@ -54,6 +54,7 @@ return [
         ],
     ],
     'sion_model' => [
+        'max_items_to_cache' => 2,
         'api_keys' => [], //users should specify long, random authentication keys here
         'post_place_line_format' => ':zip :cityState',
         'post_place_line_format_by_country' => [

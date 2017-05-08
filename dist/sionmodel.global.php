@@ -63,6 +63,7 @@ return [
                 'report_changes'               			=> true,
                 'index_route'               			=> 'events',
                 'index_template'               			=> 'project/events/index',
+                'default_route_key'                     => 'association_id',
                 'show_action_template'               	=> 'project/events/show',
                 'show_route' 							=> 'events/event',
                 'show_route_key' 						=> 'event_id',

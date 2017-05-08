@@ -148,6 +148,11 @@ class SionTable // implements ResourceProviderInterface
      */
     protected $newPersistentCacheItems = [];
 
+    /**
+     * @var int $maxItemsToCache
+     */
+    protected $maxItemsToCache = 2;
+
 //     /**
 //     * Get the memoryCache value
 //     * @return StorageInterface
@@ -231,6 +236,9 @@ class SionTable // implements ResourceProviderInterface
         $this->actingUserId     = $actingUserId;
         $this->changeTableName  = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
+        if (isset($config['max_items_to_cache'])) {
+            $this->maxItemsToCache = $config['max_items_to_cache'];
+        }
 
         //if we have it, use it
         if ($serviceLocator->has('JUser\Model\UserTable')) {
@@ -267,7 +275,7 @@ class SionTable // implements ResourceProviderInterface
 
     public function onFinish()
     {
-        $maxObjects = 2;
+        $maxObjects = $this->getMaxItemsToCache();
         $count = 0;
         if (is_object($this->persistentCache)) {
             $this->persistentCache->setItem($this->getSionTableIdentifier().'cachedependencies', $this->cacheDependencies);
@@ -1084,6 +1092,26 @@ class SionTable // implements ResourceProviderInterface
             }
         }
         return true;
+    }
+
+    /**
+    * Get the maxItemsToCache value
+    * @return int
+    */
+    public function getMaxItemsToCache()
+    {
+        return $this->maxItemsToCache;
+    }
+
+    /**
+    *
+    * @param int $maxItemsToCache
+    * @return self
+    */
+    public function setMaxItemsToCache($maxItemsToCache)
+    {
+        $this->maxItemsToCache = $maxItemsToCache;
+        return $this;
     }
 
     /**

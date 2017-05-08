@@ -511,7 +511,7 @@ class SionController extends AbstractActionController
 
         return new ViewModel ( [
             'form' => $form,
-            'entityId' => $entityId,
+            'entityId' => $id,
             'entityObject' => $entityObject,
         ] );
     }
