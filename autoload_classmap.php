@@ -37,6 +37,7 @@ return array(
     'SionModel\Form\SionForm'                      => __DIR__ . '/src/SionModel/Form/SionForm.php',
     'SionModel\Form\View\Helper\SionFormRow'       => __DIR__ . '/src/SionModel/Form/View/Helper/SionFormRow.php',
     'SionModel\Filter\DateSelectNoYear'            => __DIR__ . '/src/SionModel/Filter/DateSelectNoYear.php',
+    'SionModel\Filter\ToBit'                       => __DIR__ . '/src/SionModel/Filter/ToBit.php',
     'SionModel\Filter\ToDateTime'                  => __DIR__ . '/src/SionModel/Filter/ToDateTime.php',
     'SionModel\Filter\ToAscii'                     => __DIR__ . '/src/SionModel/Filter/ToAscii.php',
     'SionModel\Filter\JShrinkFilter'               => __DIR__ . '/src/SionModel/Filter/JShrinkFilter.php',

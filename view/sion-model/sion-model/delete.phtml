@@ -1,0 +1,12 @@
+<?php $headText = 'Delete '.$this->escapeHtml($this->entity);
+$this->headTitle($headText); ?>
+<h1><?php echo $this->translate($headText);?></h1>
+<?php
+$form = $this->form;
+$form->prepare();
+echo $this->form()->openTag($form);
+echo $this->formRow($form->get('security'));
+echo $this->formSubmit($form->get('submit'));
+echo '&nbsp;';
+echo $this->formButton($form->get('cancel'));
+echo $this->form()->closeTag();

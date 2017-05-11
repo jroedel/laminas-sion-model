@@ -123,23 +123,24 @@ class SionController extends AbstractActionController
 
         $table->registerVisit($entity, $entityObject[$entitySpec->entityKeyField]);
 
-        $sm = $this->getServiceLocator ();
-        /** @var SionForm $suggestForm **/
-        if (is_null($entitySpec->suggestForm)) {
-            $suggestForm = $sm->get('SionModel\Form\SuggestForm');
-        } elseif ($sm->has($entitySpec->suggestForm)) {
-            $suggestForm = $sm->get($entitySpec->suggestForm);
-        } elseif (class_exists($entitySpec->suggestForm)) {
-            $suggestFormName = $entitySpec->suggestForm;
-            $suggestForm = new $suggestFormName;
-        } else {
-            throw new \InvalidArgumentException('Invalid suggest_form specified for \''.$entity.'\' entity.');
-        }
+        //@todo enable suggest form
+//         $sm = $this->getServiceLocator ();
+//         /** @var SionForm $suggestForm **/
+//         if (is_null($entitySpec->suggestForm)) {
+//             $suggestForm = $sm->get('SionModel\Form\SuggestForm');
+//         } elseif ($sm->has($entitySpec->suggestForm)) {
+//             $suggestForm = $sm->get($entitySpec->suggestForm);
+//         } elseif (class_exists($entitySpec->suggestForm)) {
+//             $suggestFormName = $entitySpec->suggestForm;
+//             $suggestForm = new $suggestFormName;
+//         } else {
+//             throw new \InvalidArgumentException('Invalid suggest_form specified for \''.$entity.'\' entity.');
+//         }
 
         $view = new ViewModel([
             'entityId'      => $id,
             'entity'        => $entityObject,
-            'suggestForm'   => $suggestForm,
+//             'suggestForm'   => $suggestForm,
 //             'deviceType'    => $deviceType,
         ]);
 
@@ -507,13 +508,20 @@ class SionController extends AbstractActionController
             }
         }
 
+        //set the form action url
+        $form->setAttribute('action', $this->getRequest()->getRequestUri());
         $entityObject = $this->getEntityObject($id);
 
-        return new ViewModel ( [
+        $view = new ViewModel ( [
             'form' => $form,
+            'entity' => $entity,
             'entityId' => $id,
             'entityObject' => $entityObject,
         ] );
+        //@todo first check if the Controller has a default template, if not
+        //look for a configuration value, if not, use the default template
+        $view->setTemplate('sion-model/sion-model/delete');
+        return $view;
     }
 
     /**

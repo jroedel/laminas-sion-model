@@ -273,6 +273,10 @@ class SionTable // implements ResourceProviderInterface
         return $filter->filter(get_class($this));
     }
 
+    /**
+     * At the end of the page load, cache any uncached items up to max_number_of_items_to_cache.
+     * This is because serializing big objects can be very memory expensive.
+     */
     public function onFinish()
     {
         $maxObjects = $this->getMaxItemsToCache();
