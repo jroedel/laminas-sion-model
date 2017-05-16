@@ -51,10 +51,13 @@ return [
             'SionModel\Problem\ProblemTable'        => 'SionModel\Service\ProblemTableFactory',
             'SionModel\Service\EntitiesService'     => 'SionModel\Service\EntitiesServiceFactory',
             'SionModel\Service\ProblemService'      => 'SionModel\Service\ProblemServiceFactory',
+            'SionModel\Service\AllChanges'          => 'SionModel\Service\AllChangesServiceFactory',
         ],
     ],
     'sion_model' => [
         'max_items_to_cache' => 2,
+        'changes_max_rows' => 500,
+        'changes_show_all' => true,
         'api_keys' => [], //users should specify long, random authentication keys here
         'post_place_line_format' => ':zip :cityState',
         'post_place_line_format_by_country' => [

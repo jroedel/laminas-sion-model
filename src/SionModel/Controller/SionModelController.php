@@ -102,15 +102,24 @@ class SionModelController extends AbstractActionController
     {
         $sm = $this->getServiceLocator();
         $config = $this->getSionModelConfig();
-        if (!$sm->has($config['visits_model'])) {
-            throw new \InvalidArgumentException('The \'visits_model\' configuration is incorrect.');
+        $maxRows = key_exists('changes_max_rows', $config) &&
+            (is_numeric($config['changes_max_rows']) || is_null($config['changes_max_rows'])) ?
+            (int)$config['changes_max_rows'] : 500;
+        if (!key_exists('changes_show_all', $config) || $config['changes_show_all']) {
+            $results = $sm->get('SionModel\Service\AllChanges');
+        } else {
+            if (!$sm->has($config['changes_model'])) {
+                throw new \InvalidArgumentException('The \'changes_model\' configuration is incorrect.');
+            }
+            /** @var SionTable $table */
+            $table = $sm->get($config['changes_model']);
+            $getAllChanges = key_exists('changes_show_all', $config) && !is_null($config['changes_show_all']) ?
+                (bool)$config['changes_show_all'] : false;
+            $results = $table->getChanges($getAllChanges);
         }
-        /** @var SionTable $table */
-        $table = $sm->get($config['visits_model']);
-        $results = $table->getChanges();
-
         return new ViewModel([
             'changes' => $results,
+            'maxRows' => $maxRows,
         ]);
     }
 

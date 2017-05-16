@@ -1,6 +1,5 @@
 <?php
 use Cake\Utility\Text;
-use Zend\Filter\HtmlEntities;
 use Patres\View\Helper\FormatEntity;
 $headText = 'View Changes';
 $this->headTitle($headText);
@@ -8,7 +7,12 @@ $this->headTitle($headText);
 <h1><?php echo $this->translate("Database edits")?></h1>
 <table class="table">
 <?php $standingTimeString = '';
+$counter = 0;
 foreach ($this->changes as $row):
+    ++$counter;
+    if ($counter > $this->maxRows) {
+        break;
+    }
 	$cTimeString = $this->dateFormat($row['updatedOn'], IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
 	if ($cTimeString != $standingTimeString) :
 	$standingTimeString = $cTimeString;?>

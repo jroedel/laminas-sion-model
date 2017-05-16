@@ -44,9 +44,11 @@ class FormatEntity extends AbstractHelper
                 throw new \InvalidArgumentException('Unknown entity type passed: '.$entityType);
             }
         }
+        $isDeleted = key_exists('isDeleted', $data) && $data['isDeleted'];
         $entitySpecification = $this->entities[$entityType];
+
         //forward request to registered view helper if we have one
-        if (!is_null($entitySpecification->formatViewHelper)) {
+        if (!is_null($entitySpecification->formatViewHelper) && !$isDeleted) {
             $viewHelperName = $entitySpecification->formatViewHelper;
             return $this->view->$viewHelperName($entityType, $data, $options);
         }
@@ -59,6 +61,11 @@ class FormatEntity extends AbstractHelper
             'failSilently' => isset($options['failSilently']) ? (bool)$options['failSilently'] : true,
             'displayInactiveLabel' => isset($options['displayInactiveLabel']) ? (bool)$options['displayInactiveLabel'] : false,
         ];
+        if ($isDeleted) {
+            $options['displayAsLink'] = false;
+            $options['displayEditPencil'] - false;
+            $options['displayFlag'] = false;
+        }
 
         if (!is_array($data)) {
             if ($options['failSilently']) {

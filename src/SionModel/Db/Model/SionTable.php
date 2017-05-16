@@ -914,10 +914,13 @@ class SionTable // implements ResourceProviderInterface
 
     /**
      * Get list of changes from database
-     * @return \DateTime[][]|string[][]|unknown[][]|string[][][]|boolean[][][]|unknown[][][]|NULL[][]
+     * @return mixed[]
      */
     public function getChanges()
     {
+        if ($cache = $this->fetchCachedEntityObjects('changes')) {
+            return $cache;
+        }
         $gateway = $this->getChangesTableGateway();
         $resultsChanges = $gateway->select();
 
@@ -925,9 +928,9 @@ class SionTable // implements ResourceProviderInterface
         $changes = [];
         foreach ($resultsChanges as $row) {
             $user = null;
-            if ($row['UpdatedBy']) {
-                if ($this->getUserTable()) {
-                    $user = $this->getUserTable()->getUser($row['UpdatedBy']);
+            if ($row['UpdatedBy'] && is_numeric($row['UpdatedBy'])) {
+                if ($userTable = $this->getUserTable()) {
+                    $user = $userTable->getUser($row['UpdatedBy']);
                 } else {
                     $user = [
                         'userId' => $this->filterDbId($row['UpdatedBy']),
@@ -936,9 +939,11 @@ class SionTable // implements ResourceProviderInterface
             }
             $entity = $this->filterDbString($row['ChangedEntity']);
             $entityId = $this->filterDbString($row['ChangedIDValue']);
+            $updatedOn = $this->filterDbDate($row['UpdatedOn']);
             //only bring in recognized entities from this class
             if (!key_exists($entity, $this->entitySpecifications) ||
-                $this->entitySpecifications[$entity]->sionModelClass !== get_class($this)
+                $this->entitySpecifications[$entity]->sionModelClass !== get_class($this) ||
+                is_null($updatedOn)
             ) {
                 continue;
             }
@@ -952,7 +957,7 @@ class SionTable // implements ResourceProviderInterface
                 'newValue'              => $row['NewValue'],
                 'oldValue'              => $row['OldValue'],
                 'ipAddress'             => $this->filterDbString($row['IpAddress']),
-                'updatedOn'             => $this->filterDbDate($row['UpdatedOn']),
+                'updatedOn'             => $updatedOn,
                 'updatedBy'             => $user,
             ];
 
@@ -968,18 +973,19 @@ class SionTable // implements ResourceProviderInterface
                     $change['object'][$this->entitySpecifications[$entity]->nameField] = ucfirst($entity).' Id: '.$entityId;
                 }
             }
-
-            $changes[] = $change;
+            //we'll sort by the key afterwards
+            $key = (int)date_format($updatedOn, 'U');
+            while (key_exists($key, $changes)) {
+                ++$key;
+            }
+            $changes[$key] = $change;
         }
 
         if (!is_null($changes) && !empty($changes)) {
-            $sort = [];
-            foreach($changes as $k=>$v) {
-                $sort['updatedOn'][$k] = $v['updatedOn'];
-            }
-            # sort by event_type desc and then title asc
-            array_multisort($sort['updatedOn'], SORT_DESC, $changes);
+            ksort($changes);
         }
+
+        $this->cacheEntityObjects('changes', $changes);
 
         return $changes;
     }

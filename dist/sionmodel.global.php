@@ -4,15 +4,21 @@ return [
 		/**
 		 * Database table name of where to store change records
 		 */
-		'changes_table' => 'project_changes',
+	    'changes_table' => 'project_changes',
+	    /**
+	     * This is the service name of a SionTable instance to call the getChanges() method if changes_show_all isn't set
+	     */
+	    'changes_model' => 'Project\Model\ProjectTable',
+	    /**
+	     * If true, the view-changes action won't restrict entities to one's that belong to the model
+	     */
+	    'changes_show_all' => true,
+
+	    'changes_max_rows' => 500,
 		/**
 		 * Database table name of where to store visit records
 		 */
         'visits_table' => 'project_visits',
-		/**
-		 * This is the service name of a SionTable instance to call the getChanges() method
-		 */
-		'visits_model' => 'Project\Model\ProjectTable',
 
 //        'post_place_line_format' => ':zip :cityState',
 //        'post_place_line_format_by_country' => [
