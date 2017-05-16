@@ -33,7 +33,7 @@ class AllChangesServiceFactory implements FactoryInterface
             $changes[$sionModelKey] = $table->getChanges();
         }
         $allChanges = call_user_func_array('array_merge', $changes);
-        ksort($allChanges);
+        krsort($allChanges);
         return $allChanges;
     }
 }

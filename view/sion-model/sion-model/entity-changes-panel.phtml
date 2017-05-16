@@ -14,11 +14,15 @@ $title = isset($this->panelTitle) ? $this->panelTitle : 'Changes';
 	<h3 class="panel-title"><?php echo $this->translate($title);?></h3>
 </div>
 <div class="panel-body">
-	<?php echo $this->partial('sion-model/sion-model/changes-table', [
-	    'changes' => $this->changes,
-	    'maxRows' => isset($this->maxRows) ? $this->maxRows : null,
-	    'showEntity' => false,
-	]);?>
+	<?php if (!empty($this->changes)) {
+	    echo $this->partial('sion-model/sion-model/changes-table', [
+    	    'changes' => $this->changes,
+    	    'maxRows' => isset($this->maxRows) ? $this->maxRows : null,
+    	    'showEntity' => false,
+    	]);
+	} else {
+	   echo '<p>'.$this->translate('No changes recorded.').'</p>';
+	}?>
 </div>
 </div> <!-- panel -->
 </div> <!-- column 12 -->

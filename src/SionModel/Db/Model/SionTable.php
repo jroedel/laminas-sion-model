@@ -1000,7 +1000,7 @@ class SionTable // implements ResourceProviderInterface
         }
 
         if (!is_null($changes) && !empty($changes)) {
-            ksort($changes);
+            krsort($changes);
         }
 
         $this->cacheEntityObjects('changes', $changes);
