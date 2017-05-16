@@ -913,6 +913,24 @@ class SionTable // implements ResourceProviderInterface
     }
 
     /**
+     * Get the changes for a given entity
+     * @param string $entity
+     * @param int|string $entityId
+     * @return mixed[]
+     */
+    public function getEntityChanges($entity, $entityId)
+    {
+        $changes = $this->getChanges();
+        $return = [];
+        foreach ($changes as $key => $change) {
+            if ($change['entityType'] == $entity && $change['entityId'] == $entityId) {
+                $return[$key] = $change;
+            }
+        }
+        return $return;
+    }
+
+    /**
      * Get list of changes from database
      * @return mixed[]
      */
@@ -1092,7 +1110,7 @@ class SionTable // implements ResourceProviderInterface
     {
         $cache = $this->getPersistentCache();
         foreach ($this->cacheDependencies as $key => $dependentEntities) {
-            if (in_array($entity, $dependentEntities)) {
+            if (in_array($entity, $dependentEntities) || $key == 'changes' || $key = 'problems') {
                 if (is_object($cache)) {
                     $cache->removeItem($key);
                 }
@@ -1101,6 +1119,7 @@ class SionTable // implements ResourceProviderInterface
                 }
             }
         }
+
         return true;
     }
 

@@ -13,6 +13,7 @@ return array(
     'SionModel\Service\SuggestFormFactory'         => __DIR__ . '/src/SionModel/Service/SuggestFormFactory.php',
     'SionModel\Service\PersistentCacheFactory'     => __DIR__ . '/src/SionModel/Service/PersistentCacheFactory.php',
     'SionModel\Service\CountryValueOptionsFactory' => __DIR__ . '/src/SionModel/Service/CountryValueOptionsFactory.php',
+    'SionModel\Service\AllChangesServiceFactory'   => __DIR__ . '/src/SionModel/Service/AllChangesServiceFactory.php',
     'SionModel\Service\ProblemServiceFactory'      => __DIR__ . '/src/SionModel/Service/ProblemServiceFactory.php',
     'SionModel\Entity\Entity'                      => __DIR__ . '/src/SionModel/Entity/Entity.php',
     'SionModel\Person\PersonProviderInterface'     => __DIR__ . '/src/SionModel/Person/PersonProviderInterface.php',

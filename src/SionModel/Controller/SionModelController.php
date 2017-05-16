@@ -118,8 +118,9 @@ class SionModelController extends AbstractActionController
             $results = $table->getChanges($getAllChanges);
         }
         return new ViewModel([
-            'changes' => $results,
-            'maxRows' => $maxRows,
+            'changes'       => $results,
+            'maxRows'       => $maxRows,
+            'showEntity'    => true,
         ]);
     }
 

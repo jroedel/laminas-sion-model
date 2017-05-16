@@ -1,0 +1,25 @@
+<?php
+/**
+ * Display a panel with a changes table for an entity
+ * @param $panelTitle autotranslated
+ * @param $changes
+ * @param $maxRows
+ */
+$title = isset($this->panelTitle) ? $this->panelTitle : 'Changes';
+?>
+<div class="row"> <!-- row -->
+<div class="col-md-12">
+<div class="panel panel-default" id="changesPanel">
+<div class="panel-heading">
+	<h3 class="panel-title"><?php echo $this->translate($title);?></h3>
+</div>
+<div class="panel-body">
+	<?php echo $this->partial('sion-model/sion-model/changes-table', [
+	    'changes' => $this->changes,
+	    'maxRows' => isset($this->maxRows) ? $this->maxRows : null,
+	    'showEntity' => false,
+	]);?>
+</div>
+</div> <!-- panel -->
+</div> <!-- column 12 -->
+</div> <!-- row -->

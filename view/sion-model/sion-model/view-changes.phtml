@@ -1,56 +1,17 @@
 <?php
-use Cake\Utility\Text;
-use Patres\View\Helper\FormatEntity;
+/**
+ * Show changes for one or more entities
+ * @param mixed[] $changes
+ * @param int|null $maxRows
+ * @param bool $showEntity whether or not to show the entity column
+ */
 $headText = 'View Changes';
 $this->headTitle($headText);
 ?>
-<h1><?php echo $this->translate("Database edits")?></h1>
-<table class="table">
-<?php $standingTimeString = '';
-$counter = 0;
-foreach ($this->changes as $row):
-    ++$counter;
-    if ($counter > $this->maxRows) {
-        break;
-    }
-	$cTimeString = $this->dateFormat($row['updatedOn'], IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
-	if ($cTimeString != $standingTimeString) :
-	$standingTimeString = $cTimeString;?>
-	<thead>
-	<tr>
-		<th><?php echo $cTimeString;?></th>
-		<th><?php echo $this->translate("Entity");?></th>
-		<th><?php echo $this->translate("Field");?></th>
-		<th><?php echo $this->translate("Old Value");?></th>
-		<th><?php echo $this->translate("New Value");?></th>
-	</tr>
-	</thead>
-	<?php endif;
-	$geoText = $row['ipAddress'].' ';
-    $geo = $this->geoip($row['ipAddress']);
-	if ($geo&&$geo->getCity()) {
-	    $geoText .= ' ' . mb_convert_encoding($geo->getCity(),"UTF-8","Windows-1252").", ";
-	}
-	if ($geo&&$geo->getCountryName()) {
-	    $geoText .= mb_convert_encoding($geo->getCountryName(),"UTF-8","Windows-1252");
-	}?>
-	<tr>
-    	<td><span <?php if ($geoText):?>data-toggle="tooltip" data-placement="bottom" data-container="body"
-    	title="<?php echo $this->escapeHtmlAttr($geoText);
-    	endif;?>"><?php echo $this->escapeHtml($row['updatedBy']['username'])?></span>
-    	</td>
-		<td><?php
-            if (isset($row['object']) && !is_null($row['object'])) {
-
-                echo $this->formatEntity($row['entityType'], $row['object'],
-                    [
-                        'displayEditPencil' => !isset($row['object']['isDeleted']),
-                        'failSilently' => true,
-                    ]);
-            }?></td>
-		<td><?php echo $this->escapeHtml($row['field']);?></td>
-		<td><?php echo $this->escapeHtml(Text::truncate($row['oldValue'],150));?></td>
-		<td><?php echo $this->escapeHtml(Text::truncate($row['newValue'],150));?></td>
-	</tr>
-<?php endforeach; ?>
-</table>
+<h1><?php echo $this->translate("Database edits")?></h1><?php
+echo $this->partial('changes-table', [
+    'changes' => $this->changes,
+    'maxRows' => isset($this->maxRows) ? $this->maxRows : null,
+    'showEntity' => isset($this->showEntity) ? $this->showEntity : true,
+]);
+?>

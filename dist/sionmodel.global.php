@@ -13,7 +13,9 @@ return [
 	     * If true, the view-changes action won't restrict entities to one's that belong to the model
 	     */
 	    'changes_show_all' => true,
-
+        /**
+         * Max number of rows to display in
+         */
 	    'changes_max_rows' => 500,
 		/**
 		 * Database table name of where to store visit records
