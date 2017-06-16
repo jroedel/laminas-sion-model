@@ -187,7 +187,7 @@ class SionController extends AbstractActionController
                     ) {
                         throw new \Exception('Invalid create_action_valid_data_handler set for entity \''.$entity.'\'');
                     }
-                    return $this->$handlerFunction($data);
+                    return $this->$handlerFunction($data, $form);
                 } else { //if we have no data handler, we'll do it ourselves
                     if (!($newId = $table->createEntity($entity, $data))) {
                         $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
@@ -489,8 +489,8 @@ class SionController extends AbstractActionController
         if (!$table->existsEntity($entity, $id)) {
             $this->getResponse()->setStatusCode(401);
             $this->flashMessenger()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )
-            ->addMessage ( 'The entity you\'re trying to delete doesn\'t exists.' );
-//             $this->redirectAfterDelete(false);
+                ->addMessage ( 'The entity you\'re trying to delete doesn\'t exists.' );
+            $this->redirectAfterDelete(false);
         }
 
         $form = new DeleteEntityForm();

@@ -30,7 +30,7 @@ class AllChangesServiceFactory implements FactoryInterface
 
         $changes = [];
         foreach ($sionModelsToQuery as $sionModelKey => $table) {
-            $changes[$sionModelKey] = $table->getChanges();
+            $changes[] = $table->getChanges();
         }
         $allChanges = call_user_func_array('array_merge', $changes);
         krsort($allChanges);

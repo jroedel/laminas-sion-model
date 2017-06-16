@@ -1,14 +1,13 @@
 <?php
 
 return array(
-    'Burundi' => 'Burundi',
-    'Database edits' => 'Edição da base de dados',
-    'Entity' => 'Objeto',
-    'Field' => 'Campo',
-    'New Value' => 'Novo conteúdo',
-    'Nigeria' => 'Nigéria',
-    'Old Value' => 'Conteúdo anterior',
-    'Patres Sion' => 'Padres de Sião',
-    'Pentecostes-Provinz' => 'Província Pentecostes',
-    'View Changes' => 'Revisar mudanças',
+    'Coordinator' => 'Coordenador',
+    'Diocesan coordinator' => 'Coordenador diocesano',
+    'Fr.' => 'Pe.',
+    'Member' => 'Membro',
+    'Movement director' => 'Diretor do Movimento',
+    'Ms.' => 'Srª',
+    'Presidium president' => 'Presidente da Presidência',
+    'Schoenstatt Link' => 'Schoenstatt Link',
+    'Sr.' => 'Ir.',
 );

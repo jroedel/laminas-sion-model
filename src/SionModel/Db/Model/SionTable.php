@@ -27,6 +27,8 @@ use Zend\Cache\Storage\StorageInterface;
 use Zend\Filter\StringToLower;
 use Zend\Filter\PregReplace;
 use Zend\Mvc\MvcEvent;
+use Zend\Db\Sql\Select;
+use Zend\Db\Sql\Expression;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -855,7 +857,7 @@ class SionTable // implements ResourceProviderInterface
 
         if ($entitySpec->reportChanges) {
             $changeVals = [[
-                'entity'    => $tableName,
+                'entity'    => $entity,
                 'field'   => 'entryDeleted',
                 'id'       => $id
             ]];
@@ -930,6 +932,47 @@ class SionTable // implements ResourceProviderInterface
         return $return;
     }
 
+    public function getChangesCountPerMonth()
+    {
+        $tableEntities = $this->getTableEntities();
+        $predicate = new Where();
+        $gateway = $this->getChangesTableGateway();
+        $select = new Select($this->changeTableName);
+        $select->columns(['TheMonth' => new Expression('MONTH(`UpdatedOn`)'), 'TheYear' => new Expression('YEAR(`UpdatedOn`)'), 'Count' => new Expression('Count(*)')]);
+        $select->group(['TheMonth', 'TheYear']);
+        $select->where($predicate->in('ChangedEntity', $tableEntities));
+        $select->order('TheYear, TheMonth');
+        $resultsChanges = $gateway->selectWith($select);
+        $months = [];
+        foreach ($resultsChanges as $row) {
+            if (is_numeric($row['TheMonth']) && $row['TheMonth'] > 0  && $row['TheMonth'] <= 12 &&
+                is_numeric($row['TheYear']) && $row['TheYear'] >= 2015 && $row['TheYear'] <= 2050 &&
+                is_numeric($row['Count'])
+            ) {
+                $key = (string)($row['TheYear'] * 100 + $row['TheMonth']);
+                $months[$key] = $this->filterDbInt($row['Count']);
+            }
+        }
+        return $months;
+    }
+
+    /**
+     * Get the list of entities registered to this particular SionTable.
+     * The entity spec must specify the 'sion_model_class' option.
+     * @return string[]
+     */
+    public function getTableEntities()
+    {
+        $tableEntities = [];
+        foreach ($this->entitySpecifications as $key => $entitySpec) {
+            if ($entitySpec->sionModelClass == get_class($this)) {
+                $entityName = !is_null($entitySpec->name) ? $entitySpec->name : $key;
+                $tableEntities[] = $entityName;
+            }
+        }
+        return $tableEntities;
+    }
+
     /**
      * Get list of changes from database
      * @return mixed[]
@@ -940,7 +983,9 @@ class SionTable // implements ResourceProviderInterface
             return $cache;
         }
         $gateway = $this->getChangesTableGateway();
-        $resultsChanges = $gateway->select();
+        $select = new Select($this->changeTableName);
+        $select->order('UpdatedOn');
+        $resultsChanges = $gateway->selectWith($select);
 
         $tz = new \DateTimeZone('UTC');
         $changes = [];
@@ -997,10 +1042,6 @@ class SionTable // implements ResourceProviderInterface
                 ++$key;
             }
             $changes[$key] = $change;
-        }
-
-        if (!is_null($changes) && !empty($changes)) {
-            krsort($changes);
         }
 
         $this->cacheEntityObjects('changes', $changes);
@@ -1216,14 +1257,15 @@ class SionTable // implements ResourceProviderInterface
         if ((!is_null($startDate) && !$startDate instanceof \DateTime) ||
             (!is_null($endDate) && !$endDate instanceof \DateTime)
         ) {
-            throw new \InvalidArgumentException('Invalid value passed to `isAssignmentActive`');
+            throw new \InvalidArgumentException('Invalid value passed to `areWeWithinDateRange`');
         }
         static $now;
         if (!isset($now)) {
             $timeZone = new \DateTimeZone('UTC');
             $now = new \DateTime(null, $timeZone);
         }
-        return ($startDate < $now && (is_null($endDate) || $endDate > $now)) || (is_null($startDate) && (is_null($endDate) || $endDate > $now));
+        return ($startDate <= $now && (is_null($endDate) || $endDate > $now)) ||
+            (is_null($startDate) && ((is_null($endDate) || $endDate > $now)));
     }
 
     protected function filterDbId($str)
