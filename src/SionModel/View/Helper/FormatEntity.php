@@ -104,8 +104,8 @@ class FormatEntity extends AbstractHelper
 
     	//if our name field is a date, format it as a medium date
     	if ($data[$entitySpecification->nameField] instanceof \DateTime) {
-    	    $this->view->dateFormat($data[$entitySpecification->nameField],
-	            IntlDateFormatter::MEDIUM, IntlDateFormatter::NONE);
+    	    $name = $this->view->dateFormat($data[$entitySpecification->nameField],
+	            \IntlDateFormatter::MEDIUM, \IntlDateFormatter::NONE);
     	} else {
         	$name = $data[$entitySpecification->nameField];
     	    if ($entitySpecification->nameFieldIsTranslateable) {

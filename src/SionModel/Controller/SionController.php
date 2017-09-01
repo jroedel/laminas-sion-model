@@ -21,6 +21,7 @@ use Zend\Mvc\Controller\Plugin\FlashMessenger;
 use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
 use Zend\View\Model\JsonModel;
+use Zend\Form\Form;
 
 class SionController extends AbstractActionController
 {
@@ -167,7 +168,6 @@ class SionController extends AbstractActionController
         if ($sm->has($entitySpec->createActionForm)) {
             $form = $sm->get($entitySpec->createActionForm);
         } elseif (class_exists($entitySpec->createActionForm)) {
-            //@todo test this line
             $form = new $entitySpec->createActionForm;
         } else {
             throw new \InvalidArgumentException('Invalid create_action_form specified for \''.$entity.'\' entity.');
@@ -175,11 +175,11 @@ class SionController extends AbstractActionController
 
         $request = $this->getRequest();
         if ($request->isPost ()) {
-            $data = $request->getPost ()->toArray ();
+            $data = $this->getPostDataForCreateAction();
             $form->setData($data);
             if ($form->isValid()) {
                 $data = $form->getData();
-                //if we have a dataHandler registered, call it
+                //if we have a dataHandler registered, call it @deprecated
                 if (!is_null($entitySpec->createActionValidDataHandler)) {
                     $handlerFunction = $entitySpec->createActionValidDataHandler;
                     if (!method_exists($this, $handlerFunction) ||
@@ -187,15 +187,10 @@ class SionController extends AbstractActionController
                     ) {
                         throw new \Exception('Invalid create_action_valid_data_handler set for entity \''.$entity.'\'');
                     }
-                    return $this->$handlerFunction($data, $form);
+                    //don't return here so that if the handler doesn't redirect, we send them back to the form
+                    $this->$handlerFunction($data, $form);
                 } else { //if we have no data handler, we'll do it ourselves
-                    if (!($newId = $table->createEntity($entity, $data))) {
-                        $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
-                    } else {
-                        $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )
-                            ->addMessage ( ucwords($entity).' successfully created.' );
-                        $this->redirectAfterCreate((int) $newId);
-                    }
+                    $this->createEntityPostFormValidation($data, $form);
                 }
             } else {
                 $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
@@ -211,6 +206,33 @@ class SionController extends AbstractActionController
             $view->setTemplate($template);
         }
         return $view;
+    }
+
+    /**
+     * Return an array of data to be passed to the setData function of the CreateEntity form
+     * @return array
+     */
+    public function getPostDataForCreateAction()
+    {
+        return $this->getRequest()->getPost()->toArray();
+    }
+
+    /**
+     * Creates a new entity, notifies the user via flash messenger and redirects.
+     * @param mixed[] $data
+     * @param Form $form
+     */
+    public function createEntityPostFormValidation($data, $form)
+    {
+        $entity = $this->getEntity();
+        $table = $this->getSionTable();
+        if (!($newId = $table->createEntity($entity, $data))) {
+            $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+        } else {
+            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )
+            ->addMessage ( ucwords($entity).' successfully created.' );
+            $this->redirectAfterCreate((int) $newId);
+        }
     }
 
     /**
@@ -294,28 +316,11 @@ class SionController extends AbstractActionController
 
         $request = $this->getRequest ();
         if ($request->isPost ()) {
-            $data = $request->getPost ()->toArray ();
+            $data = $this->getPostDataForEditAction();
             $form->setData($data);
             if ($form->isValid()) {
                 $data = $form->getData();
-                /** @var SionTable $table **/
-                $table = $this->getSionTable();
-                $table->updateEntity($entity, $id, $data);
-                $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )->addMessage ( ucfirst($entity).' successfully updated.' );
-                $entityObject = $this->getEntityObject($id);
-                if ($entitySpec->showRouteKey && $entitySpec->showRouteKey &&
-                    $entitySpec->showRouteKeyField
-                ) {
-                    if (!key_exists($entitySpec->showRouteKeyField, $entityObject)) {
-                        throw new \Exception("show_route_key_field config for entity '$entity' refers to a key that doesn't exist");
-                    }
-                    $this->redirect ()->toRoute ($entitySpec->showRoute,
-                        [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]);
-                } elseif ($entitySpec->indexRoute) {
-                    $this->redirect ()->toRoute ($entitySpec->indexRoute);
-                } else {
-                    $this->redirect ()->toRoute ( $this->getDefaultRedirectRoute() );
-                }
+                $this->updateEntityPostFormValidation($id, $data, $form);
             } else {
                 $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
             }
@@ -336,6 +341,57 @@ class SionController extends AbstractActionController
             $view->setTemplate($template);
         }
         return $view;
+    }
+
+    /**
+     * Return an array of data to be passed to the setData function of the EditEntity form
+     * @return array
+     */
+    public function getPostDataForEditAction()
+    {
+        return $this->getRequest()->getPost()->toArray();
+    }
+
+    /**
+     * Updates a given entity, notifies the user via flash messenger and calls the redirect function.
+     * @param int $id
+     * @param mixed[] $data
+     * @param Form $form
+     * @throws \Exception
+     */
+    public function updateEntityPostFormValidation($id, $data, $form)
+    {
+        $entity = $this->getEntity();
+        $entitySpec = $this->getEntitySpecification();
+        /** @var SionTable $table **/
+        $table = $this->getSionTable();
+        $table->updateEntity($entity, $id, $data);
+        $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )->addMessage ( ucfirst($entity).' successfully updated.' );
+        $this->redirectAfterEdit($id);
+    }
+
+    /**
+     * Redirects the user after successfully editing an entity.
+     * @param int $id
+     * @throws \Exception
+     */
+    public function redirectAfterEdit($id)
+    {
+        $entitySpec = $this->getEntitySpecification();
+        $entityObject = $this->getEntityObject($id);
+        if ($entitySpec->showRouteKey && $entitySpec->showRouteKey &&
+            $entitySpec->showRouteKeyField
+        ) {
+            if (!key_exists($entitySpec->showRouteKeyField, $entityObject)) {
+                throw new \Exception("show_route_key_field config for entity '$entity' refers to a key that doesn't exist");
+            }
+            $this->redirect ()->toRoute ($entitySpec->showRoute,
+                    [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]);
+        } elseif ($entitySpec->indexRoute) {
+            $this->redirect ()->toRoute ($entitySpec->indexRoute);
+        } else {
+            $this->redirect ()->toRoute ( $this->getDefaultRedirectRoute() );
+        }
     }
 
     /**

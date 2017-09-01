@@ -1,0 +1,79 @@
+<?php
+/**
+ * @param string $title
+ * @param mixed[] $textLanguageKeys
+ * @param mixed[] $entity
+ * @param int $id
+ */
+$textLanguageKeys = $this->textLanguageKeys;
+$entity = $this->entity;
+$id = $this->id;
+$title = $this->title;
+?>
+<div class="row"> <!-- ideal row -->
+<div class="col-md-12">
+<div class="panel panel-default" id="textLanguagePanel<?php echo $this->escapeHtmlAttr($id);?>">
+    <div class="panel-heading">
+    <div class="row">
+    <div class="col-xs-8">
+    <h3 class="panel-title"><?php echo $this->escapeHtml($title);?>
+        </h3>
+        </div>
+        <div class="col-xs-4"><div class="pull-right">
+        	<?php
+        	$selectedLanguage = $this->languageChooser(array_keys($textLanguageKeys));
+        	$firstSelector = true;
+        	foreach ($textLanguageKeys as $language => $key) :
+                $divId = $language.'TextLanguage'.$id;
+                if ($language === $selectedLanguage) {
+                    $isSelected = true;
+                } else {
+                    $isSelected = false;
+                }
+                if (!$firstSelector) {
+                    echo '|';
+                } else {
+                    $firstSelector = false;
+                }?>
+        		<a data-toggle ="collapse"
+		        data-target="#<?php echo $divId;?>"
+		        aria-expanded="<?php echo $isSelected ? 'true' : 'false';?>"
+		        aria-controls="<?php echo $divId;?>"
+		        aria-expanded="<?php echo $isSelected ? 'true' : 'false';?>">
+        		<?php echo strtoupper($language);?></a>
+        	<?php endforeach;?></div>
+        </div>
+
+        </div>
+	</div>
+	<div class="panel-body">
+	<?php
+	$jsScript = '';
+    foreach ($textLanguageKeys as $language => $key) {
+        $divId = $language.'TextLanguage'.$id;
+        if ($language == $selectedLanguage) {
+            echo '<div class="collapse in" id="'.$divId.'" aria-expanded="true">';
+        } else {
+            echo '<div class="collapse" id="'.$divId.'" aria-expanded="false">';
+        }
+        echo $this->markdown($entity[$key]);
+        echo '</div>';
+	    $jsScript .= <<<JS
+$("#$divId").on('show.bs.collapse', function (e) {
+  $("#$divId").siblings().collapse('hide');
+})
+
+JS;
+    }
+$this->inlineScript()->captureStart();
+echo <<<JS
+$(function () {
+$jsScript
+});
+JS;
+$this->inlineScript()->captureEnd();
+    ?>
+	</div>
+</div> <!-- ideal panel -->
+</div> <!-- ideal column -->
+</div> <!-- ideal row -->

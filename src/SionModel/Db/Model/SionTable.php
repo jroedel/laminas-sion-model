@@ -465,7 +465,7 @@ class SionTable // implements ResourceProviderInterface
         if (!method_exists($this, $this->entitySpecifications[$entity]->getObjectFunction) ||
             method_exists('SionTable', $this->entitySpecifications[$entity]->getObjectFunction)
         ) {
-            throw new \Exception('\'updateReferenceDataFunction\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
+            throw new \Exception('\'get_object_function\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
         }
         if (isset($this->entitySpecifications[$entity]->databaseBoundDataPreprocessor) &&
             !is_null($this->entitySpecifications[$entity]->databaseBoundDataPreprocessor) &&
@@ -485,7 +485,7 @@ class SionTable // implements ResourceProviderInterface
      * @throws \InvalidArgumentException
      * @return boolean|unknown
      */
-    public function touchEntity($entity, $id, $field = null)
+    public function touchEntity($entity, $id, $field = null, $refreshCache = true)
     {
         if (!$this->existsEntity($entity, $id)) {
             throw new \InvalidArgumentException('Entity doesn\'t exist.');
@@ -499,7 +499,7 @@ class SionTable // implements ResourceProviderInterface
         }
         $fields = !is_null($field) ? $field : [$entitySpec->entityKeyField];
 //         var_dump($fields);
-        return $this->updateEntity($entity, $id, [], $fields);
+        return $this->updateEntity($entity, $id, [], $fields, $refreshCache);
     }
 
     /**
@@ -511,7 +511,7 @@ class SionTable // implements ResourceProviderInterface
      * @throws \InvalidArgumentException
      * @return boolean|unknown
      */
-    public function updateEntity($entity, $id, $data, array $fieldsToTouch = [])
+    public function updateEntity($entity, $id, $data, array $fieldsToTouch = [], $refreshCache = true)
     {
         if (!$this->isReadyToUpdateAndCreate($entity)) {
             throw new \InvalidArgumentException('Improper configuration for entity \''.$entity.'\'');
@@ -544,7 +544,9 @@ class SionTable // implements ResourceProviderInterface
         }
         $return = $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges, $fieldsToTouch);
 
-        $this->removeDependentCacheItems($entity);
+        if ($refreshCache) {
+            $this->removeDependentCacheItems($entity);
+        }
 
         //if the id is being changed, update it
         $keyField = $entitySpec->entityKeyField;
@@ -661,7 +663,7 @@ class SionTable // implements ResourceProviderInterface
         return true;
     }
 
-    public function createEntity($entity, $data)
+    public function createEntity($entity, $data, $refreshCache = true)
     {
         if (!$this->isReadyToUpdateAndCreate($entity)) {
             throw new \InvalidArgumentException('Improper configuration for entity \''.$entity.'\'');
@@ -684,7 +686,9 @@ class SionTable // implements ResourceProviderInterface
 
         $return = $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $manyToOneUpdateColumns, $reportChanges);
 
-        $this->removeDependentCacheItems($entity);
+        if ($refreshCache) {
+            $this->removeDependentCacheItems($entity);
+        }
 
         /**
          * Run the changed/new data through the postprocessor function if it exists
@@ -835,7 +839,7 @@ class SionTable // implements ResourceProviderInterface
      * @throws \Exception
      * @return number
      */
-    public function deleteEntity($entity, $id)
+    public function deleteEntity($entity, $id, $refreshCache = true)
     {
         $entitySpec = $this->getEntitySpecification($entity);
         //make sure we have enough information to delete
@@ -862,6 +866,10 @@ class SionTable // implements ResourceProviderInterface
                 'id'       => $id
             ]];
             $this->reportChange($changeVals);
+        }
+
+        if ($refreshCache) {
+            $this->removeDependentCacheItems($entity);
         }
 
         return $return;
@@ -1268,6 +1276,11 @@ class SionTable // implements ResourceProviderInterface
             (is_null($startDate) && ((is_null($endDate) || $endDate > $now)));
     }
 
+    /**
+     * Filter a database int
+     * @param string $str
+     * @return NULL|number
+     */
     protected function filterDbId($str)
     {
         if (is_null($str) || $str === '' || $str == '0') {
@@ -1276,6 +1289,11 @@ class SionTable // implements ResourceProviderInterface
         return (int) $str;
     }
 
+    /**
+     * Trim and null database string
+     * @param string $str
+     * @return string
+     */
     protected static function filterDbString($str)
     {
         if (is_null($str) || $str === '') {
@@ -1291,6 +1309,11 @@ class SionTable // implements ResourceProviderInterface
         return $filter->filter($str);
     }
 
+    /**
+     * Filter a database int
+     * @param string $str
+     * @return NULL|number
+     */
     protected function filterDbInt($str)
     {
         if (is_null($str) || $str === '') {
@@ -1299,6 +1322,11 @@ class SionTable // implements ResourceProviderInterface
         return (int) $str;
     }
 
+    /**
+     * Filter a database boolean
+     * @param string $str
+     * @return boolean
+     */
     protected function filterDbBool($str)
     {
         if (is_null($str) || $str === '' || $str == '0') {
