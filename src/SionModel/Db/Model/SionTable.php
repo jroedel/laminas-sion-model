@@ -984,7 +984,7 @@ class SionTable // implements ResourceProviderInterface
         foreach ($resultsChanges as $row) {
             $this->processChangeRow($row, $changes);
         }
-        ksort($changes);
+        krsort($changes);
 
         return $changes;
     }
@@ -1006,7 +1006,7 @@ class SionTable // implements ResourceProviderInterface
         foreach ($resultsChanges as $row) {
             $this->processChangeRow($row, $changes);
         }
-        ksort($changes);
+        krsort($changes);
 
         $this->cacheEntityObjects('changes', $changes);
 

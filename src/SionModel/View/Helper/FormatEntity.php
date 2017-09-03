@@ -113,18 +113,8 @@ class FormatEntity extends AbstractHelper
     	    }
     	}
 
-    	if ($options['displayAsLink'] &&
-    	    $entitySpecification->showRoute &&
-    	    $entitySpecification->showRouteKey &&
-    	    $entitySpecification->showRouteKeyField &&
-    	    isset($data[$entitySpecification->showRouteKeyField]) &&
-	        $this->view->isAllowed('route/'.$entitySpecification->showRoute)
-    	) {
-    	    $route = $entitySpecification->showRoute;
-    	    $routeKey = $entitySpecification->showRouteKey;
-    	    $id = $data[$entitySpecification->showRouteKeyField];
-    	    $finalMarkup .= '<a href="'.$this->view->url($route, [$routeKey => $id]).'">'.
-    	        $this->view->escapeHtml($name).'</a>';
+    	if ($options['displayAsLink']) {
+    	    $finalMarkup .= $this->wrapAsLink($entityType, $data, $this->view->escapeHtml($name));
     	} else {
     	    $finalMarkup .= $this->view->escapeHtml($name);
     	}
@@ -147,6 +137,23 @@ class FormatEntity extends AbstractHelper
     	return $finalMarkup;
     }
 
+    protected function wrapAsLink($entityType, $data, $linkText)
+    {
+        $entitySpecification = $this->entities[$entityType];
+        if ($entitySpecification->showRoute &&
+            $entitySpecification->showRouteKey &&
+            $entitySpecification->showRouteKeyField &&
+            isset($data[$entitySpecification->showRouteKeyField]) &&
+            $this->view->isAllowed('route/'.$entitySpecification->showRoute)
+        ) {
+            $route = $entitySpecification->showRoute;
+            $routeKey = $entitySpecification->showRouteKey;
+            $id = $data[$entitySpecification->showRouteKeyField];
+            return '<a href="'.$this->view->url($route, [$routeKey => $id]).'">'.
+                $linkText.'</a>';
+        }
+        return $linkText;
+    }
     /**
     * Get the routePermissionCheckingEnabled value
     * @return bool

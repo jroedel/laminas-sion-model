@@ -16,6 +16,7 @@ use SionModel;
 use Zend\Cache\Storage\FlushableInterface;
 use Zend\View\Model\JsonModel;
 use BjyAuthorize\Exception\UnAuthorizedException;
+use SionModel\Form\ConfirmForm;
 
 class SionModelController extends AbstractActionController
 {
@@ -90,7 +91,7 @@ class SionModelController extends AbstractActionController
             'isSimulation' => $simulate,
             'form' => $form,
         ]);
-        $view->setTemplate('sion-model/sion/data-problems');
+        $view->setTemplate('sion-model/sion-model/data-problems');
         return $view;
     }
 
