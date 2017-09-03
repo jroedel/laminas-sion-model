@@ -122,6 +122,8 @@ class SionController extends AbstractActionController
             $this->redirect ()->toRoute ( $redirectRoute );
         }
 
+        $changes = $table->getEntityChanges($entity, $id);
+
         $table->registerVisit($entity, $entityObject[$entitySpec->entityKeyField]);
 
         //@todo enable suggest form
@@ -141,6 +143,7 @@ class SionController extends AbstractActionController
         $view = new ViewModel([
             'entityId'      => $id,
             'entity'        => $entityObject,
+            'changes'       => $changes,
 //             'suggestForm'   => $suggestForm,
 //             'deviceType'    => $deviceType,
         ]);

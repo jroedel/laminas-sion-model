@@ -922,24 +922,6 @@ class SionTable // implements ResourceProviderInterface
         return $i;
     }
 
-    /**
-     * Get the changes for a given entity
-     * @param string $entity
-     * @param int|string $entityId
-     * @return mixed[]
-     */
-    public function getEntityChanges($entity, $entityId)
-    {
-        $changes = $this->getChanges();
-        $return = [];
-        foreach ($changes as $key => $change) {
-            if ($change['entityType'] == $entity && $change['entityId'] == $entityId) {
-                $return[$key] = $change;
-            }
-        }
-        return $return;
-    }
-
     public function getChangesCountPerMonth()
     {
         $tableEntities = $this->getTableEntities();
@@ -982,6 +964,31 @@ class SionTable // implements ResourceProviderInterface
     }
 
     /**
+     * Get changes for a particular entity
+     * @param string $entity
+     * @param int|string $entityId
+     * @return mixed[]
+     */
+    public function getEntityChanges($entity, $entityId)
+    {
+        $gateway = $this->getChangesTableGateway();
+        $select = new Select($this->changeTableName);
+        $select->where([
+            'ChangedEntity' => $entity,
+            'ChangedIDValue' => $entityId,
+        ]);
+        $select->order('UpdatedOn');
+        $resultsChanges = $gateway->selectWith($select);
+
+        $changes = [];
+        foreach ($resultsChanges as $row) {
+            $this->processChangeRow($row, $changes);
+        }
+        ksort($changes);
+
+        return $changes;
+    }
+    /**
      * Get list of changes from database
      * @return mixed[]
      */
@@ -995,66 +1002,82 @@ class SionTable // implements ResourceProviderInterface
         $select->order('UpdatedOn');
         $resultsChanges = $gateway->selectWith($select);
 
-        $tz = new \DateTimeZone('UTC');
         $changes = [];
         foreach ($resultsChanges as $row) {
-            $user = null;
-            if ($row['UpdatedBy'] && is_numeric($row['UpdatedBy'])) {
-                if ($userTable = $this->getUserTable()) {
-                    $user = $userTable->getUser($row['UpdatedBy']);
-                } else {
-                    $user = [
-                        'userId' => $this->filterDbId($row['UpdatedBy']),
-                    ];
-                }
-            }
-            $entity = $this->filterDbString($row['ChangedEntity']);
-            $entityId = $this->filterDbString($row['ChangedIDValue']);
-            $updatedOn = $this->filterDbDate($row['UpdatedOn']);
-            //only bring in recognized entities from this class
-            if (!key_exists($entity, $this->entitySpecifications) ||
-                $this->entitySpecifications[$entity]->sionModelClass !== get_class($this) ||
-                is_null($updatedOn)
-            ) {
-                continue;
-            }
-            $change = [
-                'changeId'              => $this->filterDbId($row['ChangeID']),
-                'entityType'            => $entity,
-                'entitySpecification'   => $this->entitySpecifications[$entity],
-                'entityId'              => $entityId,
-                'object'                => null,
-                'field'                 => $this->filterDbString($row['ChangedField']),
-                'newValue'              => $row['NewValue'],
-                'oldValue'              => $row['OldValue'],
-                'ipAddress'             => $this->filterDbString($row['IpAddress']),
-                'updatedOn'             => $updatedOn,
-                'updatedBy'             => $user,
-            ];
-
-            $change['object'] = $this->getObject($entity, $entityId, true);
-            if (is_null($change['object'])) { //it looks like the object has been deleted, let's fill in some data
-                $change['object'] = [
-                    'isDeleted' => true,
-                ];
-                if ($this->entitySpecifications[$entity]->entityKeyField) {
-                    $change['object'][$this->entitySpecifications[$entity]->entityKeyField] = $entityId;
-                }
-                if ($this->entitySpecifications[$entity]->nameField) {
-                    $change['object'][$this->entitySpecifications[$entity]->nameField] = ucfirst($entity).' Id: '.$entityId;
-                }
-            }
-            //we'll sort by the key afterwards
-            $key = (int)date_format($updatedOn, 'U');
-            while (key_exists($key, $changes)) {
-                ++$key;
-            }
-            $changes[$key] = $change;
+            $this->processChangeRow($row, $changes);
         }
+        ksort($changes);
 
         $this->cacheEntityObjects('changes', $changes);
 
         return $changes;
+    }
+
+    /**
+     * Process a row from the changes table and add it to the referenced array
+     * This allows DRYs up code for processing various subsets of changes
+     * @param array $row
+     * @param array $changes
+     */
+    protected function processChangeRow($row, array &$changes)
+    {
+        static $userTable;
+        $user = null;
+        if ($row['UpdatedBy'] && is_numeric($row['UpdatedBy'])) {
+            if (!is_object($userTable)) {
+                $userTable = $this->getUserTable();
+            }
+            if (is_object($userTable)) {
+                $user = $userTable->getUser($row['UpdatedBy']);
+            } else {
+                $user = [
+                    'userId' => $this->filterDbId($row['UpdatedBy']),
+                ];
+            }
+        }
+        $entity = $this->filterDbString($row['ChangedEntity']);
+        $entityId = $this->filterDbString($row['ChangedIDValue']);
+        $updatedOn = $this->filterDbDate($row['UpdatedOn']);
+        //only bring in recognized entities from this class
+        if (!key_exists($entity, $this->entitySpecifications) ||
+            $this->entitySpecifications[$entity]->sionModelClass !== get_class($this) ||
+            is_null($updatedOn)
+        ) {
+            return false;
+        }
+        $change = [
+            'changeId'              => $this->filterDbId($row['ChangeID']),
+            'entityType'            => $entity,
+            'entitySpecification'   => $this->entitySpecifications[$entity],
+            'entityId'              => $entityId,
+            'object'                => null,
+            'field'                 => $this->filterDbString($row['ChangedField']),
+            'newValue'              => $row['NewValue'],
+            'oldValue'              => $row['OldValue'],
+            'ipAddress'             => $this->filterDbString($row['IpAddress']),
+            'updatedOn'             => $updatedOn,
+            'updatedBy'             => $user,
+        ];
+
+        $change['object'] = $this->getObject($entity, $entityId, true);
+        if (is_null($change['object'])) { //it looks like the object has been deleted, let's fill in some data
+            $change['object'] = [
+                'isDeleted' => true,
+            ];
+            if ($this->entitySpecifications[$entity]->entityKeyField) {
+                $change['object'][$this->entitySpecifications[$entity]->entityKeyField] = $entityId;
+            }
+            if ($this->entitySpecifications[$entity]->nameField) {
+                $change['object'][$this->entitySpecifications[$entity]->nameField] = ucfirst($entity).' Id: '.$entityId;
+            }
+        }
+        //we'll sort by the key afterwards
+        $key = (int)date_format($updatedOn, 'U');
+        while (key_exists($key, $changes)) {
+            ++$key;
+        }
+        $changes[$key] = $change;
+        return true;
     }
 
     /**
