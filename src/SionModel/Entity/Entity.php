@@ -72,7 +72,7 @@ class Entity
     public $countryField;
     /**
      * List of fields that should be stored in the Changes table as a text column instead of varchar
-     * @var string[]
+     * @var string[] $textColumns
      */
     public $textColumns = [];
     /**
@@ -87,12 +87,12 @@ class Entity
      * the name of the $value.'UpdatedOn' and $value.'UpdatedBy', to update those as w3ell.
      * Example:
      * [ 'email1' => 'emails', 'email2' => 'emails]
-     * @var string[]
+     * @var string[] $manyToOneUpdateColumns
      */
     public $manyToOneUpdateColumns = [];
     /**
      * If true, changes will be registered in the changes table.
-     * @var bool
+     * @var bool $reportChanges
      */
     public $reportChanges = false;
     /**
@@ -110,7 +110,7 @@ class Entity
 
     /**
      * The route parameter to pass the entity id, if a more specific one isn't specified
-     * @var string
+     * @var string $defaultRouteKey
      */
     public $defaultRouteKey;
     /**
@@ -202,25 +202,25 @@ class Entity
     /**
      * A view template in the template stack to render in the SionController->createAction.
      * If it is not specified, the default view template will be used.
-     * @var unknown
+     * @var string $createActionTemplate
      */
     public $createActionTemplate;
     /**
      * The field of entity to touch if none is specified.
      * If not specified, the $entityKeyField will be touched
-     * @var string
+     * @var string $touchDefaultField
      */
     public $touchDefaultField;
     /**
      * A route key that specifies the entity id to touch in the touchAction
-     * @var string
+     * @var string $touchRouteKey
      */
     public $touchRouteKey;
     /**
      * A route key that specifies the entity field to touch for the touchAction
      * and touchJsonAction of SionController.
      * If not specified, the $touchDefaultField will be touched
-     * @var string
+     * @var string $touchFieldRouteKey
      */
     public $touchFieldRouteKey;
     /**
@@ -286,30 +286,87 @@ class Entity
     public $suggestForm;
     /**
      * Allow the entity to be deleted using the SionModel delete action
-     * @var bool
+     * @var bool $enableDeleteAction
      */
     public $enableDeleteAction = false;
     /**
      * The route parameter key from which to get the entity's id in the deleteAction
-     * @var string
+     * @var string $deleteRouteKey
      */
     public $deleteRouteKey;
     /**
      * Acl resource identifier to check for permissions to delete a concrete entity
-     * @var string
+     * @deprecated
+     * @var string $deleteActionAclResource
      */
     public $deleteActionAclResource;
     /**
      * A permission of the resource identifier to check for with isAllowed
-     * @var string
+     * @deprecated
+     * @var string $deleteActionAclPermission
      */
     public $deleteActionAclPermission;
     /**
      *
      * The route to which the user should be redirected after deleting an entity
-     * @var string
+     * @var string $deleteActionRedirectRoute
      */
     public $deleteActionRedirectRoute;
+
+    /**
+     * Entity field to find the resource identifier for permission checking
+     * @var string $resourceIdField
+     */
+    public $aclResourceIdField;
+    /**
+     * Permission name to check if user is allowed to show the entity using the
+     * BjyAuthorize isAllowed controller plugin
+     * @var string $aclShowPermission
+     */
+    public $aclShowPermission;
+    /**
+     * Permission name to check if user is allowed to edit the entity using the
+     * BjyAuthorize isAllowed controller plugin
+     * @var string $aclEditPermission
+     */
+    public $aclEditPermission;
+    /**
+     * Permission name to check if user is allowed to suggest on the entity using the
+     * BjyAuthorize isAllowed controller plugin
+     * @var string $aclSuggestPermission
+     */
+    public $aclSuggestPermission;
+    /**
+     * Permission name to check if user is allowed to moderate the entity using the
+     * BjyAuthorize isAllowed controller plugin
+     * @var string $aclModeratePermission
+     */
+    public $aclModeratePermission;
+    /**
+     * Permission name to check if user is allowed to delete the entity using the
+     * BjyAuthorize isAllowed controller plugin
+     * @var string $aclDeletePermission
+     */
+    public $aclDeletePermission;
+
+    public static $isActionAllowedPermissionProperties = [
+        'show' => 'aclShowPermission',
+        'edit' => 'aclEditPermission',
+        'suggest' => 'aclSuggestPermission',
+        'moderate' => 'aclModeratePermission',
+        'delete' => 'aclDeletePermission',
+    ];
+
+    public static $actionRouteProperties = [
+        'index' => 'indexRoute',
+        'show' => 'showRoute',
+        'create' => 'createRoute',
+        'edit' => 'editRoute',
+//         'suggest' => 'suggestRoute',
+        'moderate' => 'moderateRoute',
+        'touch' => 'touchRoute',
+//         'delete' => 'aclDeletePermission',
+    ];
 
     public function __construct($name, $entitySpecification)
     {

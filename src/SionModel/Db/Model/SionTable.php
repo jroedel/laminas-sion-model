@@ -3,7 +3,6 @@ namespace SionModel\Db\Model;
 
 use Zend\Db\Adapter\Adapter;
 
-use BjyAuthorize\Provider\Resource\ProviderInterface as ResourceProviderInterface;
 use Zend\Db\Sql\Insert;
 use Zend\Db\TableGateway\TableGateway;
 use Zend\Filter\Boolean;
@@ -63,7 +62,7 @@ use Zend\Db\Sql\Expression;
  * @author jeffr
  * @todo Factor out 'changes_table_name' from __contruct method. Make it a required key for entities
  */
-class SionTable // implements ResourceProviderInterface
+class SionTable
 {
     const SUGGESTION_ERROR = 'Error';
     const SUGGESTION_INREVIEW = 'In review';

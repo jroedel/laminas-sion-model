@@ -370,7 +370,7 @@ class EntityProblem
         }
         $fieldName = $this->getEntitySpecification()->entityKeyField;
         if (!isset($this->getData()[$fieldName])) {
-            throw new \Exception('Problem data does not include id field.');
+            throw new \Exception("Problem data does not include id field: $fieldName");
         }
         return $this->getData()[$fieldName];
     }

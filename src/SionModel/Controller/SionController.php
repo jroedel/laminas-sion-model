@@ -22,6 +22,7 @@ use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
 use Zend\View\Model\JsonModel;
 use Zend\Form\Form;
+use Zend\Mvc\Controller\Plugin\PluginInterface;
 
 class SionController extends AbstractActionController
 {
@@ -57,6 +58,18 @@ class SionController extends AbstractActionController
         'touch'     => 'touchRouteKey',
         'touchJson' => 'touchJsonRouteKey',
     ];
+
+    /**
+     * The entity objects that have been requested (normally just one in a page load)
+     * @var array $object
+     */
+    protected $object = [];
+
+    /**
+     * The id of the entity in question
+     * @var number|string $entityId
+     */
+    protected $actionEntityIds = [];
 
     /**
      * @param string $entity
@@ -103,7 +116,14 @@ class SionController extends AbstractActionController
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
                 ->addMessage(ucwords($entity).' not found.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            $this->redirect ()->toRoute ( $redirectRoute);
+            return $this->redirect ()->toRoute ( $redirectRoute);
+        }
+
+        if (!$this->isActionAllowed('show')) {
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
+            ->addMessage('Access to entity denied.');
+            $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
+            return $this->redirect ()->toRoute ( $redirectRoute );
         }
 
         /** @var SionTable $table */
@@ -299,6 +319,13 @@ class SionController extends AbstractActionController
         //if the entity doesn't exist, redirect to the index or the default route
         if (is_null($entityObject)) {
             $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
+            $this->redirect ()->toRoute ( $redirectRoute );
+        }
+
+        if (!$this->isActionAllowed('edit')) {
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
+            ->addMessage('Access to entity denied.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
             $this->redirect ()->toRoute ( $redirectRoute );
         }
@@ -531,6 +558,13 @@ class SionController extends AbstractActionController
         }
 
         //make sure the user has permission to delete the entity
+        if (!$this->isActionAllowed('delete')) {
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
+            ->addMessage('You do not have permission to delete this entity.');
+            $this->redirectAfterDelete(false);
+        }
+
+        //@deprecated @todo remove this part
         if (!is_null($entitySpec->deleteActionAclResource) &&
             !$this->isAllowed($entitySpec->deleteActionAclResource,
                 $entitySpec->deleteActionAclPermission ?
@@ -602,6 +636,42 @@ class SionController extends AbstractActionController
         }
     }
 
+    protected function isActionAllowed($action)
+    {
+        if (!array_key_exists($action, Entity::$isActionAllowedPermissionProperties)) {
+            throw new \InvalidArgumentException('Invalid action parameter');
+        }
+        $entityId = $this->getEntityIdParam($action);
+        $entitySpec = $this->getEntitySpecification();
+
+        if (is_null($entitySpec->aclResourceIdField)) {
+            return true;
+        }
+
+        /**
+         * isAllowed plugin
+         * @var PluginInterface $isAllowedPlugin
+         */
+        $isAllowedPlugin = null;
+        try {
+            $isAllowedPlugin = $this->plugin('isAllowed');
+        } catch (Exception $e) {
+        }
+        //if we don't have the isAllowed plugin, just allow
+        if (!is_callable($isAllowedPlugin)) {
+            return true;
+        }
+
+        $permissionProperty = Entity::$isActionAllowedPermissionProperties[$action];
+        $object = $this->getEntityObject($entityId);
+        if (is_null($entitySpec->$permissionProperty)) {
+            //we don't need the permission, just the resourceId
+            return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField]);
+        }
+
+        return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField], $entitySpec->$permissionProperty);
+    }
+
     /**
      * Get the value of the entityId route parameter given the action. If no parameter is
      * set in the Request, $default is returned
@@ -612,19 +682,24 @@ class SionController extends AbstractActionController
      */
     protected function getEntityIdParam($action = 'show', $default = null)
     {
+        if (array_key_exists($action, $this->actionEntityIds)) {
+            return $this->actionEntityIds[$action];
+        }
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
         $actionRouteKey = null;
         if (key_exists($action, $this->actionRouteKeys)) {
             $actionRouteKey = $this->actionRouteKeys[$action];
             if (!is_null($entitySpec->$actionRouteKey)) {
-                return $this->params()->fromRoute($entitySpec->$actionRouteKey, $default);
+                return $this->actionEntityIds[$action] =
+                    $this->params()->fromRoute($entitySpec->$actionRouteKey, $default);
             }
         } else {
             $actionRouteKey = 'defaultRouteKey';
         }
         if (!is_null($entitySpec->defaultRouteKey)) {
-            return $this->params()->fromRoute($entitySpec->defaultRouteKey, $default);
+            return $this->actionEntityIds[$action] =
+                $this->params()->fromRoute($entitySpec->defaultRouteKey, $default);
         }
         throw new \Exception("Please configure the $actionRouteKey for the $entity entity to use the $action action.");
     }
@@ -709,8 +784,11 @@ class SionController extends AbstractActionController
 
     public function getEntityObject($id)
     {
+        if (array_key_exists($id, $this->object)) {
+            return $this->object[$id];
+        }
         $table = $this->getSionTable();
-        return $table->getObject($this->getEntity(), $id);
+        return $this->object[$id] = $table->getObject($this->getEntity(), $id);
     }
 
     /**

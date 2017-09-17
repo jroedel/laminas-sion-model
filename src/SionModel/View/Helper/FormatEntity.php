@@ -45,11 +45,11 @@ class FormatEntity extends AbstractHelper
             }
         }
         $isDeleted = key_exists('isDeleted', $data) && $data['isDeleted'];
-        $entitySpecification = $this->entities[$entityType];
+        $entitySpec = $this->entities[$entityType];
 
         //forward request to registered view helper if we have one
-        if (!is_null($entitySpecification->formatViewHelper) && !$isDeleted) {
-            $viewHelperName = $entitySpecification->formatViewHelper;
+        if (!is_null($entitySpec->formatViewHelper) && !$isDeleted) {
+            $viewHelperName = $entitySpec->formatViewHelper;
             return $this->view->$viewHelperName($entityType, $data, $options);
         }
 
@@ -74,8 +74,8 @@ class FormatEntity extends AbstractHelper
                 throw new \InvalidArgumentException('$data should be an array.');
             }
         }
-        if (!$entitySpecification->entityKeyField ||
-            !isset($data[$entitySpecification->entityKeyField])
+        if (!$entitySpec->entityKeyField ||
+            !isset($data[$entitySpec->entityKeyField])
         ) {
             if ($options['failSilently']) {
                 return '';
@@ -83,8 +83,8 @@ class FormatEntity extends AbstractHelper
                 throw new \InvalidArgumentException('Id field not set for entity '.$entityType);
             }
         }
-        if (!$entitySpecification->nameField ||
-            !isset($data[$entitySpecification->nameField])
+        if (!$entitySpec->nameField ||
+            !isset($data[$entitySpec->nameField])
         ) {
             if ($options['failSilently']) {
                 return '';
@@ -95,20 +95,20 @@ class FormatEntity extends AbstractHelper
 
     	$finalMarkup = '';
     	if ($options['displayFlag'] &&
-    	    $entitySpecification->countryField &&
-    	    isset($data[$entitySpecification->countryField]) &&
-    	    2 === strlen($data[$entitySpecification->countryField])
+    	    $entitySpec->countryField &&
+    	    isset($data[$entitySpec->countryField]) &&
+    	    2 === strlen($data[$entitySpec->countryField])
     	) {
-    		$finalMarkup .= $this->view->flag($data[$entitySpecification->countryField])."&nbsp;";
+    		$finalMarkup .= $this->view->flag($data[$entitySpec->countryField])."&nbsp;";
     	}
 
     	//if our name field is a date, format it as a medium date
-    	if ($data[$entitySpecification->nameField] instanceof \DateTime) {
-    	    $name = $this->view->dateFormat($data[$entitySpecification->nameField],
+    	if ($data[$entitySpec->nameField] instanceof \DateTime) {
+    	    $name = $this->view->dateFormat($data[$entitySpec->nameField],
 	            \IntlDateFormatter::MEDIUM, \IntlDateFormatter::NONE);
     	} else {
-        	$name = $data[$entitySpecification->nameField];
-    	    if ($entitySpecification->nameFieldIsTranslateable) {
+        	$name = $data[$entitySpec->nameField];
+    	    if ($entitySpec->nameFieldIsTranslateable) {
     	        $name = $this->view->translate($name);
     	    }
     	}
@@ -120,10 +120,10 @@ class FormatEntity extends AbstractHelper
     	}
 
     	if ($options['displayEditPencil'] &&
-    	    $entitySpecification->editRouteKeyField &&
-            isset($data[$entitySpecification->editRouteKeyField])
+    	    $entitySpec->editRouteKeyField &&
+            isset($data[$entitySpec->editRouteKeyField])
 	    ) {
-    	    $editId = $data[$entitySpecification->editRouteKeyField];
+    	    $editId = $data[$entitySpec->editRouteKeyField];
     		$finalMarkup .= $this->view->editPencil($entityType, $editId);
     	}
     	if ($options['displayInactiveLabel'] &&
@@ -137,23 +137,75 @@ class FormatEntity extends AbstractHelper
     	return $finalMarkup;
     }
 
+    /**
+     * @todo remove dependency on isAllowed view helper, make optional
+     * @param string $entityType
+     * @param array $data
+     * @param string $linkText
+     * @return string
+     */
     protected function wrapAsLink($entityType, $data, $linkText)
     {
-        $entitySpecification = $this->entities[$entityType];
-        if ($entitySpecification->showRoute &&
-            $entitySpecification->showRouteKey &&
-            $entitySpecification->showRouteKeyField &&
-            isset($data[$entitySpecification->showRouteKeyField]) &&
-            $this->view->isAllowed('route/'.$entitySpecification->showRoute)
+        $entitySpec = $this->entities[$entityType];
+        if ($entitySpec->showRoute &&
+            $entitySpec->showRouteKey &&
+            $entitySpec->showRouteKeyField &&
+            isset($data[$entitySpec->showRouteKeyField]) &&
+            $this->isActionAllowed('show', $entityType, $data)
         ) {
-            $route = $entitySpecification->showRoute;
-            $routeKey = $entitySpecification->showRouteKey;
-            $id = $data[$entitySpecification->showRouteKeyField];
-            return '<a href="'.$this->view->url($route, [$routeKey => $id]).'">'.
-                $linkText.'</a>';
+            $route = $entitySpec->showRoute;
+            $routeKey = $entitySpec->showRouteKey;
+            $id = $data[$entitySpec->showRouteKeyField];
+            return sprintf('<a href="%s">%s</a>',$this->view->url($route, [$routeKey => $id]), $linkText);
         }
         return $linkText;
     }
+
+    protected function isActionAllowed($action, $entityType, $object)
+    {
+        if (!$this->getRoutePermissionCheckingEnabled()) {
+            return true;
+        }
+        if (!array_key_exists($action, Entity::$isActionAllowedPermissionProperties)) {
+            throw new \InvalidArgumentException('Invalid action parameter');
+        }
+        $entitySpec = $this->entities[$entityType];
+
+        /**
+         * isAllowed plugin
+         * @var \Zend\View\Helper\HelperInterface $isAllowedPlugin
+         */
+        $isAllowedPlugin = null;
+        try {
+            $isAllowedPlugin = $this->view->plugin('isAllowed');
+        } catch (Exception $e) {
+        }
+        //if we don't have the isAllowed plugin, just allow
+        if (!is_callable($isAllowedPlugin)) {
+            return true;
+        }
+
+        //check the route permissions of BjyAuthorize
+        $routeProperty = array_key_exists($action, Entity::$actionRouteProperties) ? Entity::$actionRouteProperties[$action] : null;
+        if (!is_null($routeProperty) && !is_null($entitySpec->$routeProperty) &&
+            !$isAllowedPlugin->__invoke('route/'.$entitySpec->$routeProperty)
+        ) {
+            return false;
+        }
+
+        if (is_null($entitySpec->aclResourceIdField)) {
+            return true;
+        }
+
+        $permissionProperty = Entity::$isActionAllowedPermissionProperties[$action];
+        if (is_null($entitySpec->$permissionProperty)) {
+            //we don't need the permission, just the resourceId
+            return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField]);
+        }
+
+        return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField], $entitySpec->$permissionProperty);
+    }
+
     /**
     * Get the routePermissionCheckingEnabled value
     * @return bool

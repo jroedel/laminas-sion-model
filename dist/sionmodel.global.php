@@ -99,9 +99,15 @@ return [
                 'has_dedicated_suggest_form'                => false,
 //                 'suggest_form'                              => 'Project\Form\SuggestEventForm',
                 'enable_delete_action'                      => true,
-                'delete_action_acl_resource'                => 'event_:id',
-                'delete_action_acl_permission'              => 'delete_event',
                 'delete_action_redirect_route'              => 'events',
+
+                'acl_resource_id_field'                     => 'resourceId',
+                'acl_show_permission'                       => 'show',
+                'acl_edit_permission'                       => 'edit',
+                'acl_suggest_permission'                    => 'suggest',
+                'acl_moderate_permission'                   => 'moderate',
+                'acl_delete_permission'                     => 'delete',
+
                 'update_columns'                            => [
                     'eventId' => 'event_id',
                     'file' => 'event_file',

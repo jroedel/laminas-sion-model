@@ -8,8 +8,6 @@ namespace SionModel\Service;
 
 use Zend\ServiceManager\FactoryInterface;
 use Zend\ServiceManager\ServiceLocatorInterface;
-use SionModel\Problem\ProblemTable;
-use SionModel\Problem\EntityProblem;
 use SionModel\Db\Model\FilesTable;
 
 /**

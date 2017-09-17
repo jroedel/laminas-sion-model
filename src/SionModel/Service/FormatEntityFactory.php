@@ -4,7 +4,6 @@ namespace SionModel\Service;
 use Zend\ServiceManager\FactoryInterface;
 use Zend\ServiceManager\ServiceLocatorInterface;
 use SionModel\View\Helper\FormatEntity;
-use Zend\Mvc\Application;
 
 /**
  * Factory responsible of constructing the FormatEntity view helper
