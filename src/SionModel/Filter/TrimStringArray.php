@@ -16,24 +16,25 @@ class TrimStringArray extends AbstractFilter
     /**
      * Defined by Zend\Filter\FilterInterface
      *
-     * Returns (int) $value
+     * Returns $value
      *
      * If the value provided is non-scalar, the value will remain unfiltered
      *
-     * @param  string $value
-     * @return int|mixed
+     * @param  string|array $value
+     * @return array
      */
     public function filter($value)
     {
-        if (!is_array($value)) {
-            return $value;
+        var_dump($value);
+        if (is_string($value)) {
+            $value = [$value];
         }
-        if (empty($value)) {
-            return null;
+        if (!is_array($value)) {
+            return [];
         }
 
         static $filter;
-        if (is_null($filter)) {
+        if (!isset($filter)) {
             $filter = new FilterChain();
             $filter->attachByName('StripTags')
                 ->attachByName('StripNewlines')

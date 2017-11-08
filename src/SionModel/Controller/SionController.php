@@ -108,7 +108,7 @@ class SionController extends AbstractActionController
     {
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-        if (is_null($entitySpec->showRouteKey)) {
+        if (!isset($entitySpec->showRouteKey)) {
             throw new \Exception("Please set the show_route_key config key of $entity in order to use the showAction.");
         }
         $id = (Int)$this->getEntityIdParam('show');
@@ -135,8 +135,9 @@ class SionController extends AbstractActionController
         }
 
         $entityObject = $this->getEntityObject($id);
+//         var_dump($entityObject);
         //if the entity doesn't exist, redirect to the index or the default route
-        if (is_null($entityObject)) {
+        if (!isset($entityObject)) {
             $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
             $this->redirect ()->toRoute ( $redirectRoute );
@@ -149,7 +150,7 @@ class SionController extends AbstractActionController
         //@todo enable suggest form
 //         $sm = $this->getServiceLocator ();
 //         /** @var SionForm $suggestForm **/
-//         if (is_null($entitySpec->suggestForm)) {
+//         if (!isset($entitySpec->suggestForm)) {
 //             $suggestForm = $sm->get('SionModel\Form\SuggestForm');
 //         } elseif ($sm->has($entitySpec->suggestForm)) {
 //             $suggestForm = $sm->get($entitySpec->suggestForm);
@@ -169,7 +170,7 @@ class SionController extends AbstractActionController
         ]);
 
         //check if the user has the showActionTemplate option set, if not they'll go to the default
-        if (!is_null($entitySpec->showActionTemplate)) {
+        if (isset($entitySpec->showActionTemplate)) {
             $template = $entitySpec->showActionTemplate;
             $view->setTemplate($template);
         }
@@ -184,7 +185,7 @@ class SionController extends AbstractActionController
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
 
-        if (is_null($entitySpec->createActionForm)) {
+        if (!isset($entitySpec->createActionForm)) {
             throw new \InvalidArgumentException('If the createAction for \''.$entity.'\' is to be used, it must specify the create_action_form configuration.');
         }
         /** @var SionForm $form **/
@@ -203,7 +204,7 @@ class SionController extends AbstractActionController
             if ($form->isValid()) {
                 $data = $form->getData();
                 //if we have a dataHandler registered, call it @deprecated
-                if (!is_null($entitySpec->createActionValidDataHandler)) {
+                if (isset($entitySpec->createActionValidDataHandler)) {
                     $handlerFunction = $entitySpec->createActionValidDataHandler;
                     if (!method_exists($this, $handlerFunction) ||
                         method_exists('SionController', $handlerFunction)
@@ -224,7 +225,7 @@ class SionController extends AbstractActionController
         ]);
 
         //check if the user has the createActionTemplate option set, if not they'll go to the default
-        if (!is_null($entitySpec->createActionTemplate)) {
+        if (isset($entitySpec->createActionTemplate)) {
             $template = $entitySpec->createActionTemplate;
             $view->setTemplate($template);
         }
@@ -273,17 +274,17 @@ class SionController extends AbstractActionController
         $entitySpec = $this->getEntitySpecification();
 
         //check if user has the redirect route set
-        if (!is_null($entitySpec->createActionRedirectRoute)) {
-            if (is_null($entitySpec->createActionRedirectRouteKeyField) ||
+        if (isset($entitySpec->createActionRedirectRoute)) {
+            if (!isset($entitySpec->createActionRedirectRouteKeyField) ||
                 $entitySpec->createActionRedirectRouteKeyField == $entitySpec->entityKeyField ||
-                is_null($entitySpec->createActionRedirectRouteKey)
+                !isset($entitySpec->createActionRedirectRouteKey)
             ) {
                 $this->redirect ()->toRoute ($entitySpec->createActionRedirectRoute,
-                    !is_null($entitySpec->createActionRedirectRouteKey) ?
+                    isset($entitySpec->createActionRedirectRouteKey) ?
                     [$entitySpec->createActionRedirectRouteKey => $newId] : []);
             } else {
                 $entityObj = $table->getObject($entity, $newId);
-                if (!key_exists($entitySpec->createActionRedirectRouteKeyField, $entityObj)) {
+                if (!isset($entityObj[$entitySpec->createActionRedirectRouteKeyField])) {
                     throw new \Exception('create_action_redirect_route_key_field is misconfigured for entity \''.$entity.'\'');
                 }
                 $this->redirect ()->toRoute ($entitySpec->createActionRedirectRoute,
@@ -305,7 +306,7 @@ class SionController extends AbstractActionController
     {
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-        if (is_null($entitySpec->editRouteKey)) {
+        if (!isset($entitySpec->editRouteKey)) {
             throw new \Exception("Please set the edit_route_key config key of $entity in order to use the editAction.");
         }
         $id = (Int)$this->getEntityIdParam('edit');
@@ -317,7 +318,7 @@ class SionController extends AbstractActionController
         }
         $entityObject = $this->getEntityObject($id);
         //if the entity doesn't exist, redirect to the index or the default route
-        if (is_null($entityObject)) {
+        if (!isset($entityObject)) {
             $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
             $this->redirect ()->toRoute ( $redirectRoute );
@@ -330,7 +331,7 @@ class SionController extends AbstractActionController
             $this->redirect ()->toRoute ( $redirectRoute );
         }
 
-        if (is_null($entitySpec->editActionForm)) {
+        if (!isset($entitySpec->editActionForm)) {
             throw new \InvalidArgumentException('If the editAction for \''.$entity.'\' is to be used, it must specify the edit_action_form configuration.');
         }
         $sm = $this->getServiceLocator();
@@ -366,7 +367,7 @@ class SionController extends AbstractActionController
         ]);
 
         //check if the user has the editActionTemplate option set, if not they'll go to the default
-        if (!is_null($entitySpec->editActionTemplate)) {
+        if (isset($entitySpec->editActionTemplate)) {
             $template = $entitySpec->editActionTemplate;
             $view->setTemplate($template);
         }
@@ -412,7 +413,7 @@ class SionController extends AbstractActionController
         if ($entitySpec->showRouteKey && $entitySpec->showRouteKey &&
             $entitySpec->showRouteKeyField
         ) {
-            if (!key_exists($entitySpec->showRouteKeyField, $entityObject)) {
+            if (!isset($entityObject[$entitySpec->showRouteKeyField])) {
                 throw new \Exception("show_route_key_field config for entity '$entity' refers to a key that doesn't exist");
             }
             $this->redirect ()->toRoute ($entitySpec->showRoute,
@@ -442,7 +443,7 @@ class SionController extends AbstractActionController
         }
         $entityObject = $this->getEntityObject($id);
         //if the entity doesn't exist, redirect to the index or the default route
-        if (is_null($entityObject)) {
+        if (!isset($entityObject)) {
             $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
             $this->redirect ()->toRoute ( $redirectRoute );
@@ -464,7 +465,7 @@ class SionController extends AbstractActionController
                 if ($entitySpec->showRouteKey && $entitySpec->showRouteKey &&
                     $entitySpec->showRouteKeyField
                 ) {
-                    if (!key_exists($entitySpec->showRouteKeyField, $entityObject)) {
+                    if (!isset($entityObject[$entitySpec->showRouteKeyField])) {
                         throw new \Exception("show_route_key_field config for entity '$entity' refers to a key that doesn't exist");
                     }
                     $this->redirect ()->toRoute ($entitySpec->showRoute,
@@ -495,11 +496,11 @@ class SionController extends AbstractActionController
         $entitySpec = $this->getEntitySpecification();
 
         $id = (Int)$this->getEntityIdParam('touchJson');
-        if (!isset($id) || is_null($id)) {
+        if (!isset($id)) {
             return $this->sendFailedMessage('Invalid id passed.');
         }
         $callback = $this->params ()->fromQuery ('callback', null);
-        if (is_null($callback)) {
+        if (!isset($callback)) {
             return $this->sendFailedMessage('All requests must include a callback function set as a query parameter \'callback\'.');
         }
 
@@ -565,7 +566,7 @@ class SionController extends AbstractActionController
         }
 
         //@deprecated @todo remove this part
-        if (!is_null($entitySpec->deleteActionAclResource) &&
+        if (isset($entitySpec->deleteActionAclResource) &&
             !$this->isAllowed($entitySpec->deleteActionAclResource,
                 $entitySpec->deleteActionAclPermission ?
                 $entitySpec->deleteActionAclPermission : null)
@@ -626,10 +627,10 @@ class SionController extends AbstractActionController
     {
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-        if (!is_null($entitySpec->deleteActionRedirectRoute)) {
+        if (isset($entitySpec->deleteActionRedirectRoute)) {
             $this->redirect()->toRoute($entitySpec->deleteActionRedirectRoute);
         } else {
-            if (is_null($defaultRedirectRoute = $this->getDefaultRedirectRoute())) {
+            if (null === ($defaultRedirectRoute = $this->getDefaultRedirectRoute())) {
                 throw new \Exception("Please configure the deleteActionRedirectRoute for $entity, or the sion_model default_redirect_route.");
             }
             $this->redirect()->toRoute($defaultRedirectRoute);
@@ -638,13 +639,13 @@ class SionController extends AbstractActionController
 
     protected function isActionAllowed($action)
     {
-        if (!array_key_exists($action, Entity::$isActionAllowedPermissionProperties)) {
+        if (!isset(Entity::$isActionAllowedPermissionProperties[$action])) {
             throw new \InvalidArgumentException('Invalid action parameter');
         }
         $entityId = $this->getEntityIdParam($action);
         $entitySpec = $this->getEntitySpecification();
 
-        if (is_null($entitySpec->aclResourceIdField)) {
+        if (!isset($entitySpec->aclResourceIdField)) {
             return true;
         }
 
@@ -664,7 +665,7 @@ class SionController extends AbstractActionController
 
         $permissionProperty = Entity::$isActionAllowedPermissionProperties[$action];
         $object = $this->getEntityObject($entityId);
-        if (is_null($entitySpec->$permissionProperty)) {
+        if (!isset($entitySpec->$permissionProperty)) {
             //we don't need the permission, just the resourceId
             return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField]);
         }
@@ -682,22 +683,22 @@ class SionController extends AbstractActionController
      */
     protected function getEntityIdParam($action = 'show', $default = null)
     {
-        if (array_key_exists($action, $this->actionEntityIds)) {
+        if (isset($this->actionEntityIds[$action])) {
             return $this->actionEntityIds[$action];
         }
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
         $actionRouteKey = null;
-        if (key_exists($action, $this->actionRouteKeys)) {
+        if (isset($this->actionRouteKeys[$action])) {
             $actionRouteKey = $this->actionRouteKeys[$action];
-            if (!is_null($entitySpec->$actionRouteKey)) {
+            if (isset($entitySpec->$actionRouteKey)) {
                 return $this->actionEntityIds[$action] =
                     $this->params()->fromRoute($entitySpec->$actionRouteKey, $default);
             }
         } else {
             $actionRouteKey = 'defaultRouteKey';
         }
-        if (!is_null($entitySpec->defaultRouteKey)) {
+        if (isset($entitySpec->defaultRouteKey)) {
             return $this->actionEntityIds[$action] =
                 $this->params()->fromRoute($entitySpec->defaultRouteKey, $default);
         }
@@ -724,16 +725,16 @@ class SionController extends AbstractActionController
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
         $touchField = null;
-        if (!is_null($entitySpec->touchFieldRouteKey)) {
+        if (isset($entitySpec->touchFieldRouteKey)) {
             $touchField = $this->params ()->fromRoute ($entitySpec->touchFieldRouteKey);
-            if (key_exists($touchField, $entitySpec->updateColumns)) {
+            if (isset($entitySpec->updateColumns[$touchField])) {
                 return $touchField;
             }
         }
-        if (!is_null($entitySpec->touchDefaultField) && key_exists($entitySpec->touchDefaultField, $entitySpec->updateColumns)) {
+        if (isset($entitySpec->touchDefaultField) && isset($entitySpec->updateColumns[$entitySpec->touchDefaultField])) {
             return $entitySpec->touchDefaultField;
         }
-        if (!is_null($entitySpec->entityKeyField) && key_exists($entitySpec->entityKeyField, $entitySpec->updateColumns)) {
+        if (isset($entitySpec->entityKeyField) && isset($entitySpec->updateColumns[$entitySpec->entityKeyField])) {
             return $entitySpec->entityKeyField;
         }
         throw new \Exception("Cannot find a field to touch for entity '$entity'");
@@ -745,10 +746,10 @@ class SionController extends AbstractActionController
      */
     public function getEntitySpecification()
     {
-        if (is_null($this->entitySpecification)) {
+        if (!isset($this->entitySpecification)) {
             $entity = $this->getEntity();
             $entities = $this->getEntitySpecifications();
-            if (!key_exists($entity, $entities)) {
+            if (!isset($entities[$entity])) {
                 throw new \Exception('Invalid entity given\''.$entity.'\'');
             }
             $this->setEntitySpecification($entities[$entity]);
@@ -773,7 +774,7 @@ class SionController extends AbstractActionController
      */
     public function getEntitySpecifications()
     {
-        if (is_null($this->entitySpecifications)) {
+        if (!isset($this->entitySpecifications)) {
             $sm = $this->getServiceLocator();
             /** @var EntitiesService $entitiesService */
             $entitiesService = $sm->get('SionModel\Service\EntitiesService');
@@ -784,11 +785,11 @@ class SionController extends AbstractActionController
 
     public function getEntityObject($id)
     {
-        if (array_key_exists($id, $this->object)) {
+        if (isset($this->object[$id])) {
             return $this->object[$id];
         }
         $table = $this->getSionTable();
-        return $this->object[$id] = $table->getObject($this->getEntity(), $id);
+        return $this->object[$id] = $table->getObject($this->getEntity(), $id, true);
     }
 
     /**
@@ -797,7 +798,7 @@ class SionController extends AbstractActionController
      */
     public function getSionTable()
     {
-        if (is_null($this->sionTable)) {
+        if (!isset($this->sionTable)) {
             $sm = $this->getServiceLocator();
             $entitySpec = $this->getEntitySpecification();
             if (!$sm->has($entitySpec->sionModelClass)) {
@@ -847,7 +848,7 @@ class SionController extends AbstractActionController
      */
     public function getDefaultRedirectRoute()
     {
-        if (is_null($this->defaultRedirectRoute)) {
+        if (!isset($this->defaultRedirectRoute)) {
             $config = $this->getSionModelConfig();
             $redirectRoute = $config['default_redirect_route'];
             $this->setDefaultRedirectRoute($redirectRoute);
@@ -872,7 +873,7 @@ class SionController extends AbstractActionController
      */
     public function getSionModelConfig()
     {
-        if (is_null($this->sionModelConfig)) {
+        if (!isset($this->sionModelConfig)) {
             $sm = $this->getServiceLocator();
             $config = $sm->get('SionModel\Config');
             $this->setSionModelConfig($config);

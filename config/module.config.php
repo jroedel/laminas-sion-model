@@ -198,9 +198,9 @@ return [
 //                 'has_dedicated_suggest_form' 			=> false,
 //                 'suggest_form'               			=> 'Project\Form\SuggestEventForm',
                 'enable_delete_action' 					=> true,
-                'delete_action_acl_resource' 			=> 'event_:id',
-                'delete_action_acl_permission' 			=> 'delete_event',
-                'delete_action_redirect_route' 			=> 'events',
+//                 'delete_action_acl_resource' 			=> 'event_:id',
+//                 'delete_action_acl_permission' 			=> 'delete_event',
+//                 'delete_action_redirect_route' 			=> 'events',
                 'update_columns' 						=> [
                     'fileId'                => 'FileId',
                     'storeFileName'         => 'StoreFileName',

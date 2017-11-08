@@ -28,6 +28,7 @@ use Zend\Filter\PregReplace;
 use Zend\Mvc\MvcEvent;
 use Zend\Db\Sql\Select;
 use Zend\Db\Sql\Expression;
+use SionModel\Db\GeoPoint;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -69,6 +70,9 @@ class SionTable
     const SUGGESTION_ACCEPTED = 'Accepted';
     const SUGGESTION_DENIED = 'Denied';
 
+    /**
+     * @var TableGateway $tableGateway
+     */
     protected $tableGateway;
 
     /**
@@ -375,12 +379,12 @@ class SionTable
      */
     public function fetchSome($where, $sql = null, $sqlArgs = null)
     {
-        if (is_null($where) && is_null($sql)) {
+        if (null === $where && null === $sql) {
             throw new \InvalidArgumentException('No query requested.');
         }
-        if (!is_null($sql))
+        if (null !== $sql)
         {
-            if (is_null($sqlArgs)) {
+            if (null === $sqlArgs) {
                 $sqlArgs = Adapter::QUERY_MODE_EXECUTE; //make sure query executes
             }
             $result = $this->tableGateway->getAdapter()->query($sql, $sqlArgs);
@@ -405,7 +409,7 @@ class SionTable
      */
     public static function processUrls($unprocessedUrls)
     {
-        if (is_null($unprocessedUrls)) {
+        if (null === $unprocessedUrls) {
             return null;
         }
         if (!is_array($unprocessedUrls)) {
@@ -416,10 +420,10 @@ class SionTable
             if (!key_exists('url', $urlRow) || !key_exists('label', $urlRow)) {
                 throw new \InvalidArgumentException('Each element of unprocessedUrls must contain keys \'url\' and \'label\'');
             }
-            if (!is_null($urlRow['url'])) {
+            if (null !== $urlRow['url']) {
                 $url = new Http($urlRow['url']);
                 if ($url->isValid()) {
-                    if (is_null($urlRow['label']) || 0 === strlen($urlRow['label'])) {
+                    if (null === $urlRow['label'] || 0 === strlen($urlRow['label'])) {
                         $urlRow['label'] = $url->getHost();
                     }
                     $urlRow['url'] = $url->toString();
@@ -467,7 +471,7 @@ class SionTable
             throw new \Exception('\'get_object_function\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
         }
         if (isset($this->entitySpecifications[$entity]->databaseBoundDataPreprocessor) &&
-            !is_null($this->entitySpecifications[$entity]->databaseBoundDataPreprocessor) &&
+            null !== $this->entitySpecifications[$entity]->databaseBoundDataPreprocessor &&
             !method_exists($this, $this->entitySpecifications[$entity]->databaseBoundDataPreprocessor)
         ) {
             throw new \Exception('\'databaseBoundDataPreprocessor\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
@@ -490,13 +494,13 @@ class SionTable
             throw new \InvalidArgumentException('Entity doesn\'t exist.');
         }
         $entitySpec = $this->getEntitySpecification($entity);
-        if (is_null($field) && !is_null($entitySpec->entityKeyField)) {
+        if (null === $field && null !== $entitySpec->entityKeyField) {
             throw new \InvalidArgumentException("Please specify the entity_key_field configuration for entity '$entity' to use the touchEntity function.");
         }
-        if (!is_null($field) && !is_array($field)) {
+        if (null !== $field && !is_array($field)) {
             $field = [$field];
         }
-        $fields = !is_null($field) ? $field : [$entitySpec->entityKeyField];
+        $fields = null !== $field ? $field : [$entitySpec->entityKeyField];
 //         var_dump($fields);
         return $this->updateEntity($entity, $id, [], $fields, $refreshCache);
     }
@@ -534,7 +538,7 @@ class SionTable
          * Run the new/old data throught the preprocessor function if it exists
          */
         if (isset($entitySpec->databaseBoundDataPreprocessor) &&
-            !is_null($entitySpec->databaseBoundDataPreprocessor) &&
+            null !== $entitySpec->databaseBoundDataPreprocessor &&
             method_exists($this, $entitySpec->databaseBoundDataPreprocessor) &&
             !method_exists('SionTable', $entitySpec->databaseBoundDataPreprocessor) //make sure noone's being sneaky)
         ) {
@@ -549,8 +553,8 @@ class SionTable
 
         //if the id is being changed, update it
         $keyField = $entitySpec->entityKeyField;
-        if (isset($data[$keyField]) && !is_null($data[$keyField]) &&
-            isset($entityData[$keyField]) && !is_null($entityData[$keyField]) &&
+        if (isset($data[$keyField]) && null !== $data[$keyField] &&
+            isset($entityData[$keyField]) && null !== $entityData[$keyField] &&
             $data[$keyField] !== $entityData[$keyField]
         ) {
             $id = $data[$keyField];
@@ -560,7 +564,7 @@ class SionTable
          * Run the changed/new data through the preprocessor function if it exists
          */
         if (isset($entitySpec->databaseBoundDataPostprocessor) &&
-            !is_null($entitySpec->databaseBoundDataPostprocessor) &&
+            null !== $entitySpec->databaseBoundDataPostprocessor &&
             method_exists($this, $entitySpec->databaseBoundDataPostprocessor) &&
             !method_exists('SionTable', $entitySpec->databaseBoundDataPostprocessor) //make sure noone's being sneaky
         ) {
@@ -586,16 +590,17 @@ class SionTable
      */
     protected function updateHelper($id, $data, $entityType, $tableKey, TableGatewayInterface $tableGateway, $updateCols, $referenceEntity, $manyToOneUpdateColumns = null, $reportChanges = false, array $fieldsToTouch = [])
     {
-        if (is_null($entityType) || $entityType == '') {
+        if (null === $entityType || $entityType === '') {
             throw new \Exception('No entity provided.');
         }
-        if (is_null($tableKey) || $tableKey == '') {
+        if (null === $tableKey || $tableKey === '') {
             throw new \Exception('No table key provided');
         }
         $now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         $updateVals = [];
         $changes = [];
         foreach ($referenceEntity as $field => $value) {
+            $tempNewValue = null;
             if (!in_array($field, $fieldsToTouch) &&
                 (!key_exists($field, $updateCols) || !key_exists($field, $data) || $value == $data[$field])
             ) {
@@ -613,13 +618,17 @@ class SionTable
                     $data[$field] = implode('|', $data[$field]); //pipe (|) is a good unused character for separating
                 }
             }
+            if ($data[$field] instanceof GeoPoint) {
+                $tempNewValue = $data[$field]; //insert the string value, not the expression into the changes table
+                $data[$field] = new Expression($data[$field]->getDatabaseInsertString());
+            }
             $updateVals[$updateCols[$field]] = $data[$field];
             if (key_exists($field.'UpdatedOn', $updateCols) && !key_exists($field.'UpdatedOn', $data) //check if this column has updatedOn column
             ) {
                 $updateVals[$updateCols[$field.'UpdatedOn']] = $now;
             }
             if (key_exists($field.'UpdatedBy', $updateCols) && !key_exists($field.'UpdatedBy', $data) &&
-                !is_null($this->actingUserId)
+                null !== $this->actingUserId
             ) { //check if this column has updatedBy column
                 $updateVals[$updateCols[$field.'UpdatedBy']] = $this->actingUserId;
             }
@@ -631,7 +640,7 @@ class SionTable
                 }
                 if ( key_exists($manyToOneUpdateColumns[$field].'UpdatedBy', $updateCols) &&
                     !key_exists($manyToOneUpdateColumns[$field].'UpdatedBy', $data) &&
-                    !is_null($this->actingUserId))
+                    null !== $this->actingUserId)
                 { //check if this column  maps to some other updatedBy column
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$field].'UpdatedBy']] = $this->actingUserId;
                 }
@@ -642,7 +651,7 @@ class SionTable
                 'field'    => $field,
                 'id'       => $id,
                 'oldValue' => $value,
-                'newValue' => $data[$field],
+                'newValue' => isset($tempNewValue) ? $tempNewValue : $data[$field],
             ];
         }
         if (count($updateVals) > 0) {
@@ -650,7 +659,7 @@ class SionTable
                 $updateVals[$updateCols['updatedOn']] = $now;
             }
             if (isset($updateCols['updatedBy']) && !isset($updateVals[$updateCols['updatedBy']]) &&
-                !is_null($this->actingUserId)) {
+                null !== $this->actingUserId) {
                     $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
                 }
                 $result = $tableGateway->update($updateVals, [$tableKey => $id]);
@@ -679,7 +688,7 @@ class SionTable
          * Run the changed/new data through the preprocessor function if it exists
          * @see Entity
          */
-        if (!is_null($preprocessor = $entitySpec->databaseBoundDataPreprocessor)) {
+        if (null !== $preprocessor = $entitySpec->databaseBoundDataPreprocessor) {
             $data = $this->$preprocessor($data, [], self::ENTITY_ACTION_CREATE);
         }
 
@@ -696,7 +705,7 @@ class SionTable
          */
         if ($return && //$return is should be the AUTO_INCREMENT value of the inserted row
             isset($entitySpec->databaseBoundDataPostprocessor) &&
-            !is_null($entitySpec->databaseBoundDataPostprocessor)
+            null !== $entitySpec->databaseBoundDataPostprocessor
         ) {
             $newEntityData = $this->getObject($entity, $return);
             $postprocessor = $entitySpec->databaseBoundDataPostprocessor;
@@ -707,7 +716,6 @@ class SionTable
     }
 
     /**
-     * @todo Factor out scope
      * @param mixed[] $data
      * @param string[] $requiredCols
      * @param string[] $updateCols
@@ -728,7 +736,7 @@ class SionTable
         $now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         $updateVals = [];
         foreach ($data as $col => $value) {
-            if (!key_exists($col, $updateCols)) {
+            if (!isset($updateCols[$col])) {
                 continue;
             }
             if ($data[$col] instanceof \DateTime) {
@@ -737,26 +745,29 @@ class SionTable
             if (is_array($data[$col])) {
                 $data[$col] = $this->formatDbArray($data[$col]);
             }
+            if ($data[$col] instanceof GeoPoint) {
+                $data[$col] = new Expression($data[$col]->getDatabaseInsertString());
+            }
             $updateVals[$updateCols[$col]] = $data[$col];
-            if (!is_null($value) && key_exists($col.'UpdatedOn', $updateCols) && !key_exists($col.'UpdatedOn', $data)) { //check if this column has updatedOn column
+            if (null !== $value && isset($updateCols[$col.'UpdatedOn']) && !isset($data[$col.'UpdatedOn'])) { //check if this column has updatedOn column
                 $updateVals[$updateCols[$col.'UpdatedOn']] = $now;
             }
-            if (!is_null($value) && key_exists($col.'UpdatedBy', $updateCols) && !key_exists($col.'UpdatedBy', $data) &&
-                !is_null($this->actingUserId)
+            if (null !== $value && isset($updateCols[$col.'UpdatedBy']) && !isset($data[$col.'UpdatedBy']) &&
+                null !== $this->actingUserId
             ) { //check if this column has updatedOn column
                 $updateVals[$updateCols[$col.'UpdatedBy']] = $this->actingUserId;
             }
-            if (!is_null($value) && is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
-                if (key_exists($col, $manyToOneUpdateColumns) &&
-                    key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $updateCols) &&
-                    !key_exists($manyToOneUpdateColumns[$col].'UpdatedOn', $data))
+            if (null !== $value && is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
+                if (isset($manyToOneUpdateColumns[$col]) &&
+                    isset($updateCols[$manyToOneUpdateColumns[$col].'UpdatedOn']) &&
+                    !isset($data[$manyToOneUpdateColumns[$col].'UpdatedOn']))
                 { //check if this column maps to some other updatedOn column
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedOn']] = $now;
                 }
-                if (key_exists($col, $manyToOneUpdateColumns) &&
-                    key_exists($manyToOneUpdateColumns[$col].'UpdatedBy', $updateCols) &&
-                    !key_exists($manyToOneUpdateColumns[$col].'UpdatedBy', $data) &&
-                    !is_null($this->actingUserId))
+                if (isset($manyToOneUpdateColumns[$col]) &&
+                    isset($updateCols[$manyToOneUpdateColumns[$col].'UpdatedBy']) &&
+                    !isset($data[$manyToOneUpdateColumns[$col].'UpdatedBy']) &&
+                    null !== $this->actingUserId)
                 { //check if this column  maps to some other updatedBy column
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedBy']] = $this->actingUserId;
                 }
@@ -766,15 +777,15 @@ class SionTable
             $updateVals[$updateCols['updatedOn']] = $now;
         }
         if (isset($updateCols['updatedBy']) && !isset($updateVals[$updateCols['updatedBy']]) &&
-            !is_null($this->actingUserId)
+            null !== $this->actingUserId
         ) {
             $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
         }
-        if (key_exists('createdOn', $updateCols) && !key_exists('createdOn', $data)) { //check if this column has updatedOn column
+        if (isset($updateCols['createdOn']) && !isset($data['createdOn'])) { //check if this column has updatedOn column
             $updateVals[$updateCols['createdOn']] = $now;
         }
-        if (key_exists('createdBy', $updateCols) && !key_exists('createdBy', $data) &&
-            !is_null($this->actingUserId)
+        if (isset($updateCols['createdBy']) && !isset($data['createdBy']) &&
+            null !== $this->actingUserId
         ) { //check if this column has updatedOn column
             $updateVals[$updateCols['createdBy']] = $this->actingUserId;
         }
@@ -955,7 +966,7 @@ class SionTable
         $tableEntities = [];
         foreach ($this->entitySpecifications as $key => $entitySpec) {
             if ($entitySpec->sionModelClass == get_class($this)) {
-                $entityName = !is_null($entitySpec->name) ? $entitySpec->name : $key;
+                $entityName = (null !== $entitySpec->name) ? $entitySpec->name : $key;
                 $tableEntities[] = $entityName;
             }
         }
@@ -1038,9 +1049,9 @@ class SionTable
         $entityId = $this->filterDbString($row['ChangedIDValue']);
         $updatedOn = $this->filterDbDate($row['UpdatedOn']);
         //only bring in recognized entities from this class
-        if (!key_exists($entity, $this->entitySpecifications) ||
+        if (!isset($this->entitySpecifications[$entity]) ||
             $this->entitySpecifications[$entity]->sionModelClass !== get_class($this) ||
-            is_null($updatedOn)
+            null === $updatedOn
         ) {
             return false;
         }
@@ -1059,7 +1070,7 @@ class SionTable
         ];
 
         $change['object'] = $this->getObject($entity, $entityId, true);
-        if (is_null($change['object'])) { //it looks like the object has been deleted, let's fill in some data
+        if (null === $change['object']) { //it looks like the object has been deleted, let's fill in some data
             $change['object'] = [
                 'isDeleted' => true,
             ];
@@ -1072,7 +1083,7 @@ class SionTable
         }
         //we'll sort by the key afterwards
         $key = (int)date_format($updatedOn, 'U');
-        while (key_exists($key, $changes)) {
+        while (isset($changes[$key])) {
             ++$key;
         }
         $changes[$key] = $change;
@@ -1133,7 +1144,7 @@ class SionTable
      */
     public function cacheEntityObjects($cacheKey, &$objects, array $cacheDependencies = [])
     {
-        if (!$this->persistentCache) {
+        if (!isset($this->persistentCache)) {
             throw new \Exception('The cache must be configured to cache entites.');
         }
         $cacheKey = $this->getSionTableIdentifier().'-'.$cacheKey;
@@ -1157,11 +1168,11 @@ class SionTable
      */
     public function &fetchCachedEntityObjects($key, &$success = null, $casToken = null)
     {
-        if (is_null($this->persistentCache)) {
+        if (null === $this->persistentCache) {
             throw new \Exception('Please set a cache before fetching cached entities.');
         }
         $key = $this->getSionTableIdentifier().'-'.$key;
-        if (key_exists($key, $this->memoryCache)) {
+        if (isset($this->memoryCache[$key])) {
             return $this->memoryCache[$key];
         }
         $objects = $this->persistentCache->getItem($key, $success, $casToken);
@@ -1181,11 +1192,11 @@ class SionTable
     {
         $cache = $this->getPersistentCache();
         foreach ($this->cacheDependencies as $key => $dependentEntities) {
-            if (in_array($entity, $dependentEntities) || $key == 'changes' || $key = 'problems') {
+            if (in_array($entity, $dependentEntities) || $key == 'changes' || $key == 'problems') {
                 if (is_object($cache)) {
                     $cache->removeItem($key);
                 }
-                if (key_exists($key, $this->memoryCache)) {
+                if (isset($this->memoryCache[$key])) {
                     unset($this->memoryCache[$key]);
                 }
             }
@@ -1244,18 +1255,18 @@ class SionTable
      */
     public static function getYearRange($startDate, $endDate)
     {
-        if ((!is_null($startDate) && !$startDate instanceof \DateTime) ||
-            (!is_null($endDate) && !$endDate instanceof \DateTime))
+        if ((null !== $startDate && !$startDate instanceof \DateTime) ||
+            (null !== $endDate && !$endDate instanceof \DateTime))
         {
             throw new \InvalidArgumentException('Date parameters must be either DateTime instances or null.');
         }
 
         $text = '';
-        if ((!is_null($startDate) && $startDate instanceof \DateTime) ||
-            (!is_null($endDate) && $startDate instanceof \DateTime))
+        if ((null !== $startDate && $startDate instanceof \DateTime) ||
+            (null !== $endDate && $startDate instanceof \DateTime))
         {
-            if (!is_null($startDate) xor !is_null($endDate)) { //only one is set
-                if (!is_null($startDate)) {
+            if (null !== $startDate xor null !== $endDate) { //only one is set
+                if (null !== $startDate) {
                     $text .= $startDate->format('Y');
                 } else {
                     $text .= $endDate->format('Y');
@@ -1284,8 +1295,8 @@ class SionTable
      */
     public static function areWeWithinDateRange($startDate, $endDate)
     {
-        if ((!is_null($startDate) && !$startDate instanceof \DateTime) ||
-            (!is_null($endDate) && !$endDate instanceof \DateTime)
+        if ((null !== $startDate && !$startDate instanceof \DateTime) ||
+            (null !== $endDate && !$endDate instanceof \DateTime)
         ) {
             throw new \InvalidArgumentException('Invalid value passed to `areWeWithinDateRange`');
         }
@@ -1294,8 +1305,8 @@ class SionTable
             $timeZone = new \DateTimeZone('UTC');
             $now = new \DateTime(null, $timeZone);
         }
-        return ($startDate <= $now && (is_null($endDate) || $endDate > $now)) ||
-            (is_null($startDate) && ((is_null($endDate) || $endDate > $now)));
+        return ($startDate <= $now && (null === $endDate || $endDate > $now)) ||
+            (null === $startDate && ((null === $endDate || $endDate > $now)));
     }
 
     /**
@@ -1305,30 +1316,23 @@ class SionTable
      */
     protected function filterDbId($str)
     {
-        if (is_null($str) || $str === '' || $str == '0') {
+        if (null === $str || $str === '' || $str == '0') {
             return null;
         }
         return (int) $str;
     }
 
     /**
-     * Trim and null database string
+     * Null database string
      * @param string $str
      * @return string
      */
-    protected static function filterDbString($str)
+    protected function filterDbString($str)
     {
-        if (is_null($str) || $str === '') {
+        if ($str === '') {
             return null;
         }
-        static $filter;
-        if (!is_object($filter)) {
-            $filter = new FilterChain();
-            $filter->attach(new StringTrim(), 2000);
-            $filter->attach(new ToNull(), 1000);
-            //@todo here I think I could strip tags; careful with Markdown fields
-        }
-        return $filter->filter($str);
+        return $str;
     }
 
     /**
@@ -1338,7 +1342,7 @@ class SionTable
      */
     protected function filterDbInt($str)
     {
-        if (is_null($str) || $str === '') {
+        if (null === $str || $str === '') {
             return null;
         }
         return (int) $str;
@@ -1351,7 +1355,7 @@ class SionTable
      */
     protected function filterDbBool($str)
     {
-        if (is_null($str) || $str === '' || $str == '0') {
+        if (null === $str || $str === '' || $str == '0') {
             return false;
         }
         static $filter;
@@ -1370,7 +1374,7 @@ class SionTable
     {
         static $tz;
         $tz = new \DateTimeZone('UTC');
-        if (is_null($str) || $str === '' || $str == '0000-00-00' || $str == '0000-00-00 00:00:00') {
+        if (null === $str || $str === '' || $str == '0000-00-00' || $str == '0000-00-00 00:00:00') {
             return null;
         }
         try {
@@ -1384,13 +1388,39 @@ class SionTable
     /**
      *
      * @param string $str
+     * @return GeoPoint
+     */
+    protected function filterDbGeoPoint($str)
+    {
+        if (!isset($str)) {
+            return null;
+        }
+        $re = '/[0-9\.-]+/u';
+//         $str = 'POINT(76.2144 10.5276)';
+
+        preg_match_all($re, $str, $matches, PREG_SET_ORDER, 0);
+
+        // Print the entire match result
+        if (!isset($matches)) {
+            return null;
+        }
+
+        $longitude = isset($matches[0]) ? $matches[0][0] : 0;
+        $latitude = isset($matches[1]) ? $matches[1][0] : 0;
+        $obj = new GeoPoint($longitude, $latitude);
+        return $obj;
+    }
+
+    /**
+     *
+     * @param string $str
      * @return \DateTime
      */
     protected function filterEmailString($str)
     {
         static $validator;
         $str = $this->filterDbString($str);
-        if (is_null($str)) {
+        if (null === $str) {
             return null;
         }
         if (!is_object($validator)) {
@@ -1434,7 +1464,7 @@ class SionTable
 
     protected function filterDbArray($str, $delimiter = '|', $trim = true)
     {
-        if ($str == '') {
+        if (!isset($str) || $str == '') {
             return [];
         }
         $return = explode($delimiter, $str);
@@ -1454,15 +1484,16 @@ class SionTable
      */
     public static function filterUrl($str, $label = null)
     {
-        $str = self::filterDbString($str);
-        if (is_null($str)) {
+        if (null === $str || '' === $str) {
             return null;
         }
-        $label = self::filterDbString($label);
+        if ('' === $label) {
+            $label = null;
+        }
 
         $url = new Http($str);
         if ($url->isValid()) {
-            if (is_null($label)) {
+            if (null === $label) {
                 $label = $url->getHost();
             }
             $result = ['url' => $url->toString(), 'label' => $label];
@@ -1499,7 +1530,7 @@ class SionTable
      * @param  int $padType
      * @return string
      */
-    public function strPad($input, $padLength, $padString = ' ', $padType = STR_PAD_RIGHT)
+    public static function strPad($input, $padLength, $padString = ' ', $padType = STR_PAD_RIGHT)
     {
         if (StringUtils::isSingleByteEncoding('UTF8')) {
             return str_pad($input, $padLength, $padString, $padType);
@@ -1620,8 +1651,8 @@ class SionTable
      */
     public function getChangesTableGateway()
     {
-        if (null == $this->changesTableGateway) {
-            if (is_null($this->changeTableName)) {
+        if (null === $this->changesTableGateway) {
+            if (null === $this->changeTableName) {
                 return null;
             }
             $this->changesTableGateway = new TableGateway($this->changeTableName, $this->adapter);
@@ -1645,7 +1676,7 @@ class SionTable
      */
     public function getVisitTableGateway()
     {
-        if (null == $this->visitsTableGateway) {
+        if (null === $this->visitsTableGateway) {
             $this->visitsTableGateway = new TableGateway($this->visitsTableName, $this->adapter);
         }
         return $this->visitsTableGateway;

@@ -103,10 +103,10 @@ class SionModelController extends AbstractActionController
     {
         $sm = $this->getServiceLocator();
         $config = $this->getSionModelConfig();
-        $maxRows = key_exists('changes_max_rows', $config) &&
-            (is_numeric($config['changes_max_rows']) || is_null($config['changes_max_rows'])) ?
+        $maxRows = (isset($config['changes_max_rows']) &&
+            (is_numeric($config['changes_max_rows']) || !isset($config['changes_max_rows']))) ?
             (int)$config['changes_max_rows'] : 500;
-        if (!key_exists('changes_show_all', $config) || $config['changes_show_all']) {
+        if (!isset($config['changes_show_all']) || $config['changes_show_all']) {
             $results = $sm->get('SionModel\Service\AllChanges');
         } else {
             if (!$sm->has($config['changes_model'])) {
