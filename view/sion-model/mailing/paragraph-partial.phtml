@@ -1,0 +1,64 @@
+<?php
+/**
+ * @param string $type=content(content|partial|button)
+ * @param string $content
+ * @param string $partial=null
+ * @param bool $isTranslatorEnabled=true
+ * @param bool $shouldEscape=true
+ * @param string $textDomain
+ * @param string $locale
+ * @param string $buttonClass Css class to apply to button
+ * @param string $target Url to view action
+ * @param string $isContentParameterized Use sprintf to fill in non-translated parameters
+ * @param array $contentParams Parameters to pass to sprintf
+ */
+static $paragraphTypes;
+if (!isset($paragraphTypes)) {
+    $paragraphTypes = [
+        'content', 'partial', 'button'
+    ];
+}
+$type = (isset($this->type) && in_array($this->type, $paragraphTypes)) ? $this->type : 'content';
+
+if ('partial' === $type) {
+    if (isset($this->partial)) {
+        echo $this->partial($this->partial, $this->vars);
+    } else {
+        return;
+    }
+} else {
+    $content = $this->content;
+    if (!isset($content)) {
+        return;
+    }
+    $isTranslatorEnabled = (isset($this->isTranslatorEnabled) && is_bool($this->isTranslatorEnabled)) ? (bool)$this->isTranslatorEnabled : true;
+    $locale = isset($this->locale) ? $this->locale : null;
+    $textDomain = isset($this->textDomain) ? $this->textDomain: 'default';
+    $shouldEscape = (isset($this->shouldEscape) && is_bool($this->shouldEscape)) ? (bool)$this->shouldEscape : true;
+    $isContentParameterized = (isset($this->isContentParameterized) && is_bool($this->isContentParameterized)) ? (bool)$this->isContentParameterized: false;
+    if ($isTranslatorEnabled) {
+        $content = $this->translate($content, $textDomain, $locale);
+    }
+    if ($shouldEscape) {
+        $content = $this->escapeHtml($content);
+    }
+    if ($isContentParameterized) {
+        if (!is_array($this->contentParams)) {
+            throw new \Exception('Parameterized content requires the contentParams var to be set.');
+        }
+        $content = vsprintf($content, $this->contentParams);
+    }
+    if ('button' === $type) {
+        $buttonClass = isset($this->buttonClass) ? $this->buttonClass : 'btn-primary';?>
+<a href="<?php
+if (isset($this->target)) {
+    echo $target;
+} elseif (isset($this->urlArgs) && is_array($this->urlArgs)) {
+    echo $this->serverUrl(call_user_func_array([$this, 'url'], $this->urlArgs));
+}?>" class="<?php echo $this->escapeHtmlAttr($buttonClass);?>" itemprop="url"><?php
+    echo $content;?></a>
+    <?php } elseif ('content' === $type) {
+        echo $content;
+    }
+}
+?>

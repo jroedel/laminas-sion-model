@@ -70,6 +70,23 @@ class SionTable
     const SUGGESTION_ACCEPTED = 'Accepted';
     const SUGGESTION_DENIED = 'Denied';
 
+    //@TODO not used do something with this
+    const MAILING_STATUS_QUEUED = 'queued';
+    const MAILING_STATUS_ERROR = 'error';
+    const MAILING_STATUS_ERROR_1 = 'error-1';
+    const MAILING_STATUS_ERROR_2 = 'error-2';
+    const MAILING_STATUS_ERROR_3 = 'error-3';
+    const MAILING_STATUS_SENT = 'sent';
+
+    const MAILING_STATUS_LABELS = [
+        self::MAILING_STATUS_QUEUED => 'Queued',
+        self::MAILING_STATUS_ERROR => 'Error',
+        self::MAILING_STATUS_ERROR_1 => 'Error 1st attempt',
+        self::MAILING_STATUS_ERROR_2 => 'Error 2nd attempt',
+        self::MAILING_STATUS_ERROR_3 => 'Error 3rd attempt',
+        self::MAILING_STATUS_SENT => 'Sent',
+    ];
+
     /**
      * @var TableGateway $tableGateway
      */
@@ -97,31 +114,26 @@ class SionTable
     protected $entitySpecifications = [];
 
     /**
-     *
      * @var string $changesTableName
      */
     protected $changesTableName;
 
     /**
-     *
      * @var string $visitsTableName
      */
     protected $visitsTableName;
 
     /**
-     *
      * @var TableGatewayInterface $changesTableGateway
      */
     protected $changesTableGateway;
 
     /**
-     *
      * @var TableGatewayInterface $visitTableGateway
      */
     protected $visitsTableGateway;
     /**
-     *
-     * @var int
+     * @var int $actingUserId
      */
     protected $actingUserId;
 
@@ -132,7 +144,6 @@ class SionTable
     protected $entityProblemPrototype;
 
     /**
-     *
      * @var UserTable $userTable
      */
     protected $userTable;
@@ -157,26 +168,6 @@ class SionTable
      * @var int $maxItemsToCache
      */
     protected $maxItemsToCache = 2;
-
-//     /**
-//     * Get the memoryCache value
-//     * @return StorageInterface
-//     */
-//     public function getMemoryCache()
-//     {
-//         return $this->memoryCache;
-//     }
-
-//     /**
-//     *
-//     * @param StorageInterface $memoryCache
-//     * @return self
-//     */
-//     public function setMemoryCache($memoryCache)
-//     {
-//         $this->memoryCache = $memoryCache;
-//         return $this;
-//     }
 
     /**
      * For each cache key, the list of entities they depend on.
@@ -261,6 +252,61 @@ class SionTable
             $problemService = $serviceLocator->get('SionModel\Service\ProblemService');
             $this->entityProblemPrototype = $problemService->getEntityProblemPrototype();
         }
+    }
+
+    /**
+     * Get all records from the mailings table
+     * @return mixed[][]
+     */
+    public function getMailings()
+    {
+        $sql = "SELECT `MailingId`, `ToAddresses`, `MailingOn`, `MailingBy`, `Subject`,
+`Body`, `Sender`, `MailingText`, `MailingTags`, `TrackingToken`, `OpenedFromIpAddress`,
+`OpenedFromHeaders`, `OpenedOn`, `EmailTemplate`, `EmailLocale`, `Status`, `QueueUntil`,
+`Attempt`, `MaxAttempts`, `ErrorMessage`, `StackTrace` FROM `a_data_mailing` WHERE 1";
+
+        $results = $this->fetchSome(null, $sql, null);
+        $entities = [];
+        foreach ($results as $row) {
+            $id = $this->filterDbId($row['MailingId']);
+            $subject = $this->filterDbString($row['Subject']);
+            $email = $this->filterDbString($row['ToAddresses']);
+            $entities[$id] = [
+                'mailingId'             => $id,
+                'mailingName'           => 'Mail '.$id.': '.$subject,
+                'emailAddress'          => $this->getEmailAddress($email),
+                'mailingOn'             => $this->filterDbDate($row['MailingOn']),
+                'mailingBy'             => $this->filterDbId($row['MailingBy']),
+                'subject'               => $subject,
+                'body'                  => $this->filterDbString($row['Body']),
+                'sender'                => $this->filterDbString($row['Sender']),
+                'text'                  => $this->filterDbString($row['MailingText']),
+                'tags'                  => $this->filterDbArray($row['MailingTags']),
+                'trackingToken'         => $this->filterDbString($row['TrackingToken']),
+                'openedFromIpAddress'   => $this->filterDbString($row['OpenedFromIpAddress']),
+                'openedFromHeaders'     => $row['OpenedFromHeaders'], //@todo process as JSON
+                'openedOn'              => $this->filterDbDate($row['OpenedOn']),
+                'emailTemplate'         => $this->filterDbString($row['EmailTemplate']),
+                'emailLocale'           => $this->filterDbString($row['EmailLocale']),
+                'status'                => $this->filterDbString($row['Status']),
+                'attempt'               => $this->filterDbInt($row['Attempt']),
+                'maxAttempts'           => $this->filterDbInt($row['MaxAttempts']),
+                'queueUntil'            => $this->filterDbDate($row['QueueUntil']),
+                'errorMessage'          => $this->filterDbString($row['ErrorMessage']),
+                'stackTrace'            => $this->filterDbString($row['StackTrace']),
+            ];
+        }
+        return $entities;
+    }
+
+    public function getMailing($id)
+    {
+        $mailings = $this->getMailings();
+
+        if (!isset($mailings[$id]) || !($mailing = $mailings[$id])) {
+            return null;
+        }
+        return $mailing;
     }
 
     /**

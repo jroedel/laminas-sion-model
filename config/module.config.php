@@ -53,6 +53,7 @@ return [
             'SionModel\Service\EntitiesService'     => 'SionModel\Service\EntitiesServiceFactory',
             'SionModel\Service\ProblemService'      => 'SionModel\Service\ProblemServiceFactory',
             'SionModel\Service\AllChanges'          => 'SionModel\Service\AllChangesServiceFactory',
+            'SionModel\Mailing\Mailer'              => 'SionModel\Service\MailerFactory',
         ],
     ],
     'sion_model' => [
@@ -141,6 +142,51 @@ return [
 //             'plugins' => ['serializer'],//   - See more at: https://arjunphp.com/zend-framework-2-cache-example/#sthash.1P0kgSma.dpuf
     //         ],
         'entities' => [
+            'mailing' => [
+                'table_name' => 'mailings',
+                'table_key' => 'MailingId',
+                'entity_key_field' => 'mailingId',
+                'has_dedicated_suggest_form' => false,
+                'get_object_function' => 'getMailing',
+                'required_columns_for_creation' => [
+                    'toAddresses',
+                    'status',
+                ],
+                'name_field' => 'mailingName',
+                'name_field_is_translateable' => false,
+                //                 'moderate_route' => 'courses/course/moderate',
+                //                 'moderate_route_entity_key' => 'course_id',
+                'text_columns' => [
+                ],
+                'date_columns' => [
+                    'mailingOn',
+                    'openedOn',
+                    'queueUntil',
+                ],
+                'update_columns' => [
+                    'mailingId'             => 'MailingId',
+                    'toAddresses'           => 'ToAddresses',
+                    'mailingOn'             => 'MailingOn',
+                    'mailingBy'             => 'MailingBy',
+                    'subject'               => 'Subject',
+                    'body'                  => 'Body',
+                    'sender'                => 'Sender',
+                    'text'                  => 'MailingText',
+                    'tags'                  => 'MailingTags',
+                    'trackingToken'         => 'TrackingToken',
+                    'openedFromIpAddress'   => 'OpenedFromIpAddress',
+                    'openedFromHeaders'     => 'OpenedFromHeaders',
+                    'openedOn'              => 'OpenedOn',
+                    'emailTemplate'         => 'EmailTemplate',
+                    'emailLocale'           => 'EmailLocale',
+                    'status'                => 'Status',
+                    'attempt'               => 'Attempt',
+                    'maxAttempts'           => 'MaxAttempts',
+                    'queueUntil'            => 'QueueUntil',
+                    'errorMessage'          => 'ErrorMessage',
+                    'stackTrace'            => 'StackTrace',
+                ],
+            ],
             /**
              * For more information on entity config:
              * @see \SionModel\Entity\Entity

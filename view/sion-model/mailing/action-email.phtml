@@ -1,0 +1,104 @@
+<?php
+/**
+ * @param string $locale
+ * @param string $textDomain
+ * @param string $title
+ * @param bool $isTranslatorEnabled
+ * @param array $paragraphs
+ * @param array $url
+ * @param string $footer
+ */
+
+$isTranslatorEnabled = (isset($this->isTranslatorEnabled) && is_bool($this->isTranslatorEnabled)) ? (bool)$this->isTranslatorEnabled : true;
+$locale = isset($this->locale) ? $this->locale : null;
+$textDomain = isset($this->textDomain) ? $this->textDomain: 'default';
+$target = $this->url;
+$title = (isset($title) && $isTranslatorEnabled) ? $this->translate($this->title, $textDomain, $locale) : $this->title;
+$description = (isset($this->description) && $isTranslatorEnabled) ? $this->translate($this->description, $textDomain, $locale) : $this->description;
+//@see https://schema.org/ViewAction
+//@see https://developers.google.com/gmail/markup/reference/go-to-action
+?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="viewport" content="width=device-width" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title><?php echo $this->escapeHtmlAttr($title);?></title>
+</head>
+
+<body itemscope itemtype="http://schema.org/EmailMessage">
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "EmailMessage",
+  "description": "<?php echo $this->escapeHtmlAttr($description);?>",
+<?php if (isset($target)) :?>
+  "potentialAction": {
+    "@type": "ViewAction",
+    "target": "<?php echo $this->escapeHtmlAttr($target);?>",
+    "name": "<?php echo $this->escapeHtmlAttr($title);?>"
+  },
+<?php endif;?>
+  "publisher": {
+    "@type": "Organization",
+    "name": "Schoenstatt Fathers",
+    "url": "https://schoenstatt-fathers.org"
+  }
+}
+</script>
+<table class="body-wrap">
+    <tr>
+        <td></td>
+        <td class="container" width="600">
+            <div class="content">
+                <table class="main" width="100%" cellpadding="0" cellspacing="0" itemprop="action" itemscope itemtype="http://schema.org/ViewAction">
+                    <tr>
+                        <td class="content-wrap">
+                            <meta itemprop="name" content="Confirm Email"/>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                            <?php foreach ($this->paragraphs as $paragraph) :
+                                $params = null;
+                                if (!is_array($paragraph)) {
+                                    $params = ['content' => $paragraph];
+                                } else {
+                                    $params = $paragraph;
+                                }
+                                if (!isset($params['isTranslatorEnabled'])) {
+                                    $params['isTranslatorEnabled'] = $isTranslatorEnabled;
+                                }
+                                if (!isset($params['textDomain'])) {
+                                    $params['textDomain'] = $textDomain;
+                                }
+                                if (is_array($paragraph) && isset($paragraph['type']) && 'button' === $paragraph['type']): ?>
+<tr>
+    <td class="content-block" itemprop="handler" itemscope itemtype="http://schema.org/ViewAction"><?php
+        echo $this->partial('paragraph-partial', $params);
+    ?></td>
+</tr>
+                                <?php else:?>
+<tr>
+    <td class="content-block">
+        <?php echo $this->partial('paragraph-partial', $params);?>
+    </td>
+</tr>
+                                <?php endif;?>
+                            <?php endforeach;?>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <div class="footer">
+                    <table width="100%">
+                        <tr>
+                            <td class="aligncenter content-block"><?php //@todo factor out this part
+                            $followUsText = $this->translate('Follow %s on Twitter', __NAMESPACE__, $this->locale);
+                            $followUsLink = '<a href="https://twitter.com/SchoenstattData">@SchoenstattData</a>';
+                            echo sprintf($followUsText, $followUsLink);?>.</td>
+                        </tr>
+                    </table>
+                </div></div>
+        </td>
+        <td></td>
+    </tr>
+</table>
+</body>
+</html>

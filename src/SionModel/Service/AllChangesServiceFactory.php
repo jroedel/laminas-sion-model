@@ -20,8 +20,8 @@ class AllChangesServiceFactory implements FactoryInterface
         /** @var \SionModel\Db\Model\SionTable[] $sionModelsToQuery */
         $sionModelsToQuery = [];
         foreach ($entiesSpecs as $entity => $entitySpec) {
-            if (!is_null($entitySpec->sionModelClass) &&
-                !key_exists($entitySpec->sionModelClass, $sionModelsToQuery) &&
+            if (isset($entitySpec->sionModelClass) &&
+                isset($sionModelsToQuery[$entitySpec->sionModelClass]) &&
                 $serviceLocator->has($entitySpec->sionModelClass)
             ) {
                 $sionModelsToQuery[$entitySpec->sionModelClass] =

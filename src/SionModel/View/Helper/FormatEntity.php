@@ -18,7 +18,6 @@ class FormatEntity extends AbstractHelper
     protected $routePermissionCheckingEnabled = false;
 
     /**
-     *
      * @param EntitiesService $entityService
      */
     public function __construct($entityService, $routePermissionCheckingEnabled = false)
@@ -44,11 +43,11 @@ class FormatEntity extends AbstractHelper
                 throw new \InvalidArgumentException('Unknown entity type passed: '.$entityType);
             }
         }
-        $isDeleted = key_exists('isDeleted', $data) && $data['isDeleted'];
+        $isDeleted = isset($data['isDeleted']) && $data['isDeleted'];
         $entitySpec = $this->entities[$entityType];
 
         //forward request to registered view helper if we have one
-        if (!is_null($entitySpec->formatViewHelper) && !$isDeleted) {
+        if (isset($entitySpec->formatViewHelper) && !$isDeleted) {
             $viewHelperName = $entitySpec->formatViewHelper;
             return $this->view->$viewHelperName($entityType, $data, $options);
         }
@@ -166,7 +165,7 @@ class FormatEntity extends AbstractHelper
         if (!$this->getRoutePermissionCheckingEnabled()) {
             return true;
         }
-        if (!array_key_exists($action, Entity::$isActionAllowedPermissionProperties)) {
+        if (!isset(Entity::$isActionAllowedPermissionProperties[$action])) {
             throw new \InvalidArgumentException('Invalid action parameter');
         }
         $entitySpec = $this->entities[$entityType];
@@ -187,18 +186,18 @@ class FormatEntity extends AbstractHelper
 
         //check the route permissions of BjyAuthorize
         $routeProperty = array_key_exists($action, Entity::$actionRouteProperties) ? Entity::$actionRouteProperties[$action] : null;
-        if (!is_null($routeProperty) && !is_null($entitySpec->$routeProperty) &&
+        if (isset($routeProperty) && isset($entitySpec->$routeProperty) &&
             !$isAllowedPlugin->__invoke('route/'.$entitySpec->$routeProperty)
         ) {
             return false;
         }
 
-        if (is_null($entitySpec->aclResourceIdField)) {
+        if (!isset($entitySpec->aclResourceIdField)) {
             return true;
         }
 
         $permissionProperty = Entity::$isActionAllowedPermissionProperties[$action];
-        if (is_null($entitySpec->$permissionProperty)) {
+        if (!isset($entitySpec->$permissionProperty)) {
             //we don't need the permission, just the resourceId
             return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField]);
         }
