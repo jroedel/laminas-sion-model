@@ -3,17 +3,19 @@
  * @param string $locale
  * @param string $textDomain
  * @param string $title
- * @param bool $isTranslatorEnabled
- * @param array $paragraphs
+ * @param bool $shouldTranslateTitle=true
+ * @param bool $isTranslatorEnabled=true
+ * @param array $paragraphs=[]
  * @param array $url
- * @param string $footer
+ * @param string $footer same format as paragraph
  */
 
 $isTranslatorEnabled = (isset($this->isTranslatorEnabled) && is_bool($this->isTranslatorEnabled)) ? (bool)$this->isTranslatorEnabled : true;
-$locale = isset($this->locale) ? $this->locale : null;
-$textDomain = isset($this->textDomain) ? $this->textDomain: 'default';
+$shouldTranslateTitle = (isset($this->shouldTranslateTitle) && is_bool($this->shouldTranslateTitle)) ? (bool)$this->shouldTranslateTitle : $isTranslatorEnabled;
+$locale = isset($this->locale) ? $this->locale : \Locale::getDefault();
+$textDomain = isset($this->textDomain) ? $this->textDomain : 'default';
 $target = $this->url;
-$title = (isset($title) && $isTranslatorEnabled) ? $this->translate($this->title, $textDomain, $locale) : $this->title;
+$title = (isset($title) && $shouldTranslateTitle) ? $this->translate($this->title, $textDomain, $locale) : $this->title;
 $description = (isset($this->description) && $isTranslatorEnabled) ? $this->translate($this->description, $textDomain, $locale) : $this->description;
 //@see https://schema.org/ViewAction
 //@see https://developers.google.com/gmail/markup/reference/go-to-action
@@ -37,7 +39,8 @@ $description = (isset($this->description) && $isTranslatorEnabled) ? $this->tran
     "target": "<?php echo $this->escapeHtmlAttr($target);?>",
     "name": "<?php echo $this->escapeHtmlAttr($title);?>"
   },
-<?php endif;?>
+<?php endif;
+    //@todo factor this code out?>
   "publisher": {
     "@type": "Organization",
     "name": "Schoenstatt Fathers",
@@ -68,6 +71,9 @@ $description = (isset($this->description) && $isTranslatorEnabled) ? $this->tran
                                 if (!isset($params['textDomain'])) {
                                     $params['textDomain'] = $textDomain;
                                 }
+                                if (!isset($params['locale'])) {
+                                    $params['locale'] = $locale;
+                                }
                                 if (is_array($paragraph) && isset($paragraph['type']) && 'button' === $paragraph['type']): ?>
 <tr>
     <td class="content-block" itemprop="handler" itemscope itemtype="http://schema.org/ViewAction"><?php
@@ -86,16 +92,29 @@ $description = (isset($this->description) && $isTranslatorEnabled) ? $this->tran
                         </td>
                     </tr>
                 </table>
+<?php if (isset($this->footer)):
+$paragraph = $this->footer;?>
                 <div class="footer">
                     <table width="100%">
                         <tr>
-                            <td class="aligncenter content-block"><?php //@todo factor out this part
-                            $followUsText = $this->translate('Follow %s on Twitter', __NAMESPACE__, $this->locale);
-                            $followUsLink = '<a href="https://twitter.com/SchoenstattData">@SchoenstattData</a>';
-                            echo sprintf($followUsText, $followUsLink);?>.</td>
+                            <td class="aligncenter content-block"><?php
+                            $params = null;
+                            if (!is_array($paragraph)) {
+                                $params = ['content' => $paragraph];
+                            } else {
+                                $params = $paragraph;
+                            }
+                            if (!isset($params['isTranslatorEnabled'])) {
+                                $params['isTranslatorEnabled'] = $isTranslatorEnabled;
+                            }
+                            if (!isset($params['textDomain'])) {
+                                $params['textDomain'] = $textDomain;
+                            }
+                            echo $this->partial('paragraph-partial', $params);?></td>
                         </tr>
                     </table>
-                </div></div>
+                </div>
+<?php endif;?></div>
         </td>
         <td></td>
     </tr>

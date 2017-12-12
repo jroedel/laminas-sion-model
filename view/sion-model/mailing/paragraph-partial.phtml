@@ -33,7 +33,7 @@ if ('partial' === $type) {
     }
     $isTranslatorEnabled = (isset($this->isTranslatorEnabled) && is_bool($this->isTranslatorEnabled)) ? (bool)$this->isTranslatorEnabled : true;
     $locale = isset($this->locale) ? $this->locale : null;
-    $textDomain = isset($this->textDomain) ? $this->textDomain: 'default';
+    $textDomain = isset($this->textDomain) ? $this->textDomain : 'default';
     $shouldEscape = (isset($this->shouldEscape) && is_bool($this->shouldEscape)) ? (bool)$this->shouldEscape : true;
     $isContentParameterized = (isset($this->isContentParameterized) && is_bool($this->isContentParameterized)) ? (bool)$this->isContentParameterized: false;
     if ($isTranslatorEnabled) {
