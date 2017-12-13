@@ -21,7 +21,7 @@ class AllChangesServiceFactory implements FactoryInterface
         $sionModelsToQuery = [];
         foreach ($entiesSpecs as $entity => $entitySpec) {
             if (isset($entitySpec->sionModelClass) &&
-                isset($sionModelsToQuery[$entitySpec->sionModelClass]) &&
+                !isset($sionModelsToQuery[$entitySpec->sionModelClass]) &&
                 $serviceLocator->has($entitySpec->sionModelClass)
             ) {
                 $sionModelsToQuery[$entitySpec->sionModelClass] =
@@ -32,10 +32,14 @@ class AllChangesServiceFactory implements FactoryInterface
         foreach ($sionModelsToQuery as $sionModelKey => $table) {
             $changes[] = $table->getChanges();
         }
-        //array_replace is like array_merge, but preserves keys
         //@todo fix bug where duplicate array keys between different changes arrays provoke unexpected results
-        $allChanges = call_user_func_array('array_replace', $changes);
-        krsort($allChanges);
+        if (!empty($changes)) {
+            //array_replace is like array_merge, but preserves keys
+            $allChanges = call_user_func_array('array_replace', $changes);
+            krsort($allChanges);
+        } else {
+            $allChanges = [];
+        }
         return $allChanges;
     }
 }

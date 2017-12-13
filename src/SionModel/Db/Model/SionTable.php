@@ -370,7 +370,7 @@ class SionTable
         return $entityData;
     }
 
-    public function getObjects($entity, $failSilently = false)
+    public function getObjects($entity, $entityIds = [], $failSilently = false)
     {
         $entitySpec = $this->getEntitySpecification($entity);
         $objectsFunction = $entitySpec->getObjectsFunction;
@@ -379,7 +379,7 @@ class SionTable
         ) {
             throw new \Exception('Invalid get_objects_function set for entity \''.$entity.'\'');
         }
-        $objects = $this->$objectsFunction();
+        $objects = $this->$objectsFunction($entityIds);
         if (!$objects && !$failSilently) {
             throw new \InvalidArgumentException('No entity provided.');
         }
@@ -1033,12 +1033,17 @@ class SionTable
             'ChangedEntity' => $entity,
             'ChangedIDValue' => $entityId,
         ]);
-        $select->order('UpdatedOn');
+        $select->order(['UpdatedOn' => 'DESC']);
         $resultsChanges = $gateway->selectWith($select);
+        $objects = [
+            $entity => [
+                $entityId => $this->getObject($entity, $entityId),
+            ],
+        ];
 
         $changes = [];
         foreach ($resultsChanges as $row) {
-            $this->processChangeRow($row, $changes);
+            $this->processChangeRow($row, $objects, $changes);
         }
         krsort($changes);
 
@@ -1048,24 +1053,52 @@ class SionTable
      * Get list of changes from database
      * @return mixed[]
      */
-    public function getChanges()
+    public function getChanges($maxRows = 250)
     {
         if ($cache = $this->fetchCachedEntityObjects('changes')) {
             return $cache;
         }
+        $entityTypes = $this->getTableEntities();
         $gateway = $this->getChangesTableGateway();
         $select = new Select($this->changeTableName);
-        $select->order('UpdatedOn');
+        $select->where(['ChangedEntity' => $entityTypes]);
+        $select->order(['UpdatedOn'=>'DESC']);
+        $select->limit($maxRows);
         $resultsChanges = $gateway->selectWith($select);
+        $results = $resultsChanges->toArray();
+
+        //collect list of objects to query
+        $objectKeyList = [];
+        foreach ($results as $key => $row) {
+            $entity = $row['ChangedEntity'];
+            $entityId = $row['ChangedIDValue'];
+            //only bring in recognized entities from this class
+            if (!isset($this->entitySpecifications[$entity]) ||
+                $this->entitySpecifications[$entity]->sionModelClass !== get_class($this)
+            ) {
+                unset($results[$key]);
+                continue;
+            }
+            if (!isset($objectKeyList[$entity])) {
+                $objectKeyList[$entity] = [];
+            }
+            if (!in_array($entityId, $objectKeyList[$entity])) {
+                $objectKeyList[$entity][] = $entityId;
+            }
+        }
+
+        $objects = [];
+        foreach ($objectKeyList as $entity => $entityIds) {
+            $objects[$entity] = $this->getObjects($entity, $entityIds, true);
+        }
 
         $changes = [];
-        foreach ($resultsChanges as $row) {
-            $this->processChangeRow($row, $changes);
+        foreach ($results as $row) {
+            $this->processChangeRow($row, $objects, $changes);
         }
         krsort($changes);
 
         $this->cacheEntityObjects('changes', $changes);
-
         return $changes;
     }
 
@@ -1075,7 +1108,7 @@ class SionTable
      * @param array $row
      * @param array $changes
      */
-    protected function processChangeRow($row, array &$changes)
+    protected function processChangeRow($row, array &$objects, array &$changes)
     {
         static $userTable;
         $user = null;
@@ -1113,9 +1146,12 @@ class SionTable
             'ipAddress'             => $this->filterDbString($row['IpAddress']),
             'updatedOn'             => $updatedOn,
             'updatedBy'             => $user,
-        ];
 
-        $change['object'] = $this->getObject($entity, $entityId, true);
+            'object'                => null,
+        ];
+        if (isset($objects[$entity]) && isset($objects[$entity][$entityId])) {
+            $change['object'] = $objects[$entity][$entityId];
+        }
         if (null === $change['object']) { //it looks like the object has been deleted, let's fill in some data
             $change['object'] = [
                 'isDeleted' => true,
