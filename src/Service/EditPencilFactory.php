@@ -1,8 +1,8 @@
 <?php
 namespace SionModel\Service;
 
-use Zend\ServiceManager\FactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\Factory\FactoryInterface;
+use Interop\Container\ContainerInterface;
 use SionModel\View\Helper\EditPencil;
 
 /**
@@ -13,13 +13,13 @@ use SionModel\View\Helper\EditPencil;
 class EditPencilFactory implements FactoryInterface
 {
     /**
-     * {@inheritDoc}
+     * Create an object
      *
-     * @return FormatEntity
+     * @inheritdoc
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $parentLocator = $serviceLocator->getServiceLocator();
+        $parentLocator = $container->getServiceLocator();
         $entityService = $parentLocator->get ( 'SionModel\Service\EntitiesService' );
 
         $viewHelper = new EditPencil($entityService);

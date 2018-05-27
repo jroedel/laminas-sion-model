@@ -6,8 +6,8 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\FactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\Factory\FactoryInterface;
+use Interop\Container\ContainerInterface;
 use SionModel\Problem\ProblemTable;
 
 /**
@@ -18,20 +18,20 @@ use SionModel\Problem\ProblemTable;
 class ProblemTableFactory implements FactoryInterface
 {
     /**
-     * {@inheritDoc}
+     * Create an object
      *
-     * @return array
+     * @inheritdoc
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $dbAdapter = $serviceLocator->get('Zend\Db\Adapter\Adapter');
+        $dbAdapter = $container->get('Zend\Db\Adapter\Adapter');
 
 		/** @var  User $userService **/
-		$userService = $serviceLocator->get('zfcuser_user_service');
+		$userService = $container->get('zfcuser_user_service');
 		$user = $userService->getAuthService()->getIdentity();
 		$userId = $user ? $user->id : null;
 // 		$userTable = $serviceLocator->get('JUser\Model\UserTable');
-		$table = new ProblemTable( $dbAdapter, $serviceLocator, $userId);
+		$table = new ProblemTable( $dbAdapter, $container, $userId);
 		return $table;
     }
 }

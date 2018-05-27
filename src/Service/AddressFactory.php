@@ -1,8 +1,8 @@
 <?php
 namespace SionModel\Service;
 
-use Zend\ServiceManager\FactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\Factory\FactoryInterface;
+use Interop\Container\ContainerInterface;
 use SionModel\View\Helper\Address;
 
 /**
@@ -13,13 +13,13 @@ use SionModel\View\Helper\Address;
 class AddressFactory implements FactoryInterface
 {
     /**
-     * {@inheritDoc}
+     * Create an object
      *
-     * @return array
+     * @inheritdoc
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $parentLocator = $serviceLocator->getServiceLocator();
+        $parentLocator = $container->getServiceLocator();
         $config = $parentLocator->get('SionModel\Config');
         $viewHelper = new Address($config);
         return $viewHelper;

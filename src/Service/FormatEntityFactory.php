@@ -1,8 +1,8 @@
 <?php
 namespace SionModel\Service;
 
-use Zend\ServiceManager\FactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\Factory\FactoryInterface;
+use Interop\Container\ContainerInterface;
 use SionModel\View\Helper\FormatEntity;
 
 /**
@@ -13,15 +13,15 @@ use SionModel\View\Helper\FormatEntity;
 class FormatEntityFactory implements FactoryInterface
 {
     /**
-     * {@inheritDoc}
+     * Create an object
      *
-     * @return FormatEntity
+     * @inheritdoc
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $entityService = $serviceLocator->get ( 'SionModel\Service\EntitiesService' );
+        $entityService = $container->get ( EntitiesService::class );
 
-        $config = $serviceLocator->get('SionModel\Config');
+        $config = $container->get('SionModel\Config');
 
         $routePermissionCheckingEnabled = isset($config['route_permission_checking_enabled']) ?
             (bool)$config['route_permission_checking_enabled'] : false;

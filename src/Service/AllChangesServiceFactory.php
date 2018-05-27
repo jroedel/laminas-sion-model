@@ -1,20 +1,20 @@
 <?php
 namespace SionModel\Service;
 
-use Zend\ServiceManager\FactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\Factory\FactoryInterface;
+use Interop\Container\ContainerInterface;
 
 class AllChangesServiceFactory implements FactoryInterface
 {
     /**
-     * {@inheritDoc}
+     * Create an object
      *
-     * @return array
+     * @inheritdoc
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         /** @var EntitiesService $entitiesService */
-        $entitiesService = $serviceLocator->get('SionModel\Service\EntitiesService');
+        $entitiesService = $container->get('SionModel\Service\EntitiesService');
         $entiesSpecs = $entitiesService->getEntities();
 
         /** @var \SionModel\Db\Model\SionTable[] $sionModelsToQuery */
@@ -22,10 +22,10 @@ class AllChangesServiceFactory implements FactoryInterface
         foreach ($entiesSpecs as $entity => $entitySpec) {
             if (isset($entitySpec->sionModelClass) &&
                 !isset($sionModelsToQuery[$entitySpec->sionModelClass]) &&
-                $serviceLocator->has($entitySpec->sionModelClass)
+                $container->has($entitySpec->sionModelClass)
             ) {
                 $sionModelsToQuery[$entitySpec->sionModelClass] =
-                    $serviceLocator->get($entitySpec->sionModelClass);
+                    $container->get($entitySpec->sionModelClass);
             }
         }
         $changes = [];

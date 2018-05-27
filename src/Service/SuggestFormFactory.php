@@ -1,8 +1,8 @@
 <?php
 namespace SionModel\Service;
 
-use Zend\ServiceManager\FactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\Factory\FactoryInterface;
+use Interop\Container\ContainerInterface;
 use SionModel\Form\SuggestForm;
 
 /**
@@ -13,16 +13,16 @@ use SionModel\Form\SuggestForm;
 class SuggestFormFactory implements FactoryInterface
 {
     /**
-     * {@inheritDoc}
+     * Create an object
      *
-     * @return CreateTimelineEventForm
+     * @inheritdoc
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         /**
          * @var EntitiesService $entitiesService
          */
-        $entitiesService = $serviceLocator->get ( 'SionModel\Service\EntitiesService' );
+        $entitiesService = $container->get ( 'SionModel\Service\EntitiesService' );
         $entities = $entitiesService->getEntities();
         $entityHaystack = [];
         foreach ($entities as $entity) {
@@ -30,7 +30,7 @@ class SuggestFormFactory implements FactoryInterface
         }
         
 		$form = new SuggestForm($entityHaystack);
-        $form->prepareForSuggestion($serviceLocator);
+        $form->prepareForSuggestion($container);
 
 		return $form;
     }

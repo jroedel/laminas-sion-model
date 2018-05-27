@@ -62,10 +62,10 @@ class Telephone extends AbstractHelper
         if (isset($telUrl) && !is_null($telUrl)) { //if we have it, use the lib-formatted URL
             $return .= $telUrl;
         } else {
-        	$return .= 'tel:'.$this->getView()->escapeHTML($filteredTelephone);
+        	$return .= 'tel:'.$this->getView()->escapeHtml($filteredTelephone);
         }
         $return .= '" '. ($tooltip ? ('data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="'.$tooltip.'"'):"").
-    	   '>'. $this->getView()->escapeHTML($telephone). '</a>';
+    	   '>'. $this->getView()->escapeHtml($telephone). '</a>';
     	if ($whatsApp) {
     	    $return .= ' <i class="fa fa-whatsapp" aria-hidden="true" '.
     	    'data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="'.

@@ -6,8 +6,8 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\FactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\Factory\FactoryInterface;
+use Interop\Container\ContainerInterface;
 use SionModel\Db\Model\FilesTable;
 
 /**
@@ -18,25 +18,25 @@ use SionModel\Db\Model\FilesTable;
 class FilesTableFactory implements FactoryInterface
 {
     /**
-     * {@inheritDoc}
+     * Create an object
      *
-     * @return array
+     * @inheritdoc
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $sionModelConfig = $serviceLocator->get ( 'SionModel\Config' );
+        $sionModelConfig = $container->get ( 'SionModel\Config' );
         if (!isset($config['files_directory']) || empty($config['public_files_directory'])) {
             throw new \Exception('Please specify the \'files_directory\' and \'public_files_directory\' keys to use the FilesTable.');
         }
 
-        $dbAdapter = $serviceLocator->get('Zend\Db\Adapter\Adapter');
+        $dbAdapter = $container->get('Zend\Db\Adapter\Adapter');
 
         /** @var  User $userService **/
-        $userService = $serviceLocator->get('zfcuser_user_service');
+        $userService = $container->get('zfcuser_user_service');
         $user = $userService->getAuthService()->getIdentity();
         $actingUserId = $user ? $user->id : null;
 
-        $table = new FilesTable($dbAdapter, $serviceLocator, $actingUserId, $sionModelConfig);
+        $table = new FilesTable($dbAdapter, $container, $actingUserId, $sionModelConfig);
 
 		return $table;
     }

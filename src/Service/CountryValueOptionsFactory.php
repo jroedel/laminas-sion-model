@@ -1,8 +1,8 @@
 <?php
 namespace SionModel\Service;
 
-use Zend\ServiceManager\FactoryInterface;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\ServiceManager\Factory\FactoryInterface;
+use Interop\Container\ContainerInterface;
 use JTranslate\Model\CountriesInfo;
 
 /**
@@ -13,14 +13,14 @@ use JTranslate\Model\CountriesInfo;
 class CountryValueOptionsFactory implements FactoryInterface
 {
     /**
-     * {@inheritDoc}
+     * Create an object
      *
-     * @return array
+     * @inheritdoc
      */
-    public function createService(ServiceLocatorInterface $serviceLocator)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
 		/** @var CountriesInfo $countries */
-		$countries = $serviceLocator->get ( 'CountriesInfo' );
+		$countries = $container->get ( CountriesInfo::class );
 		$countryNames = $countries->getTranslatedCountryNames(\Locale::getPrimaryLanguage(\Locale::getDefault()));
 		asort($countryNames);
 

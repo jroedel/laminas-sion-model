@@ -1,59 +1,104 @@
 <?php
 namespace SionModel;
 
+use SionModel\Service\AddressFactory;
+use SionModel\Service\EditPencilFactory;
+use SionModel\Service\FormatEntityFactory;
+use SionModel\Service\TouchButtonFactory;
+use SionModel\Form\View\Helper\SionFormRow;
+use SionModel\I18n\View\Helper\DayFormat;
+use SionModel\View\Helper\DebugEncoding;
+use SionModel\View\Helper\DiffForHumans;
+use SionModel\View\Helper\Email;
+use SionModel\View\Helper\FormatUrlObject;
+use SionModel\View\Helper\Jshrink;
+use SionModel\View\Helper\ShortDateRange;
+use SionModel\View\Helper\Telephone;
+use SionModel\View\Helper\TelephoneList;
+use SionModel\View\Helper\Tooltip;
+use SionModel\Validator\Skype;
+use SionModel\Validator\Twitter;
+use SionModel\Validator\Instagram;
+use SionModel\Validator\Phone;
+use SionModel\Validator\Slack;
+use SionModel\Service\CountryValueOptionsFactory;
+use SionModel\Service\ConfigServiceFactory;
+use SionModel\Service\FilesTableFactory;
+use SionModel\Db\Model\FilesTable;
+use SionModel\Form\SuggestForm;
+use SionModel\Service\SuggestFormFactory;
+use SionModel\Service\PersistentCacheFactory;
+use SionModel\Service\ProblemTableFactory;
+use SionModel\Problem\ProblemTable;
+use SionModel\Service\EntitiesServiceFactory;
+use SionModel\Service\EntitiesService;
+use SionModel\Service\ProblemServiceFactory;
+use SionModel\Service\AllChangesServiceFactory;
+use SionModel\Service\MailerFactory;
+use SionModel\Mailing\Mailer;
+use SionModel\Service\ProblemService;
+use SionModel\Controller\SionModelController;
+use Zend\Router\Http\Literal;
+use Zend\Router\Http\Segment;
+use SionModel\Service\ControllerNameFactory;
+use SionModel\Service\RouteNameFactory;
+
 return [
     'view_helpers' => [
         'factories' => [
-            'address'				=> 'SionModel\Service\AddressFactory',
-            'editPencil'			=> 'SionModel\Service\EditPencilFactory',
-            'formatEntity'		    => 'SionModel\Service\FormatEntityFactory',
-            'touchButton'			=> 'SionModel\Service\TouchButtonFactory',
+            'address'				=> AddressFactory::class,
+            'editPencil'			=> EditPencilFactory::class,
+            'formatEntity'		    => FormatEntityFactory::class,
+            'touchButton'			=> TouchButtonFactory::class,
+            'controllerName'        => ControllerNameFactory::class,
+            'routeName'             => RouteNameFactory::class,
         ],
         'invokables' => [
-            'formRow'		        => 'SionModel\Form\View\Helper\SionFormRow',
-            'dayFormat'             => 'SionModel\I18n\View\Helper\DayFormat',
-            'debugEncoding'			=> 'SionModel\View\Helper\DebugEncoding',
-            'diffForHumans'         => 'SionModel\View\Helper\DiffForHumans',
-            'email'					=> 'SionModel\View\Helper\Email',
-            'formatUrlObject'       => 'SionModel\View\Helper\FormatUrlObject',
-            'jshrink'		        => 'SionModel\View\Helper\Jshrink',
-            'shortDateRange'		=> 'SionModel\View\Helper\ShortDateRange',
-            'telephone'				=> 'SionModel\View\Helper\Telephone',
-            'telephoneList'			=> 'SionModel\View\Helper\TelephoneList',
-            'tooltip'               => 'SionModel\View\Helper\Tooltip',
+            'formRow'		        => SionFormRow::class,
+            'dayFormat'             => DayFormat::class,
+            'debugEncoding'			=> DebugEncoding::class,
+            'diffForHumans'         => DiffForHumans::class,
+            'email'					=> Email::class,
+            'formatUrlObject'       => FormatUrlObject::class,
+            'jshrink'		        => Jshrink::class,
+            'shortDateRange'		=> ShortDateRange::class,
+            'telephone'				=> Telephone::class,
+            'telephoneList'			=> TelephoneList::class,
+            'tooltip'               => Tooltip::class,
 		],
 	],
     'validators' => [
         'invokables' => [
-            'Skype'     => 'SionModel\Validator\Skype',
-            'Twitter'   => 'SionModel\Validator\Twitter',
-            'Instagram' => 'SionModel\Validator\Instagram',
-            'Phone'     => 'SionModel\Validator\Phone',
-            'Slack'     => 'SionModel\Validator\Slack',
+            'Skype'     => Skype::class,
+            'Twitter'   => Twitter::class,
+            'Instagram' => Instagram::class,
+            'Phone'     => Phone::class,
+            'Slack'     => Slack::class,
          ],
     ],
     'form_elements' => [
         'invokables' => [
-            'Phone' => 'SionModel\Form\Element\Phone',
+            'Phone' => \SionModel\Form\Element\Phone::class,
         ],
     ],
     'view_manager' => [
+        'template_map' => include __DIR__ . '/template_map.config.php',
         'template_path_stack' => [
             'sion-model' => __DIR__ . '/../view',
         ],
     ],
     'service_manager' => [
         'factories' => [
-            'CountryValueOptions'                   => 'SionModel\Service\CountryValueOptionsFactory',
-            'SionModel\Config'                      => 'SionModel\Service\ConfigServiceFactory',
-            'SionModel\FilesTable'                  => 'SionModel\Service\FilesTableFactory',
-            'SionModel\Form\SuggestForm'            => 'SionModel\Service\SuggestFormFactory',
-            'SionModel\PersistentCache'             => 'SionModel\Service\PersistentCacheFactory',
-            'SionModel\Problem\ProblemTable'        => 'SionModel\Service\ProblemTableFactory',
-            'SionModel\Service\EntitiesService'     => 'SionModel\Service\EntitiesServiceFactory',
-            'SionModel\Service\ProblemService'      => 'SionModel\Service\ProblemServiceFactory',
-            'SionModel\Service\AllChanges'          => 'SionModel\Service\AllChangesServiceFactory',
-            'SionModel\Mailing\Mailer'              => 'SionModel\Service\MailerFactory',
+            'CountryValueOptions'           => CountryValueOptionsFactory::class,
+            'SionModel\Config'              => ConfigServiceFactory::class,
+            FilesTable::class               => FilesTableFactory::class,
+            SuggestForm::class              => SuggestFormFactory::class,
+            'SionModel\PersistentCache'     => PersistentCacheFactory::class,
+            ProblemTable::class             => ProblemTableFactory::class,
+            EntitiesService::class          => EntitiesServiceFactory::class,
+            ProblemService::class           => ProblemServiceFactory::class,
+            'SionModel\Service\AllChanges'  => AllChangesServiceFactory::class,
+            Mailer::class                   => MailerFactory::class,
         ],
     ],
     'sion_model' => [
@@ -196,7 +241,7 @@ return [
                 'table_name' 							=> 'files',
                 'table_key' 							=> 'FileId',
                 'entity_key_field'               		=> 'fileId',
-                'sion_model_class'               		=> 'SionModel\Db\Model\FilesTable',
+                'sion_model_class'               		=> FilesTable::class,
                 'get_object_function' 					=> 'getFile',
                 'get_objects_function'               	=> 'getFiles',
 //                 'format_view_helper'                    => 'formatEvent',
@@ -272,7 +317,7 @@ return [
                 'table_name' 							=> 'files_entities',
                 'table_key' 							=> 'FileEntityId',
                 'entity_key_field'               		=> 'fileEntityId',
-                'sion_model_class'               		=> 'SionModel\Db\Model\FilesTable',
+                'sion_model_class'               		=> FilesTable::class,
                 'get_object_function' 					=> 'getFileEntity',
                 'get_objects_function'               	=> 'getFileEntities',
                 //                 'format_view_helper'                    => 'formatEvent',
@@ -341,24 +386,27 @@ return [
     ],
     'controllers' => [
         'invokables' => [
-            'SionModel\Controller\Sion' => 'SionModel\Controller\SionModelController',
+            //SionModelController::class => SionModelController::class,
+        ],
+        'abstract_factories' => [
+            \SionModel\Controller\LazyControllerFactory::class,
         ],
     ],
     'router' => [
         'routes' => [
             'sion-model' => [
-                'type'    => 'Literal',
+                'type'    => Literal::class,
                 'options' => [
                     'route'    => '/sm',
                     'defaults' => [
-                        'controller' => 'SionModel\Controller\Sion',
+                        'controller' => SionModelController::class,
                         'action'     => 'index',
                     ],
                 ],
                 'may_terminate' => false,
                 'child_routes' => [
                     'clear-persistent-cache' => [
-                        'type'    => 'Literal',
+                        'type'    => Literal::class,
                         'options' => [
                             'route'    => '/clear-persistent-cache',
                             'defaults' => [
@@ -367,7 +415,7 @@ return [
                         ],
                     ],
                     'data-problems' => [
-                        'type'    => 'Literal',
+                        'type'    => Literal::class,
                         'options' => [
                             'route'    => '/data-problems',
                             'defaults' => [
@@ -376,7 +424,7 @@ return [
                         ],
                     ],
                     'auto-fix-data-problems' => [
-                        'type'    => 'Literal',
+                        'type'    => Literal::class,
                         'options' => [
                             'route'    => '/auto-fix-data-problems',
                             'defaults' => [
@@ -385,7 +433,7 @@ return [
                         ],
                     ],
                     'view-changes' => [
-                        'type'    => 'Literal',
+                        'type'    => Literal::class,
                         'options' => [
                             'route'    => '/view-changes',
                             'defaults' => [
@@ -394,7 +442,7 @@ return [
                         ],
                     ],
                     'delete-entity' => [
-                        'type'    => 'Segment',
+                        'type'    => Segment::class,
                         'options' => [
                             'route'    => '/delete/:entity/:entity_id',
                             'defaults' => [
