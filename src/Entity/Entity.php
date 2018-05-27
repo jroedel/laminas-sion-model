@@ -24,6 +24,17 @@ class Entity
      */
     public $tableKey;
     /**
+     * FQCN of SionControllers that handle this entity
+     * @var array $sionControllers
+     */
+    public $sionControllers = [];
+    /**
+     * If a SionController needs more services than those provided they can specify these
+     * in the 'controller_services' configuration, and they will be injected into this array.
+     * @var array $controllerServices
+     */
+    public $controllerServices = [];
+    /**
      * Name of identifier field
      * Example: 'personId'
      * @var string $entityKeyField
@@ -370,7 +381,7 @@ class Entity
 
     public function __construct($name, $entitySpecification)
     {
-        if (is_null($name)) {
+        if (!isset($name)) {
             throw new \InvalidArgumentException('Name is a required parameter.');
         }
         if (!is_array($entitySpecification)) {

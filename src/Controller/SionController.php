@@ -71,14 +71,37 @@ class SionController extends AbstractActionController
      */
     protected $actionEntityIds = [];
 
+    protected $createActionForm;
+    
+    protected $editActionForm;
+    
+    /** @var EntitiesService $entitiesService */
+    protected $entitiesService;
+    
+    protected $config;
+    
+    /**
+     * If a SionController needs more services than those provided they can specify these
+     * in the 'controller_services' configuration, and they will be injected into this array.
+     * @var array $services
+     */
+    protected $services;
+    
     /**
      * @param string $entity
      * @throws \Exception
      */
-    public function __construct($entity = null)
+    public function __construct($entity = null, EntitiesService $entitiesService, SionTable $sionTable, SionForm $createActionForm, SionForm $editActionForm, array $config, array $services)
     {
-        //@todo should we throw an exception if we don't get an $entity?
+        //@todo check the types
         $this->setEntity($entity);
+        $this->entitiesService = $entitiesService;
+        $this->sionTable = $sionTable;
+        $this->createActionForm = $createActionForm;
+        $this->editActionForm = $editActionForm;
+        $this->config = $config;
+        $this->sionModelConfig = $config['sion_model'];
+        $this->services = $services;
     }
 
     public function indexAction()
@@ -179,7 +202,6 @@ class SionController extends AbstractActionController
 
     public function createAction()
     {
-        $sm = $this->getServiceLocator ();
         /** @var SionTable $table **/
         $table = $this->getSionTable();
         $entity = $this->getEntity();
@@ -188,14 +210,7 @@ class SionController extends AbstractActionController
         if (!isset($entitySpec->createActionForm)) {
             throw new \InvalidArgumentException('If the createAction for \''.$entity.'\' is to be used, it must specify the create_action_form configuration.');
         }
-        /** @var SionForm $form **/
-        if ($sm->has($entitySpec->createActionForm)) {
-            $form = $sm->get($entitySpec->createActionForm);
-        } elseif (class_exists($entitySpec->createActionForm)) {
-            $form = new $entitySpec->createActionForm;
-        } else {
-            throw new \InvalidArgumentException('Invalid create_action_form specified for \''.$entity.'\' entity.');
-        }
+        $form = $this->createActionForm;
 
         $request = $this->getRequest();
         if ($request->isPost ()) {
@@ -267,7 +282,6 @@ class SionController extends AbstractActionController
      */
     public function redirectAfterCreate($newId)
     {
-        $sm = $this->getServiceLocator ();
         /** @var SionTable $table **/
         $table = $this->getSionTable();
         $entity = $this->getEntity();
@@ -331,19 +345,10 @@ class SionController extends AbstractActionController
             $this->redirect ()->toRoute ( $redirectRoute );
         }
 
-        if (!isset($entitySpec->editActionForm)) {
+        if (!isset($this->editActionForm)) {
             throw new \InvalidArgumentException('If the editAction for \''.$entity.'\' is to be used, it must specify the edit_action_form configuration.');
         }
-        $sm = $this->getServiceLocator();
-        /** @var SionForm $form **/
-        if ($sm->has($entitySpec->editActionForm)) {
-            $form = $sm->get($entitySpec->editActionForm);
-        } elseif (class_exists($entitySpec->editActionForm)) {
-            $className = $entitySpec->editActionForm;
-            $form = new $className();
-        } else {
-            throw new \InvalidArgumentException('Invalid edit_action_form specified for \''.$entity.'\' entity.');
-        }
+        $form = $this->editActionForm;
 
         $request = $this->getRequest ();
         if ($request->isPost ()) {
@@ -519,7 +524,6 @@ class SionController extends AbstractActionController
                     $request->getContent());
         }
 
-        $sm = $this->getServiceLocator();
         /** @var SionTable $table */
         $table = $this->getSionTable();
         $fieldToTouch = $this->whichFieldToTouch();
@@ -549,7 +553,6 @@ class SionController extends AbstractActionController
         $entitySpec = $this->getEntitySpecification();
 
         $request = $this->getRequest();
-        $sm = $this->getServiceLocator();
 
         //make sure we have all the information that we need to delete
         if (!$entitySpec->isEnabledForEntityDelete()) {
@@ -775,9 +778,7 @@ class SionController extends AbstractActionController
     public function getEntitySpecifications()
     {
         if (!isset($this->entitySpecifications)) {
-            $sm = $this->getServiceLocator();
-            /** @var EntitiesService $entitiesService */
-            $entitiesService = $sm->get('SionModel\Service\EntitiesService');
+            $entitiesService = $this->entitiesService;
             $this->entitySpecifications = $entitiesService->getEntities();
         }
         return $this->entitySpecifications;
@@ -799,12 +800,7 @@ class SionController extends AbstractActionController
     public function getSionTable()
     {
         if (!isset($this->sionTable)) {
-            $sm = $this->getServiceLocator();
-            $entitySpec = $this->getEntitySpecification();
-            if (!$sm->has($entitySpec->sionModelClass)) {
-                throw new \Exception('Invalid SionModel class set for entity \''.$this->getEntity().'\'');
-            }
-            $this->setSionTable($sm->get($entitySpec->sionModelClass));
+            throw new \Exception('Invalid SionModel class set for entity \''.$this->getEntity().'\'');
         }
         return $this->sionTable;
     }
@@ -874,9 +870,7 @@ class SionController extends AbstractActionController
     public function getSionModelConfig()
     {
         if (!isset($this->sionModelConfig)) {
-            $sm = $this->getServiceLocator();
-            $config = $sm->get('SionModel\Config');
-            $this->setSionModelConfig($config);
+            throw new \Exception('Something went wrong, no sion model config available');
         }
         return $this->sionModelConfig;
     }

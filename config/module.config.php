@@ -42,6 +42,7 @@ use Zend\Router\Http\Literal;
 use Zend\Router\Http\Segment;
 use SionModel\Service\ControllerNameFactory;
 use SionModel\Service\RouteNameFactory;
+use SionModel\Controller\SionControllerFactory;
 
 return [
     'view_helpers' => [
@@ -85,6 +86,15 @@ return [
         'template_map' => include __DIR__ . '/template_map.config.php',
         'template_path_stack' => [
             'sion-model' => __DIR__ . '/../view',
+        ],
+    ],
+    'controllers' => [
+        'invokables' => [
+            //SionModelController::class => SionModelController::class,
+        ],
+        'abstract_factories' => [
+            SionControllerFactory::class,
+            \SionModel\Controller\LazyControllerFactory::class,
         ],
     ],
     'service_manager' => [
@@ -382,14 +392,6 @@ return [
                     'createdBy'     => 'UpdatedBy',
                 ],
             ],
-        ],
-    ],
-    'controllers' => [
-        'invokables' => [
-            //SionModelController::class => SionModelController::class,
-        ],
-        'abstract_factories' => [
-            \SionModel\Controller\LazyControllerFactory::class,
         ],
     ],
     'router' => [
