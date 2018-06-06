@@ -43,6 +43,7 @@ use Zend\Router\Http\Segment;
 use SionModel\Service\ControllerNameFactory;
 use SionModel\Service\RouteNameFactory;
 use SionModel\Controller\SionControllerFactory;
+use Zend\ServiceManager\Proxy\LazyServiceFactory;
 
 return [
     'view_helpers' => [
@@ -109,6 +110,34 @@ return [
             ProblemService::class           => ProblemServiceFactory::class,
             'SionModel\Service\AllChanges'  => AllChangesServiceFactory::class,
             Mailer::class                   => MailerFactory::class,
+        ],
+        'lazy_services' => [
+            // Mapping services to their class names is required
+            // since the ServiceManager is not a declarative DIC.
+            'class_map' => [
+                FilesTable::class => FilesTable::class,
+                Mailer::class => Mailer::class,
+                ProblemService::class => Mailer::class,
+                ProblemTable::class => Mailer::class,
+                SuggestForm::class => Mailer::class,
+            ],
+        ],
+        'delegators' => [
+            FilesTable::class => [
+                LazyServiceFactory::class,
+            ],
+            Mailer::class => [
+                LazyServiceFactory::class,
+            ],
+            ProblemService::class => [
+                LazyServiceFactory::class,
+            ],
+            ProblemTable::class => [
+                LazyServiceFactory::class,
+            ],
+            SuggestForm::class => [
+                LazyServiceFactory::class,
+            ],
         ],
     ],
     'sion_model' => [

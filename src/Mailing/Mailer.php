@@ -1,8 +1,8 @@
 <?php
 namespace SionModel\Mailing;
 
-use AcMailer\Service\MailServiceInterface;
-use AcMailer\Service\MailServiceAwareInterface;
+//use AcMailer\Service\MailServiceInterface;
+//use AcMailer\Service\MailServiceAwareInterface;
 use Zend\I18n\Translator\TranslatorInterface;
 use Zend\I18n\Translator\TranslatorAwareInterface;
 use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
@@ -12,7 +12,7 @@ use Zend\Mail\Message;
 use Zend\Mail\AddressList;
 use SionModel\Db\Model\SionTable;
 
-class Mailer implements MailServiceAwareInterface, TranslatorAwareInterface
+class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface, 
 {
     const CSS_PATH_DEFAULT = '/../../../public/css/email-default.css';
 
@@ -139,7 +139,8 @@ class Mailer implements MailServiceAwareInterface, TranslatorAwareInterface
      * @param MailServiceInterface $mailService
      * @return $this
      */
-    public function setMailService(MailServiceInterface $mailService)
+//    public function setMailService(MailServiceInterface $mailService)
+    public function setMailService($mailService)
     {
         $this->mailService = $mailService;
         return $this;

@@ -17,7 +17,7 @@ use SionModel;
 use SionModel\Form\SionForm;
 use SionModel\Entity\Entity;
 use SionModel\Form\DeleteEntityForm;
-use Zend\Mvc\Controller\Plugin\FlashMessenger;
+use Zend\Mvc\Plugin\FlashMessenger\FlashMessenger;
 use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
 use Zend\View\Model\JsonModel;
@@ -91,7 +91,7 @@ class SionController extends AbstractActionController
      * @param string $entity
      * @throws \Exception
      */
-    public function __construct($entity = null, EntitiesService $entitiesService, SionTable $sionTable, SionForm $createActionForm, SionForm $editActionForm, array $config, array $services)
+    public function __construct($entity = null, EntitiesService $entitiesService, SionTable $sionTable, $createActionForm, $editActionForm, array $config, array $services)
     {
         //@todo check the types
         $this->setEntity($entity);

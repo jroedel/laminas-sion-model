@@ -45,7 +45,7 @@ class ProblemService
      * @param mixed[][] $problemProviders
      * @param EntityProblem $problemPrototype
      */
-    public function __construct(ServiceLocatorInterface $serviceLocator, \SionModel\Problem\ProblemTable $problemTable, $problemProviders, EntityProblem $entityProblemPrototype)
+    public function __construct(ServiceLocatorInterface $serviceLocator, $problemTable, $problemProviders, EntityProblem $entityProblemPrototype)
     {
         $this->serviceLocator = $serviceLocator;
         $this->problemTable = $problemTable;
