@@ -124,6 +124,11 @@ class SionModelController extends AbstractActionController
             'showEntity'    => true,
         ]);
     }
+    
+    public function phpInfoAction()
+    {
+        return [];
+    }
 
     protected function getSionModelConfig()
     {

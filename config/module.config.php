@@ -436,6 +436,15 @@ return [
                 ],
                 'may_terminate' => false,
                 'child_routes' => [
+                    'phpinfo' => [
+                        'type'    => Literal::class,
+                        'options' => [
+                            'route'    => '/phpinfo',
+                            'defaults' => [
+                                'action'     => 'phpinfo',
+                            ],
+                        ],
+                    ],
                     'clear-persistent-cache' => [
                         'type'    => Literal::class,
                         'options' => [

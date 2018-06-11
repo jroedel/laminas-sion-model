@@ -33,7 +33,7 @@ class ModerateGenericForm extends Form implements InputFilterProviderInterface
 			'type' => 'csrf',
 		    'options' => array(
                 'csrf_options' => array(
-                     'timeout' => 600,
+                     'timeout' => 900,
                 ),
 	        ),
 		));

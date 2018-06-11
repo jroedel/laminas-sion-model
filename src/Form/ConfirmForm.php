@@ -15,7 +15,7 @@ class ConfirmForm extends Form
 	        'type' => 'csrf',
 	        'options' => [
                 'csrf_options' => [
-                    'timeout' => 600,
+                    'timeout' => 900,
                 ],
 	        ],
 		]);

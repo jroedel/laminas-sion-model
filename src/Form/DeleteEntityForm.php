@@ -15,7 +15,7 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
 			'type' => 'csrf',
 		    'options' => [
                 'csrf_options' => [
-                     'timeout' => 600,
+                     'timeout' => 900,
                 ],
 	        ],
 		]);
