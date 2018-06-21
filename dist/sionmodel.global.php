@@ -1,4 +1,8 @@
 <?php
+namespace Project;
+
+use Project\Form;
+
 return [
     'sion_model' => [
         /**
@@ -52,6 +56,8 @@ return [
                 'name'                                      => 'event',
                 'table_name'                                => 'event',
                 'table_key'                                 => 'event_id',
+                'sion_controllers'                          => [],
+                'controller_services'                       => [],
                 'entity_key_field'                          => 'eventId',
                 'sion_model_class'                          => 'Project\Model\EventTable',
                 'get_object_function'                       => 'getEvent',
@@ -76,12 +82,12 @@ return [
                 'show_route'                                => 'events/event',
                 'show_route_key'                            => 'event_id',
                 'show_route_key_field'                      => 'eventId',
-                'edit_action_form'                          => 'Project\Form\EditEventForm',
+                'edit_action_form'                          => Form\EditEventForm::class,
 //                 'edit_action_template'                      => 'project/events/edit',
                 'edit_route'                                => 'events/event/edit',
                 'edit_route_key'                            => 'event_id',
                 'edit_route_key_field'                      => 'eventId',
-                'create_action_form'                        => 'Project\Form\CreateEventForm',
+                'create_action_form'                        => Form\CreateEventForm::class,
                 'create_action_valid_data_handler'          => 'createEvent',
                 'create_action_redirect_route'              => 'events/event',
                 'create_action_redirect_route_key'          => 'event_id',
@@ -96,9 +102,9 @@ return [
 //                 'database_bound_data_postprocessor'         => 'postprocessEvent',
 //                 'moderate_route'                            => 'events/event/moderate',
 //                 'moderate_route_entity_key'                 => 'event_id',
-                'has_dedicated_suggest_form'                => false,
-//                 'suggest_form'                              => 'Project\Form\SuggestEventForm',
+//                 'suggest_form'                              => Form\SuggestEventForm::class,
                 'enable_delete_action'                      => true,
+                'delete_route_key'                          => 'event_id',
                 'delete_action_redirect_route'              => 'events',
 
                 'acl_resource_id_field'                     => 'resourceId',

@@ -230,7 +230,6 @@ return [
                 'table_name' => 'mailings',
                 'table_key' => 'MailingId',
                 'entity_key_field' => 'mailingId',
-                'has_dedicated_suggest_form' => false,
                 'get_object_function' => 'getMailing',
                 'required_columns_for_creation' => [
                     'toAddresses',
@@ -325,7 +324,6 @@ return [
 //                 'database_bound_data_postprocessor' 	=> 'postprocessEvent',
 //                 'moderate_route' 						=> 'events/event/moderate',
 //                 'moderate_route_entity_key' 			=> 'file_id',
-//                 'has_dedicated_suggest_form' 			=> false,
 //                 'suggest_form'               			=> 'Project\Form\SuggestEventForm',
                 'enable_delete_action' 					=> true,
 //                 'delete_action_acl_resource' 			=> 'event_:id',
@@ -398,7 +396,6 @@ return [
 //                 'database_bound_data_postprocessor' 	=> 'postprocessEvent',
 //                 'moderate_route' 						=> 'events/event/moderate',
 //                 'moderate_route_entity_key' 			=> 'file_id',
-//                 'has_dedicated_suggest_form' 			=> false,
 //                 'suggest_form'               			=> 'Project\Form\SuggestEventForm',
                 'enable_delete_action' 					=> true,
                 'delete_action_acl_resource' 			=> 'event_:id',

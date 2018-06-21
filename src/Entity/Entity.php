@@ -285,12 +285,6 @@ class Entity
      */
     public $moderateRouteEntityKey;
     /**
-     * True if there is a form dedicated to suggestions for this entity
-     * @var bool $hasDedicatedSuggestForm
-     * @deprecated will be replaced by suggestForm
-     */
-    public $hasDedicatedSuggestForm = false;
-    /**
      * String representing either a service, or a class name
      * @var string $suggestForm
      */
