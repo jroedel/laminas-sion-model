@@ -44,6 +44,11 @@ use SionModel\Service\ControllerNameFactory;
 use SionModel\Service\RouteNameFactory;
 use SionModel\Controller\SionControllerFactory;
 use Zend\ServiceManager\Proxy\LazyServiceFactory;
+use SionModel\Db\Model\PredicatesTable;
+use SionModel\Service\PredicatesTableFactory;
+use SionModel\Service\SionModelControllerFactory;
+use SionModel\Service\ChangesCollector;
+use SionModel\Service\ChangesCollectorFactory;
 
 return [
     'view_helpers' => [
@@ -93,6 +98,9 @@ return [
         'invokables' => [
             //SionModelController::class => SionModelController::class,
         ],
+        'factories' => [
+            SionModelController::class => SionModelControllerFactory::class,
+        ],
         'abstract_factories' => [
             SionControllerFactory::class,
             \SionModel\Controller\LazyControllerFactory::class,
@@ -108,8 +116,9 @@ return [
             ProblemTable::class             => ProblemTableFactory::class,
             EntitiesService::class          => EntitiesServiceFactory::class,
             ProblemService::class           => ProblemServiceFactory::class,
-            'SionModel\Service\AllChanges'  => AllChangesServiceFactory::class,
+            ChangesCollector::class         => ChangesCollectorFactory::class,
             Mailer::class                   => MailerFactory::class,
+            PredicatesTable::class          => PredicatesTableFactory::class,
         ],
         'lazy_services' => [
             // Mapping services to their class names is required
@@ -117,9 +126,11 @@ return [
             'class_map' => [
                 FilesTable::class => FilesTable::class,
                 Mailer::class => Mailer::class,
-                ProblemService::class => Mailer::class,
-                ProblemTable::class => Mailer::class,
-                SuggestForm::class => Mailer::class,
+                ProblemService::class => ProblemService::class,
+                ProblemTable::class => ProblemTable::class,
+                SuggestForm::class => SuggestForm::class,
+                PredicatesTable::class => PredicatesTable::class,
+                ChangesCollector::class => ChangesCollector::class,
             ],
         ],
         'delegators' => [
@@ -138,6 +149,12 @@ return [
             SuggestForm::class => [
                 LazyServiceFactory::class,
             ],
+            PredicatesTable::class => [
+                LazyServiceFactory::class,
+            ],
+            ChangesCollector::class => [
+                LazyServiceFactory::class,
+            ],
         ],
     ],
     'sion_model' => [
@@ -151,6 +168,12 @@ return [
         'post_place_line_format_by_country' => [
             'US' => ':cityState :zip',
             'CL' => ':cityState :zip',
+        ],
+        'sion_controller_services' => [
+            'SionModel\Config',
+            ProblemService::class,
+            'SionModel\PersistentCache',
+            ChangesCollector::class,
         ],
         'url_map'                   => [ //@todo clarify this, for general users
             'g+' => [
@@ -279,7 +302,7 @@ return [
                 'table_name' 							=> 'files',
                 'table_key' 							=> 'FileId',
                 'entity_key_field'               		=> 'fileId',
-                'sion_model_class'               		=> FilesTable::class,
+//                 'sion_model_class'               		=> FilesTable::class,
                 'get_object_function' 					=> 'getFile',
                 'get_objects_function'               	=> 'getFiles',
 //                 'format_view_helper'                    => 'formatEvent',
@@ -354,7 +377,7 @@ return [
                 'table_name' 							=> 'files_entities',
                 'table_key' 							=> 'FileEntityId',
                 'entity_key_field'               		=> 'fileEntityId',
-                'sion_model_class'               		=> FilesTable::class,
+//                 'sion_model_class'               		=> FilesTable::class,
                 'get_object_function' 					=> 'getFileEntity',
                 'get_objects_function'               	=> 'getFileEntities',
                 //                 'format_view_helper'                    => 'formatEvent',
@@ -416,6 +439,73 @@ return [
                     'createdBy'     => 'CreatedBy',
                     'updatedOn'     => 'UpdatedOn',
                     'createdBy'     => 'UpdatedBy',
+                ],
+            ],
+            'comment' => [
+                'name'									=> 'comment',
+                'table_name' 							=> 'comments',
+                'table_key' 							=> 'CommentId',
+                'entity_key_field'               		=> 'commentId',
+                'sion_model_class'               		=> PredicatesTable::class,
+                'get_object_function' 					=> 'getComment',
+                'get_objects_function'               	=> 'getComments',
+                //                 'format_view_helper'                    => 'formatEvent',
+                'required_columns_for_creation' 		=> [
+                    'originalFileName',
+                    'mimeType',
+                    'size',
+                    'sha1',
+                ],
+                'name_field'               				=> 'comment',
+                'name_field_is_translateable'           => false,
+                //                 'country_field'               			=> 'country',
+                'text_columns'               			=> [],
+                'many_to_one_update_columns'     		=> [
+                //                     'email'	=> 'contactInfo',
+                //                     'cell'	=> 'contactInfo',
+                ],
+                'report_changes'               			=> true,
+//                 'index_route'               			=> 'files',
+                //                 'index_template'               			=> 'project/events/index',
+                //                 'default_route_key'                     => 'file_id',
+                //                 'show_action_template'               	=> 'project/events/show',
+                //                 'show_route' 							=> 'files/files',
+                //                 'show_route_key' 						=> 'file_id',
+                //                 'show_route_key_field' 					=> 'fileId',
+                //                 'edit_action_form'               		=> 'SionModel\Form\EditFileForm',
+                //                 'edit_action_template'               	=> 'project/events/edit',
+                //                 'edit_route'               				=> 'events/event/edit',
+                //                 'edit_route_key'               			=> 'file_id',
+                //                 'edit_route_key_field'           		=> 'fileId',
+                //                 'create_action_form'              		=> 'SionModel\Form\UploadFileForm',
+                //                 'create_action_valid_data_handler'		=> 'createEvent',
+                //                 'create_action_redirect_route'         	=> 'files/file',
+                //                 'create_action_redirect_route_key'    	=> 'file_id',
+                //                 'create_action_redirect_route_key_field'=> 'fileId',
+                //                 'create_action_template'           		=> 'project/events/create',
+                //                 'touch_default_field'               	=> 'fileId',
+                //                 'touch_field_route_key'           		=> 'event_id',
+                //                 'touch_json_route'               		=> 'events/event/touch',
+                //                 'touch_json_route_key'            		=> 'file_id',
+                //'database_bound_data_preprocessor' 		=> 'preprocessFile',
+                //                 'database_bound_data_postprocessor' 	=> 'postprocessEvent',
+                //                 'moderate_route' 						=> 'events/event/moderate',
+                //                 'moderate_route_entity_key' 			=> 'file_id',
+                //                 'suggest_form'               			=> 'Project\Form\SuggestEventForm',
+                'enable_delete_action' 					=> true,
+                //                 'delete_action_acl_resource' 			=> 'event_:id',
+                //                 'delete_action_acl_permission' 			=> 'delete_event',
+                //                 'delete_action_redirect_route' 			=> 'events',
+                'update_columns' => [
+                    'commentId'         => 'CommentId',
+                    'rating'            => 'Rating',
+                    'commentKind'       => 'CommentKind',
+                    'comment'           => 'Comment',
+                    'status'            => 'Status',
+                    'reviewedBy'        => 'ReviewedBy',
+                    'reviewedOn'        => 'ReviewedOn',
+                    'createdOn'         => 'CreatedOn',
+                    'createdBy'         => 'CreatedBy',
                 ],
             ],
         ],

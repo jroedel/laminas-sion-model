@@ -1,8 +1,6 @@
 <?php
 namespace SionModel\Problem;
 
-use SionModel\Problem\EntityProblem;
-
 /**
  * Problem provider interface
  *

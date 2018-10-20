@@ -38,7 +38,7 @@ class EditPencil extends AbstractHelper
     	$isAllowed = true; //if there is an exception, we'll assume there's no route permissions configured
     	try {
     	    $isAllowed = $this->view->isAllowed('route/'.$this->entities[$entityType]->editRoute);
-    	} catch (\Exception $e) {var_dump('Exception!');}
+    	} catch (\Exception $e) {}
     	if (!$isAllowed) {
     	    return '';
     	}

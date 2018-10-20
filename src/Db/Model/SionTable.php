@@ -1455,7 +1455,9 @@ class SionTable
     protected function filterDbDate($str)
     {
         static $tz;
-        $tz = new \DateTimeZone('UTC');
+        if (!isset($tz)) {
+            $tz = new \DateTimeZone('UTC');
+        }
         if (null === $str || $str === '' || $str == '0000-00-00' || $str == '0000-00-00 00:00:00') {
             return null;
         }

@@ -25,7 +25,6 @@ class TrimStringArray extends AbstractFilter
      */
     public function filter($value)
     {
-        var_dump($value);
         if (is_string($value)) {
             $value = [$value];
         }

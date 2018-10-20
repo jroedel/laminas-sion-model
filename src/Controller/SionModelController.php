@@ -17,9 +17,18 @@ use Zend\Cache\Storage\FlushableInterface;
 use Zend\View\Model\JsonModel;
 use BjyAuthorize\Exception\UnAuthorizedException;
 use SionModel\Form\ConfirmForm;
+use SionModel\Service\ProblemService;
+use SionModel\Service\ChangesCollector;
 
 class SionModelController extends AbstractActionController
 {
+    protected $services = [];
+    
+    public function __construct($services)
+    {
+        $this->services = $services;
+    }
+    
     public function clearPersistentCacheAction()
     {
         $key = $this->params()->fromQuery('key', null);
@@ -53,9 +62,8 @@ class SionModelController extends AbstractActionController
      */
     public function dataProblemsAction()
     {
-        $sm = $this->getServiceLocator();
         /** @var ProblemService $table */
-        $table = $sm->get('SionModel\Service\ProblemService');
+        $table = $services[ProblemService::class];
 
         $problems = $table->getCurrentProblems();
 
@@ -71,9 +79,8 @@ class SionModelController extends AbstractActionController
     {
         $simulate = true;
 
-        $sm = $this->getServiceLocator();
         /** @var ProblemService $table */
-        $table = $sm->get('SionModel\Service\ProblemService');
+        $table = $services[ProblemService::class];
 
         $form = new ConfirmForm();
         $request = $this->getRequest();
@@ -101,19 +108,20 @@ class SionModelController extends AbstractActionController
      */
     public function viewChangesAction()
     {
-        $sm = $this->getServiceLocator();
         $config = $this->getSionModelConfig();
         $maxRows = (isset($config['changes_max_rows']) &&
             (is_numeric($config['changes_max_rows']) || !isset($config['changes_max_rows']))) ?
             (int)$config['changes_max_rows'] : 500;
         if (!isset($config['changes_show_all']) || $config['changes_show_all']) {
-            $results = $sm->get('SionModel\Service\AllChanges');
+            /** @var ChangesCollector $collector */
+            $collector = $this->services[ChangesCollector::class];
+            $results = $collector->getAllChanges();
         } else {
-            if (!$sm->has($config['changes_model'])) {
+            if (!isset($services[$config['changes_model']])) {
                 throw new \InvalidArgumentException('The \'changes_model\' configuration is incorrect.');
             }
             /** @var SionTable $table */
-            $table = $sm->get($config['changes_model']);
+            $table = $services[$config['changes_model']];
             $getAllChanges = key_exists('changes_show_all', $config) && !is_null($config['changes_show_all']) ?
                 (bool)$config['changes_show_all'] : false;
             $results = $table->getChanges($getAllChanges);
@@ -132,15 +140,16 @@ class SionModelController extends AbstractActionController
 
     protected function getSionModelConfig()
     {
-        $sm = $this->getServiceLocator();
-        return $sm->get('SionModel\Config');
+        if (isset($services['SionModel\Config'])) {
+            return $services['SionModel\Config'];
+        }
+        return [];
     }
 
     protected function getPersistentCache()
     {
-        $sm = $this->getServiceLocator();
-        if ($sm->has('SionModel\PersistentCache')) {
-            return $sm->get('SionModel\PersistentCache');
+        if (isset($services['SionModel\PersistentCache'])) {
+            return $services['SionModel\PersistentCache'];
         }
         return null;
     }
