@@ -15,6 +15,6 @@ class Jshrink extends AbstractHelper
      */
     public function __invoke($script)
     {
-    	return Minifier::minify($script);
+        return Minifier::minify($script);
     }
 }

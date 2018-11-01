@@ -18,7 +18,7 @@ class TouchButtonFactory implements FactoryInterface
         /**
          * @var EntitiesService $entities
          */
-        $entities = $parentLocator->get ( 'SionModel\Service\EntitiesService' );
+        $entities = $parentLocator->get('SionModel\Service\EntitiesService');
         $viewHelper = new TouchButton($entities->getEntities());
         return $viewHelper;
     }

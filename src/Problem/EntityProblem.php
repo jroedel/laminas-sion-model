@@ -2,6 +2,7 @@
 namespace SionModel\Problem;
 
 use SionModel\Entity\Entity;
+
 class EntityProblem
 {
     const SEVERITY_ERROR = 'danger';
@@ -129,7 +130,6 @@ class EntityProblem
      */
     public function exchangeArray($array)
     {
-
     }
 
     public function getProblem()

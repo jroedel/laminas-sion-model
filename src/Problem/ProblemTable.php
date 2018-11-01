@@ -2,7 +2,6 @@
 namespace SionModel\Problem;
 
 use SionModel\Db\Model\SionTable;
-use SionModel\Problem\EntityProblem;
 
 class ProblemTable extends SionTable
 {
@@ -54,6 +53,5 @@ FROM `a_data_problems` WHERE 1";
 
     public function getProblem()
     {
-
     }
 }

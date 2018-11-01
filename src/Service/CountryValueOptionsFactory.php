@@ -19,11 +19,11 @@ class CountryValueOptionsFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-		/** @var CountriesInfo $countries */
-		$countries = $container->get ( CountriesInfo::class );
-		$countryNames = $countries->getTranslatedCountryNames(\Locale::getPrimaryLanguage(\Locale::getDefault()));
-		asort($countryNames);
+        /** @var CountriesInfo $countries */
+        $countries = $container->get(CountriesInfo::class);
+        $countryNames = $countries->getTranslatedCountryNames(\Locale::getPrimaryLanguage(\Locale::getDefault()));
+        asort($countryNames);
 
-		return $countryNames;
+        return $countryNames;
     }
 }

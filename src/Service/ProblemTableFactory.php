@@ -26,12 +26,12 @@ class ProblemTableFactory implements FactoryInterface
     {
         $dbAdapter = $container->get('Zend\Db\Adapter\Adapter');
 
-		/** @var  User $userService **/
-		$userService = $container->get('zfcuser_user_service');
-		$user = $userService->getAuthService()->getIdentity();
-		$userId = $user ? $user->id : null;
-// 		$userTable = $serviceLocator->get('JUser\Model\UserTable');
-		$table = new ProblemTable( $dbAdapter, $container, $userId);
-		return $table;
+        /** @var  User $userService **/
+        $userService = $container->get('zfcuser_user_service');
+        $user = $userService->getAuthService()->getIdentity();
+        $userId = $user ? $user->id : null;
+//      $userTable = $serviceLocator->get('JUser\Model\UserTable');
+        $table = new ProblemTable($dbAdapter, $container, $userId);
+        return $table;
     }
 }

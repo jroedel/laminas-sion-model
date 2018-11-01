@@ -22,16 +22,16 @@ class SuggestFormFactory implements FactoryInterface
         /**
          * @var EntitiesService $entitiesService
          */
-        $entitiesService = $container->get ( 'SionModel\Service\EntitiesService' );
+        $entitiesService = $container->get('SionModel\Service\EntitiesService');
         $entities = $entitiesService->getEntities();
         $entityHaystack = [];
         foreach ($entities as $entity) {
             $entityHaystack[] = $entity->name;
         }
         
-		$form = new SuggestForm($entityHaystack);
+        $form = new SuggestForm($entityHaystack);
         $form->prepareForSuggestion($container);
 
-		return $form;
+        return $form;
     }
 }

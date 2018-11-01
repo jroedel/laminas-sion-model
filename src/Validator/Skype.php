@@ -10,6 +10,7 @@
 namespace SionModel\Validator;
 
 use Zend\Validator\Regex;
+
 class Skype extends Regex
 {
     /**
@@ -19,7 +20,8 @@ class Skype extends Regex
     public function __construct()
     {
         $pattern = "/[a-zA-Z][a-zA-Z0-9\.,\-_]{5,31}/";
-        $newMessage = 'Skype user names should begin with a letter, contain only letters, numbers, \',\', \'.\', \'-\', or \'_\' and be between 6 and 32 characters long.';
+        $newMessage = 'Skype user names should begin with a letter, contain only letters, '
+            .'numbers, \',\', \'.\', \'-\', or \'_\' and be between 6 and 32 characters long.';
         $this->messageTemplates[self::INVALID] = $newMessage;
         $this->messageTemplates[self::NOT_MATCH] = $newMessage;
         $this->messageTemplates[self::ERROROUS] = $newMessage;

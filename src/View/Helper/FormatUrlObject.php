@@ -24,6 +24,6 @@ class FormatUrlObject extends AbstractHelper
             $format = "<a href=\"%s\">%s</a>";
         }
         $return = sprintf($format, $url['url'], $this->view->escapeHtml($url['label']));
-    	return $return;
+        return $return;
     }
 }

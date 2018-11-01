@@ -27,7 +27,7 @@ class Address extends AbstractHelper
             $finalMarkup .= $this->view->escapeHtml($data['street1']).'<br>';
         }
         if (isset($data['street2'])) {
-          $finalMarkup .= $this->view->escapeHtml($data['street2']).'<br>';
+            $finalMarkup .= $this->view->escapeHtml($data['street2']).'<br>';
         }
 
         if (isset($data['country']) && isset($this->placeLineCountryFormats[$data['country']])) {

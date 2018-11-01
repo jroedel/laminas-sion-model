@@ -10,6 +10,7 @@
 namespace SionModel\Filter;
 
 use Zend\Filter\AbstractFilter;
+
 class SortArray extends AbstractFilter
 {
     /**

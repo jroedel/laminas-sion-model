@@ -11,6 +11,7 @@ namespace SionModel\Filter;
 
 use Zend\Filter\AbstractFilter;
 use Zend\Filter\FilterChain;
+
 class TrimStringArray extends AbstractFilter
 {
     /**

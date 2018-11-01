@@ -1,8 +1,6 @@
 <?php
 namespace SionModel\Mailing;
 
-//use AcMailer\Service\MailServiceInterface;
-//use AcMailer\Service\MailServiceAwareInterface;
 use Zend\I18n\Translator\TranslatorInterface;
 use Zend\I18n\Translator\TranslatorAwareInterface;
 use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
@@ -12,7 +10,7 @@ use Zend\Mail\Message;
 use Zend\Mail\AddressList;
 use SionModel\Db\Model\SionTable;
 
-class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface, 
+class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
 {
     const CSS_PATH_DEFAULT = '/../../../public/css/email-default.css';
 
@@ -57,9 +55,16 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
         $this->sionTable = $sionTable;
     }
 
-    public function reportMailing(Message $message, $attempt = 1, $maxAttempts = 3, $exception = null,
-        $locale = null, $template = null, $trackingToken = null, $tags = null)
-    {
+    public function reportMailing(
+        Message $message,
+        $attempt = 1,
+        $maxAttempts = 3,
+        $exception = null,
+        $locale = null,
+        $template = null,
+        $trackingToken = null,
+        $tags = null
+    ) {
         static $timeZone;
         if (!isset($timeZone)) {
             $timeZone = new \DateTimeZone('UTC');
@@ -105,7 +110,6 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
      */
     public function processQueue()
     {
-
     }
 
     /**

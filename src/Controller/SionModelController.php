@@ -11,8 +11,6 @@ namespace SionModel\Controller;
 
 use Zend\View\Model\ViewModel;
 use Zend\Mvc\Controller\AbstractActionController;
-use SionModel\Db\Model\SionTable;
-use SionModel;
 use Zend\Cache\Storage\FlushableInterface;
 use Zend\View\Model\JsonModel;
 use BjyAuthorize\Exception\UnAuthorizedException;
@@ -23,12 +21,12 @@ use SionModel\Service\ChangesCollector;
 class SionModelController extends AbstractActionController
 {
     protected $services = [];
-    
+
     public function __construct($services)
     {
         $this->services = $services;
     }
-    
+
     public function clearPersistentCacheAction()
     {
         $key = $this->params()->fromQuery('key', null);
@@ -84,8 +82,8 @@ class SionModelController extends AbstractActionController
 
         $form = new ConfirmForm();
         $request = $this->getRequest();
-        if ($request->isPost ()) {
-            $data = $request->getPost()->toArray ();
+        if ($request->isPost()) {
+            $data = $request->getPost()->toArray();
             $form->setData($data);
             if ($form->isValid()) { //check the CSRF value
                 $simulate = false;
@@ -132,7 +130,7 @@ class SionModelController extends AbstractActionController
             'showEntity'    => true,
         ]);
     }
-    
+
     public function phpInfoAction()
     {
         return [];

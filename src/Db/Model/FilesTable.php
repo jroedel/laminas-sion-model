@@ -128,8 +128,7 @@ FROM `files` WHERE 1";
 
         //This could lead to multiple file records referring to 1 file. That's OK
         if (!file_exists($newPath)) {
-            if (false === move_uploaded_file($data['originalFileName'], $newPath))
-            {
+            if (false === move_uploaded_file($data['originalFileName'], $newPath)) {
                 throw new \Exception('Error processing file');
             }
         }

@@ -2,7 +2,6 @@
 namespace SionModel\Entity;
 
 use SionModel\Filter\MixedCase;
-use SionModel\Db\Model\SionTable;
 
 class Entity
 {
@@ -258,7 +257,7 @@ class Entity
      * it must accepts two parameters: $data, $entityData
      * @param $data mixed[] is the data to be updated
      * @param $entityData mixed[] the queried pre-action data, empty array on create
-     * @param $entityAction one of the SionTable::ENTITY_ACTION_ consts
+     * @param $entityAction string one of the SionTable::ENTITY_ACTION_ consts
      * @returns mixed[] updated data to be inserted/updated in the database
      *
      * @var string $databaseBoundDataPreprocessor
@@ -268,9 +267,9 @@ class Entity
      * Same as database bound data preprocessor, but will be run after editing the database
      * This can be used to do manipulation to other related entities in the database.
      * The function is passed:
-     * @param $data the data that was updated/inserted
-     * @param $entityData is the newly queried data of the entity
-     * @param $entityAction one of the SionTable::ENTITY_ACTION_ consts
+     * @param $data array the data that was updated/inserted
+     * @param $entityData array is the newly queried data of the entity
+     * @param $entityAction string one of the SionTable::ENTITY_ACTION_ consts
      * @var string $databaseBoundDataPostprocessor
      */
     public $databaseBoundDataPostprocessor;

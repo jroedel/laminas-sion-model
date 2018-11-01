@@ -92,48 +92,51 @@ class FormatEntity extends AbstractHelper
             }
         }
 
-    	$finalMarkup = '';
-    	if ($options['displayFlag'] &&
-    	    $entitySpec->countryField &&
-    	    isset($data[$entitySpec->countryField]) &&
-    	    2 === strlen($data[$entitySpec->countryField])
-    	) {
-    		$finalMarkup .= $this->view->flag($data[$entitySpec->countryField])."&nbsp;";
-    	}
+        $finalMarkup = '';
+        if ($options['displayFlag'] &&
+            $entitySpec->countryField &&
+            isset($data[$entitySpec->countryField]) &&
+            2 === strlen($data[$entitySpec->countryField])
+        ) {
+            $finalMarkup .= $this->view->flag($data[$entitySpec->countryField])."&nbsp;";
+        }
 
-    	//if our name field is a date, format it as a medium date
-    	if ($data[$entitySpec->nameField] instanceof \DateTime) {
-    	    $name = $this->view->dateFormat($data[$entitySpec->nameField],
-	            \IntlDateFormatter::MEDIUM, \IntlDateFormatter::NONE);
-    	} else {
-        	$name = $data[$entitySpec->nameField];
-    	    if ($entitySpec->nameFieldIsTranslateable) {
-    	        $name = $this->view->translate($name);
-    	    }
-    	}
+        //if our name field is a date, format it as a medium date
+        if ($data[$entitySpec->nameField] instanceof \DateTime) {
+            $name = $this->view->dateFormat(
+                $data[$entitySpec->nameField],
+                \IntlDateFormatter::MEDIUM,
+                \IntlDateFormatter::NONE
+            );
+        } else {
+            $name = $data[$entitySpec->nameField];
+            if ($entitySpec->nameFieldIsTranslateable) {
+                $name = $this->view->translate($name);
+            }
+        }
 
-    	if ($options['displayAsLink']) {
-    	    $finalMarkup .= $this->wrapAsLink($entityType, $data, $this->view->escapeHtml($name));
-    	} else {
-    	    $finalMarkup .= $this->view->escapeHtml($name);
-    	}
+        if ($options['displayAsLink']) {
+            $finalMarkup .= $this->wrapAsLink($entityType, $data, $this->view->escapeHtml($name));
+        } else {
+            $finalMarkup .= $this->view->escapeHtml($name);
+        }
 
-    	if ($options['displayEditPencil'] &&
-    	    $entitySpec->editRouteKeyField &&
+        if ($options['displayEditPencil'] &&
+            $entitySpec->editRouteKeyField &&
             isset($data[$entitySpec->editRouteKeyField])
-	    ) {
-    	    $editId = $data[$entitySpec->editRouteKeyField];
-    		$finalMarkup .= $this->view->editPencil($entityType, $editId);
-    	}
-    	if ($options['displayInactiveLabel'] &&
-    	    (isset($data['isActive']) && is_bool($active = $data['isActive']) ||
-	        isset($data['active']) && is_bool($active = $data['active']))
+        ) {
+            $editId = $data[$entitySpec->editRouteKeyField];
+            $finalMarkup .= $this->view->editPencil($entityType, $editId);
+        }
+        if ($options['displayInactiveLabel'] &&
+            (isset($data['isActive']) && is_bool($active = $data['isActive']) ||
+            isset($data['active']) && is_bool($active = $data['active']))
         ) {
             if (!$active) {
                 $finalMarkup .= ' <span class="label label-warning">'.$this->view->translate('Inactive').'</span>';
             }
-    	}
-    	return $finalMarkup;
+        }
+        return $finalMarkup;
     }
 
     /**
@@ -155,7 +158,7 @@ class FormatEntity extends AbstractHelper
             $route = $entitySpec->showRoute;
             $routeKey = $entitySpec->showRouteKey;
             $id = $data[$entitySpec->showRouteKeyField];
-            return sprintf('<a href="%s">%s</a>',$this->view->url($route, [$routeKey => $id]), $linkText);
+            return sprintf('<a href="%s">%s</a>', $this->view->url($route, [$routeKey => $id]), $linkText);
         }
         return $linkText;
     }
@@ -177,7 +180,7 @@ class FormatEntity extends AbstractHelper
         $isAllowedPlugin = null;
         try {
             $isAllowedPlugin = $this->view->plugin('isAllowed');
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
         }
         //if we don't have the isAllowed plugin, just allow
         if (!is_callable($isAllowedPlugin)) {

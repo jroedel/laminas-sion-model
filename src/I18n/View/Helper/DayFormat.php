@@ -63,7 +63,7 @@ class DayFormat extends AbstractHelper
     }
 
     /**
-     * 
+     *
      * @param \DateTime $date
      */
     public function __invoke($date)

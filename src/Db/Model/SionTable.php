@@ -6,16 +6,12 @@ use Zend\Db\Adapter\Adapter;
 use Zend\Db\Sql\Insert;
 use Zend\Db\TableGateway\TableGateway;
 use Zend\Filter\Boolean;
-use Zend\Filter\StringTrim;
 use Zend\Filter\FilterChain;
-use Zend\Filter\ToNull;
 use Zend\Validator\EmailAddress;
 use SionModel\Entity\Entity;
 use Zend\Db\TableGateway\TableGatewayInterface;
 use Zend\Uri\Http;
 use Zend\Db\Adapter\AdapterInterface;
-use SionModel\Service\EntitiesService;
-use SionModel\Service\ProblemService;
 use SionModel\Problem\ProblemTable;
 use Zend\Db\Sql\Where;
 use JUser\Model\UserTable;
@@ -223,7 +219,7 @@ class SionTable
 
             //setup listener for onFinish, so move objects to persistent storage
             $em = $serviceLocator->get('Application')->getEventManager();
-            $em->attach( MvcEvent::EVENT_FINISH, [$this, 'onFinish'], -1);
+            $em->attach(MvcEvent::EVENT_FINISH, [$this, 'onFinish'], -1);
         }
 
         $this->tableGateway     = new TableGateway('', $dbAdapter);
@@ -402,7 +398,7 @@ class SionTable
         }
 
         $sort = [];
-        foreach($array as $k=>$v) {
+        foreach ($array as $k => $v) {
             foreach ($fieldsAndSortParameter as $field => $sortParameter) {
                 $sort[$field][$k] = $v[$field];
             }
@@ -428,8 +424,7 @@ class SionTable
         if (null === $where && null === $sql) {
             throw new \InvalidArgumentException('No query requested.');
         }
-        if (null !== $sql)
-        {
+        if (null !== $sql) {
             if (null === $sqlArgs) {
                 $sqlArgs = Adapter::QUERY_MODE_EXECUTE; //make sure query executes
             }
@@ -532,7 +527,7 @@ class SionTable
      * @param number $id
      * @param array|string $field
      * @throws \InvalidArgumentException
-     * @return boolean|unknown
+     * @return boolean
      */
     public function touchEntity($entity, $id, $field = null, $refreshCache = true)
     {
@@ -558,7 +553,7 @@ class SionTable
      * @param array $data
      * @param array $fieldsToTouch
      * @throws \InvalidArgumentException
-     * @return boolean|unknown
+     * @return boolean
      */
     public function updateEntity($entity, $id, $data, array $fieldsToTouch = [], $refreshCache = true)
     {
@@ -679,15 +674,13 @@ class SionTable
                 $updateVals[$updateCols[$field.'UpdatedBy']] = $this->actingUserId;
             }
             if (is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$field])) {
-                if ( key_exists($manyToOneUpdateColumns[$field].'UpdatedOn', $updateCols) &&
-                    !key_exists($manyToOneUpdateColumns[$field].'UpdatedOn', $data))
-                { //check if this column maps to some other updatedOn column
+                if (key_exists($manyToOneUpdateColumns[$field].'UpdatedOn', $updateCols) &&
+                    !key_exists($manyToOneUpdateColumns[$field].'UpdatedOn', $data)) { //check if this column maps to some other updatedOn column
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$field].'UpdatedOn']] = $now;
                 }
-                if ( key_exists($manyToOneUpdateColumns[$field].'UpdatedBy', $updateCols) &&
+                if (key_exists($manyToOneUpdateColumns[$field].'UpdatedBy', $updateCols) &&
                     !key_exists($manyToOneUpdateColumns[$field].'UpdatedBy', $data) &&
-                    null !== $this->actingUserId)
-                { //check if this column  maps to some other updatedBy column
+                    null !== $this->actingUserId) { //check if this column  maps to some other updatedBy column
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$field].'UpdatedBy']] = $this->actingUserId;
                 }
             }
@@ -707,11 +700,11 @@ class SionTable
             if (isset($updateCols['updatedBy']) && !isset($updateVals[$updateCols['updatedBy']]) &&
                 null !== $this->actingUserId) {
                     $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
-                }
+            }
                 $result = $tableGateway->update($updateVals, [$tableKey => $id]);
-                if ($reportChanges) {
-                    $this->reportChange($changes);
-                }
+            if ($reportChanges) {
+                $this->reportChange($changes);
+            }
                 return $result;
         }
         return true;
@@ -806,15 +799,13 @@ class SionTable
             if (null !== $value && is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
                 if (isset($manyToOneUpdateColumns[$col]) &&
                     isset($updateCols[$manyToOneUpdateColumns[$col].'UpdatedOn']) &&
-                    !isset($data[$manyToOneUpdateColumns[$col].'UpdatedOn']))
-                { //check if this column maps to some other updatedOn column
+                    !isset($data[$manyToOneUpdateColumns[$col].'UpdatedOn'])) { //check if this column maps to some other updatedOn column
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedOn']] = $now;
                 }
                 if (isset($manyToOneUpdateColumns[$col]) &&
                     isset($updateCols[$manyToOneUpdateColumns[$col].'UpdatedBy']) &&
                     !isset($data[$manyToOneUpdateColumns[$col].'UpdatedBy']) &&
-                    null !== $this->actingUserId)
-                { //check if this column  maps to some other updatedBy column
+                    null !== $this->actingUserId) { //check if this column  maps to some other updatedBy column
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$col].'UpdatedBy']] = $this->actingUserId;
                 }
             }
@@ -1338,15 +1329,13 @@ class SionTable
     public static function getYearRange($startDate, $endDate)
     {
         if ((null !== $startDate && !$startDate instanceof \DateTime) ||
-            (null !== $endDate && !$endDate instanceof \DateTime))
-        {
+            (null !== $endDate && !$endDate instanceof \DateTime)) {
             throw new \InvalidArgumentException('Date parameters must be either DateTime instances or null.');
         }
 
         $text = '';
         if ((null !== $startDate && $startDate instanceof \DateTime) ||
-            (null !== $endDate && $startDate instanceof \DateTime))
-        {
+            (null !== $endDate && $startDate instanceof \DateTime)) {
             if (null !== $startDate xor null !== $endDate) { //only one is set
                 if (null !== $startDate) {
                     $text .= $startDate->format('Y');
@@ -1463,7 +1452,7 @@ class SionTable
         }
         try {
             $return = new \DateTime($str, $tz);
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             $return = null;
         }
         return $return;
@@ -1684,7 +1673,7 @@ class SionTable
 
     /**
      * @param Where|\Closure|string|array $where
-     * @return \SionModel\Model\SionTable
+     * @return self
      */
     public function setWhere($where)
     {

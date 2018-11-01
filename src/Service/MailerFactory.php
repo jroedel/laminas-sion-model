@@ -7,7 +7,7 @@ namespace SionModel\Service;
 
 use Zend\ServiceManager\Factory\FactoryInterface;
 use Interop\Container\ContainerInterface;
-use Patres\Mailing\Mailer;
+use SionModel\Mailing\Mailer;
 
 /**
  * Factory responsible of priming the Mailer service
@@ -23,11 +23,11 @@ class MailerFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-		$translator = $container->get ( 'translator' );
-		$mailService = $container->get ( 'acmailer.mailservice.default' );
-		$config = $container->get ( 'Config' );
+        $translator = $container->get('translator');
+        $mailService = $container->get('acmailer.mailservice.default');
+        $config = $container->get('Config');
 
-		$mailer = new Mailer( $mailService, $translator, $config);
-		return $mailer;
+        $mailer = new Mailer($mailService, $translator, $config);
+        return $mailer;
     }
 }

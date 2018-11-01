@@ -24,10 +24,10 @@ class DiffForHumans extends AbstractHelper
         
         $carbonDate = Carbon::instance($date);
         $format = '<abbr title="%s">%s</abbr>';
-    	$args = [
-    	    $this->view->dateFormat($date, \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT),
+        $args = [
+            $this->view->dateFormat($date, \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT),
             $carbonDate->diffForHumans(),
-	    ];
-    	return vsprintf($format, $args);
+        ];
+        return vsprintf($format, $args);
     }
 }

@@ -1,7 +1,7 @@
 <?php
 namespace SionModel\Service;
 
-use SionModel\Problem\Model\ProblemTable;
+use SionModel\Problem\ProblemTable;
 use SionModel\Problem\ProblemProviderInterface;
 use SionModel\Problem\EntityProblem;
 use Zend\Stdlib\ArrayUtils;

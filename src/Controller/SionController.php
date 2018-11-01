@@ -14,7 +14,6 @@ use Zend\Mvc\Controller\AbstractActionController;
 use SionModel\Db\Model\SionTable;
 use SionModel\Service\EntitiesService;
 use SionModel;
-use SionModel\Form\SionForm;
 use SionModel\Entity\Entity;
 use SionModel\Form\DeleteEntityForm;
 use Zend\Mvc\Plugin\FlashMessenger\FlashMessenger;
@@ -22,7 +21,6 @@ use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
 use Zend\View\Model\JsonModel;
 use Zend\Form\Form;
-use Zend\Mvc\Controller\Plugin\PluginInterface;
 
 class SionController extends AbstractActionController
 {
@@ -43,7 +41,7 @@ class SionController extends AbstractActionController
     */
     protected $entity;
     /**
-    * @var defaultRedirectRoute $defaultRedirectRoute
+    * @var string $defaultRedirectRoute
     */
     protected $defaultRedirectRoute;
     /**
@@ -139,31 +137,31 @@ class SionController extends AbstractActionController
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
                 ->addMessage(ucwords($entity).' not found.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            return $this->redirect ()->toRoute ( $redirectRoute);
+            return $this->redirect()->toRoute($redirectRoute);
         }
 
         if (!$this->isActionAllowed('show')) {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
             ->addMessage('Access to entity denied.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            return $this->redirect ()->toRoute ( $redirectRoute );
+            return $this->redirect()->toRoute($redirectRoute);
         }
 
         /** @var SionTable $table */
         $table = $this->getSionTable();
         if (!$table->existsEntity($entity, $id)) {
-            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            $this->redirect ()->toRoute ( $redirectRoute );
+            $this->redirect()->toRoute($redirectRoute);
         }
 
         $entityObject = $this->getEntityObject($id);
 //         var_dump($entityObject);
         //if the entity doesn't exist, redirect to the index or the default route
         if (!isset($entityObject)) {
-            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            $this->redirect ()->toRoute ( $redirectRoute );
+            $this->redirect()->toRoute($redirectRoute);
         }
 
         $changes = $table->getEntityChanges($entity, $id);
@@ -213,7 +211,7 @@ class SionController extends AbstractActionController
         $form = $this->createActionForm;
 
         $request = $this->getRequest();
-        if ($request->isPost ()) {
+        if ($request->isPost()) {
             $data = $this->getPostDataForCreateAction();
             $form->setData($data);
             if ($form->isValid()) {
@@ -232,7 +230,7 @@ class SionController extends AbstractActionController
                     $this->createEntityPostFormValidation($data, $form);
                 }
             } else {
-                $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+                $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review.');
             }
         }
         $view = new ViewModel([
@@ -266,10 +264,10 @@ class SionController extends AbstractActionController
         $entity = $this->getEntity();
         $table = $this->getSionTable();
         if (!($newId = $table->createEntity($entity, $data))) {
-            $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+            $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review.');
         } else {
-            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )
-            ->addMessage ( ucwords($entity).' successfully created.' );
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)
+            ->addMessage(ucwords($entity).' successfully created.');
             $this->redirectAfterCreate((int) $newId);
         }
     }
@@ -293,19 +291,23 @@ class SionController extends AbstractActionController
                 $entitySpec->createActionRedirectRouteKeyField == $entitySpec->entityKeyField ||
                 !isset($entitySpec->createActionRedirectRouteKey)
             ) {
-                $this->redirect ()->toRoute ($entitySpec->createActionRedirectRoute,
+                $this->redirect()->toRoute(
+                    $entitySpec->createActionRedirectRoute,
                     isset($entitySpec->createActionRedirectRouteKey) ?
-                    [$entitySpec->createActionRedirectRouteKey => $newId] : []);
+                    [$entitySpec->createActionRedirectRouteKey => $newId] : []
+                );
             } else {
                 $entityObj = $table->getObject($entity, $newId);
                 if (!isset($entityObj[$entitySpec->createActionRedirectRouteKeyField])) {
                     throw new \Exception('create_action_redirect_route_key_field is misconfigured for entity \''.$entity.'\'');
                 }
-                $this->redirect ()->toRoute ($entitySpec->createActionRedirectRoute,
-                    [$entitySpec->createActionRedirectRouteKey => $entityObj[$entitySpec->createActionRedirectRouteKeyField]]);
+                $this->redirect()->toRoute(
+                    $entitySpec->createActionRedirectRoute,
+                    [$entitySpec->createActionRedirectRouteKey => $entityObj[$entitySpec->createActionRedirectRouteKeyField]]
+                );
             }
         } else {
-            $this->redirect ()->toRoute ($this->getDefaultRedirectRoute());
+            $this->redirect()->toRoute($this->getDefaultRedirectRoute());
         }
     }
 
@@ -326,23 +328,23 @@ class SionController extends AbstractActionController
         $id = (Int)$this->getEntityIdParam('edit');
         //if the entity doesn't exist, redirect to the index or the default route
         if (! $id) {
-            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            $this->redirect ()->toRoute ( $redirectRoute);
+            $this->redirect()->toRoute($redirectRoute);
         }
         $entityObject = $this->getEntityObject($id);
         //if the entity doesn't exist, redirect to the index or the default route
         if (!isset($entityObject)) {
-            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            $this->redirect ()->toRoute ( $redirectRoute );
+            $this->redirect()->toRoute($redirectRoute);
         }
 
         if (!$this->isActionAllowed('edit')) {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
             ->addMessage('Access to entity denied.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            $this->redirect ()->toRoute ( $redirectRoute );
+            $this->redirect()->toRoute($redirectRoute);
         }
 
         if (!isset($this->editActionForm)) {
@@ -350,15 +352,15 @@ class SionController extends AbstractActionController
         }
         $form = $this->editActionForm;
 
-        $request = $this->getRequest ();
-        if ($request->isPost ()) {
+        $request = $this->getRequest();
+        if ($request->isPost()) {
             $data = $this->getPostDataForEditAction();
             $form->setData($data);
             if ($form->isValid()) {
                 $data = $form->getData();
                 $this->updateEntityPostFormValidation($id, $data, $form);
             } else {
-                $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+                $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review.');
             }
         } else {
             $form->setData($entityObject);
@@ -402,7 +404,7 @@ class SionController extends AbstractActionController
         /** @var SionTable $table **/
         $table = $this->getSionTable();
         $table->updateEntity($entity, $id, $data);
-        $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )->addMessage ( ucfirst($entity).' successfully updated.' );
+        $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)->addMessage(ucfirst($entity).' successfully updated.');
         $this->redirectAfterEdit($id);
     }
 
@@ -421,12 +423,14 @@ class SionController extends AbstractActionController
             if (!isset($entityObject[$entitySpec->showRouteKeyField])) {
                 throw new \Exception("show_route_key_field config for entity '$entity' refers to a key that doesn't exist");
             }
-            $this->redirect ()->toRoute ($entitySpec->showRoute,
-                    [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]);
+            $this->redirect()->toRoute(
+                $entitySpec->showRoute,
+                [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]
+            );
         } elseif ($entitySpec->indexRoute) {
-            $this->redirect ()->toRoute ($entitySpec->indexRoute);
+            $this->redirect()->toRoute($entitySpec->indexRoute);
         } else {
-            $this->redirect ()->toRoute ( $this->getDefaultRedirectRoute() );
+            $this->redirect()->toRoute($this->getDefaultRedirectRoute());
         }
     }
 
@@ -442,23 +446,23 @@ class SionController extends AbstractActionController
         $id = (Int)$this->getEntityIdParam('touch');
         //if the entity doesn't exist, redirect to the index or the default route
         if (! $id) {
-            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            $this->redirect ()->toRoute ( $redirectRoute);
+            $this->redirect()->toRoute($redirectRoute);
         }
         $entityObject = $this->getEntityObject($id);
         //if the entity doesn't exist, redirect to the index or the default route
         if (!isset($entityObject)) {
-            $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )->addMessage ( ucfirst($entity).' not found.' );
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
             $redirectRoute = $entitySpec->indexRoute ? $entitySpec->indexRoute : $this->getDefaultRedirectRoute();
-            $this->redirect ()->toRoute ( $redirectRoute );
+            $this->redirect()->toRoute($redirectRoute);
         }
 
         $form = new TouchForm();
 
-        $request = $this->getRequest ();
-        if ($request->isPost ()) {
-            $data = $request->getPost ()->toArray ();
+        $request = $this->getRequest();
+        if ($request->isPost()) {
+            $data = $request->getPost()->toArray();
             $form->setData($data);
             if ($form->isValid()) {
                 $data = $form->getData();
@@ -466,20 +470,22 @@ class SionController extends AbstractActionController
                 $table = $this->getSionTable();
                 $fieldToTouch = $this->whichFieldToTouch();
                 $table->touchEntity($entity, $id, $fieldToTouch);
-                $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )->addMessage ( ucfirst($entity).' successfully marked up-to-date.' );
+                $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)->addMessage(ucfirst($entity).' successfully marked up-to-date.');
                 if ($entitySpec->showRouteKey && $entitySpec->showRouteKey &&
                     $entitySpec->showRouteKeyField
                 ) {
                     if (!isset($entityObject[$entitySpec->showRouteKeyField])) {
                         throw new \Exception("show_route_key_field config for entity '$entity' refers to a key that doesn't exist");
                     }
-                    $this->redirect ()->toRoute ($entitySpec->showRoute,
-                        [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]);
+                    $this->redirect()->toRoute(
+                        $entitySpec->showRoute,
+                        [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]
+                    );
                 } else {
-                    $this->redirect ()->toRoute ( $this->getDefaultRedirectRoute() );
+                    $this->redirect()->toRoute($this->getDefaultRedirectRoute());
                 }
             } else {
-                $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+                $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review.');
             }
         } else {
             $form->setData($entityObject);
@@ -493,7 +499,7 @@ class SionController extends AbstractActionController
 
     /**
      * Touch the entity, and return the status through the HTTP code
-     * @return \Zend\Stdlib\ResponseInterface|\SionModel\Controller\JsonModel
+     * @return \Zend\Stdlib\ResponseInterface|JsonModel
      */
     public function touchJsonAction()
     {
@@ -504,7 +510,7 @@ class SionController extends AbstractActionController
         if (!isset($id)) {
             return $this->sendFailedMessage('Invalid id passed.');
         }
-        $callback = $this->params ()->fromQuery ('callback', null);
+        $callback = $this->params()->fromQuery('callback', null);
         if (!isset($callback)) {
             return $this->sendFailedMessage('All requests must include a callback function set as a query parameter \'callback\'.');
         }
@@ -512,7 +518,7 @@ class SionController extends AbstractActionController
         $form = new TouchForm();
 
         $request = $this->getRequest();
-        if (!$request->isPost ()) {
+        if (!$request->isPost()) {
             return $this->sendFailedMessage('Please use post method.');
         }
         //$data = Json::decode($request->getContent(), Json::TYPE_ARRAY);
@@ -556,8 +562,8 @@ class SionController extends AbstractActionController
 
         //make sure we have all the information that we need to delete
         if (!$entitySpec->isEnabledForEntityDelete()) {
-            $this->flashMessenger()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )
-            ->addMessage ( 'This entity cannot be deleted, please check the configuration.');
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
+            ->addMessage('This entity cannot be deleted, please check the configuration.');
             $this->redirectAfterDelete(false);
         }
 
@@ -570,12 +576,14 @@ class SionController extends AbstractActionController
 
         //@deprecated @todo remove this part
         if (isset($entitySpec->deleteActionAclResource) &&
-            !$this->isAllowed($entitySpec->deleteActionAclResource,
+            !$this->isAllowed(
+                $entitySpec->deleteActionAclResource,
                 $entitySpec->deleteActionAclPermission ?
-                $entitySpec->deleteActionAclPermission : null)
+                $entitySpec->deleteActionAclPermission : null
+            )
         ) {
-            $this->flashMessenger()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )
-            ->addMessage ( 'You do not have permission to delete this entity.');
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
+            ->addMessage('You do not have permission to delete this entity.');
             $this->redirectAfterDelete(false);
         }
 
@@ -585,22 +593,22 @@ class SionController extends AbstractActionController
         //make sure our entity exists
         if (!$table->existsEntity($entity, $id)) {
             $this->getResponse()->setStatusCode(401);
-            $this->flashMessenger()->setNamespace ( FlashMessenger::NAMESPACE_ERROR )
-                ->addMessage ( 'The entity you\'re trying to delete doesn\'t exists.' );
+            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
+                ->addMessage('The entity you\'re trying to delete doesn\'t exists.');
             $this->redirectAfterDelete(false);
         }
 
         $form = new DeleteEntityForm();
-        if ( $request->isPost ()) {
+        if ($request->isPost()) {
             $data = $request->getPost();
             $form->setData($data);
             if ($form->isValid()) {
                 $result = $table->deleteEntity($entity, $id);
-                $this->flashMessenger ()->setNamespace ( FlashMessenger::NAMESPACE_SUCCESS )
-                ->addMessage ( 'Entity successfully deleted.' );
+                $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)
+                ->addMessage('Entity successfully deleted.');
                 $this->redirectAfterDelete(true);
             } else {
-                $this->nowMessenger ()->setNamespace ( NowMessenger::NAMESPACE_ERROR )->addMessage ( 'Error in form submission, please review.' );
+                $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review.');
                 $this->getResponse()->setStatusCode(401); //exists, but either didn't match params or bad csrf
             }
         }
@@ -609,12 +617,12 @@ class SionController extends AbstractActionController
         $form->setAttribute('action', $this->getRequest()->getRequestUri());
         $entityObject = $this->getEntityObject($id);
 
-        $view = new ViewModel ( [
+        $view = new ViewModel([
             'form' => $form,
             'entity' => $entity,
             'entityId' => $id,
             'entityObject' => $entityObject,
-        ] );
+        ]);
         //@todo first check if the Controller has a default template, if not
         //look for a configuration value, if not, use the default template
         $view->setTemplate('sion-model/sion-model/delete');
@@ -659,7 +667,7 @@ class SionController extends AbstractActionController
         $isAllowedPlugin = null;
         try {
             $isAllowedPlugin = $this->plugin('isAllowed');
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
         }
         //if we don't have the isAllowed plugin, just allow
         if (!is_callable($isAllowedPlugin)) {
@@ -729,7 +737,7 @@ class SionController extends AbstractActionController
         $entitySpec = $this->getEntitySpecification();
         $touchField = null;
         if (isset($entitySpec->touchFieldRouteKey)) {
-            $touchField = $this->params ()->fromRoute ($entitySpec->touchFieldRouteKey);
+            $touchField = $this->params()->fromRoute($entitySpec->touchFieldRouteKey);
             if (isset($entitySpec->updateColumns[$touchField])) {
                 return $touchField;
             }
@@ -840,7 +848,7 @@ class SionController extends AbstractActionController
 
     /**
      * Get the defaultRedirectRoute value
-     * @return defaultRedirectRoute
+     * @return string
      */
     public function getDefaultRedirectRoute()
     {
@@ -854,7 +862,7 @@ class SionController extends AbstractActionController
 
     /**
      *
-     * @param defaultRedirectRoute $defaultRedirectRoute
+     * @param string $defaultRedirectRoute
      * @return self
      */
     public function setDefaultRedirectRoute($defaultRedirectRoute)

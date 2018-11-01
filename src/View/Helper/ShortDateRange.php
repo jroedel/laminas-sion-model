@@ -39,7 +39,7 @@ class ShortDateRange extends AbstractHelper
         }
         $fullLeaderDate .= ')';
         $shortLeaderDate .= ')';
-		$tooltip = '<span data-toggle="tooltip" title="%s">%s</span>';
+        $tooltip = '<span data-toggle="tooltip" title="%s">%s</span>';
         return sprintf($tooltip, $fullLeaderDate, $shortLeaderDate);
     }
 }

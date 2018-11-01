@@ -30,15 +30,14 @@ class TouchForm extends Form implements InputFilterProviderInterface
         ]);
         $this->add([
             'name' => 'cancel',
-// 			'type' => 'Submit',
+//          'type' => 'Submit',
             'attributes' => [
                 'value' => 'Cancel',
                 'id' => 'submit',
                 'data-dismiss' => 'modal'
-// 				'class' => 'btn-danger'
+//              'class' => 'btn-danger'
             ],
         ]);
-
     }
 
     public function getInputFilterSpecification()

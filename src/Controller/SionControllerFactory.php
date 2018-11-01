@@ -1,25 +1,28 @@
 <?php
 namespace SionModel\Controller;
 
-use Zend\ServiceManager\ServiceLocatorInterface;
 use Interop\Container\ContainerInterface;
 use Zend\ServiceManager\Factory\AbstractFactoryInterface;
 use SionModel\Service\EntitiesService;
+use Zend\ServiceManager\Exception\ServiceNotFoundException;
+use Zend\ServiceManager\Exception\ServiceNotCreatedException;
 
 class SionControllerFactory implements AbstractFactoryInterface
 {
     /** @var EntitiesService $entitiesService */
     protected $entitiesService;
-    
+
     public function canCreate(ContainerInterface $container, $requestedName)
     {
-        $parentLocator = $container->getServiceLocator();
-        /** @var EntitiesService $entitiesService */
-        $this->entitiesService = $parentLocator->get(EntitiesService::class);
+        if (!isset($this->entitiesService)) {
+            $parentLocator = $container->getServiceLocator();
+            /** @var EntitiesService $entitiesService */
+            $this->entitiesService = $parentLocator->get(EntitiesService::class);
+        }
         $controllers = $this->entitiesService->getEntityControllers();
         return array_key_exists($requestedName, $controllers);
     }
-    
+
     /**
      * These aliases work to substitute class names with SM types that are buried in ZF
      * @var array
@@ -29,7 +32,7 @@ class SionControllerFactory implements AbstractFactoryInterface
         'Zend\Validator\ValidatorPluginManager' => 'ValidatorManager',
         'Zend\Mvc\I18n\Translator' => 'translator',
     ];
-    
+
     /**
      * Create an object
      *
@@ -40,23 +43,27 @@ class SionControllerFactory implements AbstractFactoryInterface
      * @throws ServiceNotFoundException if unable to resolve the service.
      * @throws ServiceNotCreatedException if an exception is raised when
      *     creating a service.
-     * @throws ContainerException if any other error occurs
+     * @throws \Exception if any other error occurs
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-       $parentLocator = $container->getServiceLocator();
+        $parentLocator = $container->getServiceLocator();
+        if (!isset($this->entitiesService)) {
+            /** @var EntitiesService $entitiesService */
+            $this->entitiesService = $parentLocator->get(EntitiesService::class);
+        }
         //figure out what entity we're dealing with
         $entitiesSpecs = $this->entitiesService->getEntities();
         $controllers = $this->entitiesService->getEntityControllers();
         $entity = $controllers[$requestedName];
         $entitySpec = $entitiesSpecs[$entity];
-        
+
         //get sionTable
         if (!$parentLocator->has($entitySpec->sionModelClass)) {
             throw new \Exception('Invalid SionModel class set for entity \''.$entity.'\'');
         }
         $sionTable = $parentLocator->get($entitySpec->sionModelClass);
-        
+
         //get createActionForm
         /** @var SionForm $createActionForm **/
         $createActionForm = null;
@@ -65,7 +72,7 @@ class SionControllerFactory implements AbstractFactoryInterface
         } elseif (class_exists($entitySpec->createActionForm)) {
             $createActionForm = new $entitySpec->createActionForm;
         }
-        
+
         //get editActionForm
         /** @var SionForm $editActionForm **/
         $editActionForm = null;
@@ -75,10 +82,10 @@ class SionControllerFactory implements AbstractFactoryInterface
             $className = $entitySpec->editActionForm;
             $editActionForm = new $className();
         }
-        
+
         //get sionModelConfig
         $config = $parentLocator->get('Config');
-        
+
         //get other requested services
         $services = [];
         foreach ($entitySpec->controllerServices as $service) {
@@ -88,44 +95,15 @@ class SionControllerFactory implements AbstractFactoryInterface
             }
             $services[$service] = $obj;
         }
-        
-        return new $requestedName($entity, $this->entitiesService, $sionTable, $createActionForm, $editActionForm, $config, $services);
-        
-//         $class = new \ReflectionClass($requestedName);
-//         $parentLocator = $container->getServiceLocator();
-//         if( $constructor = $class->getConstructor() )
-//         {
-//             if( $params = $constructor->getParameters() )
-//             {
-//                 $parameter_instances = [];
-//                 foreach( $params as $p )
-//                 {
-                    
-//                     if( $p->getClass() ) {
-//                         $cn = $p->getClass()->getName();
-//                         if (array_key_exists($cn, $this->aliases)) {
-//                             $cn = $this->aliases[$cn];
-//                         }
-                        
-//                         try {
-//                             $parameter_instances[] = $parentLocator->get($cn);
-//                         }
-//                         catch (\Exception $x) {
-//                             echo __CLASS__
-//                             . " couldn't create an instance of $cn to satisfy the constructor for $requestedName.";
-//                             exit;
-//                         }
-//                     }
-//                     else{
-//                         if( $p->isArray() && $p->getName() == 'config' )
-//                             $parameter_instances[] = $parentLocator->get('config');
-//                     }
-                    
-//                 }
-//                 return $class->newInstanceArgs($parameter_instances);
-//             }
-//         }
-        
-//         return new $requestedName;
+
+        return new $requestedName(
+            $entity,
+            $this->entitiesService,
+            $sionTable,
+            $createActionForm,
+            $editActionForm,
+            $config,
+            $services
+        );
     }
 }

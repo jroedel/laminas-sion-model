@@ -25,7 +25,7 @@ class PredicatesTableFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $sionModelConfig = $container->get ( 'SionModel\Config' );
+        $sionModelConfig = $container->get('SionModel\Config');
 
         $dbAdapter = $container->get(Adapter::class);
 
@@ -36,6 +36,6 @@ class PredicatesTableFactory implements FactoryInterface
 
         $table = new PredicatesTable($dbAdapter, $container, $actingUserId);
 
-		return $table;
+        return $table;
     }
 }

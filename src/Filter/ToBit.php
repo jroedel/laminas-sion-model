@@ -1,5 +1,6 @@
 <?php
 namespace SionModel\Filter;
+
 use Zend\Filter\AbstractFilter;
 
 class ToBit extends AbstractFilter

@@ -24,7 +24,7 @@ class FilesTableFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $sionModelConfig = $container->get ( 'SionModel\Config' );
+        $sionModelConfig = $container->get('SionModel\Config');
         if (!isset($config['files_directory']) || empty($config['public_files_directory'])) {
             throw new \Exception('Please specify the \'files_directory\' and \'public_files_directory\' keys to use the FilesTable.');
         }
@@ -38,6 +38,6 @@ class FilesTableFactory implements FactoryInterface
 
         $table = new FilesTable($dbAdapter, $container, $actingUserId, $sionModelConfig);
 
-		return $table;
+        return $table;
     }
 }

@@ -8,7 +8,7 @@ class PredicatesTable extends SionTable
 {
     /**
      * Query params are [predicateKind|objectEntityKind,objectId(array|string)]
-     * 
+     *
      * @param array $query
      * @param array $options
      */

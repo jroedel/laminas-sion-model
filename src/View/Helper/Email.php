@@ -11,19 +11,19 @@ class Email extends AbstractHelper
 {
     public function __invoke($email, $onlyGlyph = false)
     {
-    	$trimFilter = new StringTrim();
-    	$emailValidator = new EmailAddress();
-    	$email = $trimFilter->filter($email);
-    	if ($emailValidator->isValid($email)) {
-    		$return = '<a href="mailto:'.$this->getView()->escapeHtml($email).'">';
-    		if ($onlyGlyph) {
+        $trimFilter = new StringTrim();
+        $emailValidator = new EmailAddress();
+        $email = $trimFilter->filter($email);
+        if ($emailValidator->isValid($email)) {
+            $return = '<a href="mailto:'.$this->getView()->escapeHtml($email).'">';
+            if ($onlyGlyph) {
                 $return .= '<span class="glyphicon glyphicon-envelope"></span>';
-    		} else {
-    		    $return .= $this->getView()->escapeHtml($email);
-    		}
-    		return $return.'</a>';
-    	} else {
-    		return '';
-    	}
+            } else {
+                $return .= $this->getView()->escapeHtml($email);
+            }
+            return $return.'</a>';
+        } else {
+            return '';
+        }
     }
 }

@@ -19,7 +19,7 @@ class FormatEntityFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $entityService = $container->get ( EntitiesService::class );
+        $entityService = $container->get(EntitiesService::class);
 
         $config = $container->get('SionModel\Config');
 
@@ -27,6 +27,6 @@ class FormatEntityFactory implements FactoryInterface
             (bool)$config['route_permission_checking_enabled'] : false;
 
         $viewHelper = new FormatEntity($entityService, $routePermissionCheckingEnabled);
-		return $viewHelper;
+        return $viewHelper;
     }
 }

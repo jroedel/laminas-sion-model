@@ -8,7 +8,6 @@ namespace SionModel\Service;
 
 use Zend\ServiceManager\Factory\FactoryInterface;
 use Interop\Container\ContainerInterface;
-use SionModel\Problem\ProblemTable;
 use SionModel\Problem\EntityProblem;
 
 /**
@@ -25,7 +24,7 @@ class ProblemServiceFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $config = $container->get ( 'SionModel\Config' );
+        $config = $container->get('SionModel\Config');
         if (!isset($config['problem_specifications']) || empty($config['problem_specifications'])) {
             throw new \Exception('Please set specify potential problems in app config under key [\'sion_model\'][\'problem_specifications\'].');
         }
@@ -33,17 +32,17 @@ class ProblemServiceFactory implements FactoryInterface
         /**
          * @var EntitiesService $entities
          */
-        $entities = $container->get ( 'SionModel\Service\EntitiesService' );
+        $entities = $container->get('SionModel\Service\EntitiesService');
 
         $problemPrototype = new EntityProblem($entities->getEntities(), $config['problem_specifications']);
 
         /**
          * @var ProblemTable $problemTable
          */
-		$problemTable = $container->get('SionModel\Problem\ProblemTable');
+        $problemTable = $container->get('SionModel\Problem\ProblemTable');
 
         $problemService = new ProblemService($container, $problemTable, $config['problem_providers'], $problemPrototype);
 
-		return $problemService;
+        return $problemService;
     }
 }

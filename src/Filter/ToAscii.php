@@ -10,6 +10,7 @@
 namespace SionModel\Filter;
 
 use Zend\Filter\AbstractFilter;
+
 class ToAscii extends AbstractFilter
 {
     public function __construct()
@@ -27,20 +28,21 @@ class ToAscii extends AbstractFilter
      * @param  string $value
      * @return int|mixed
      */
-    public function filter($str, $delimiter=' ', $replace=[]) {
+    public function filter($str, $delimiter = ' ', $replace = [])
+    {
         if (!isset($str) || is_array($str)) {
             return $str;
         }
-		$str = \ForceUTF8\Encoding::toUTF8($str);
-		
-		if( is_array($replace) && !empty($replace) ) {
-			$str = str_replace((array)$replace, ' ', $str);
-		}
-		$clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
-		$clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);
-		$clean = strtolower(trim($clean, '-'));
-		$clean = preg_replace('/[\/_|+ -]/', $delimiter, $clean);
+        $str = \ForceUTF8\Encoding::toUTF8($str);
+        
+        if (is_array($replace) && !empty($replace)) {
+            $str = str_replace((array)$replace, ' ', $str);
+        }
+        $clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
+        $clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);
+        $clean = strtolower(trim($clean, '-'));
+        $clean = preg_replace('/[\/_|+ -]/', $delimiter, $clean);
         $clean = iconv("ASCII", "UTF-8", $clean);
-		return $clean;
+        return $clean;
     }
 }
