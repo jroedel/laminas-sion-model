@@ -1,6 +1,6 @@
 <?php
 
-return array(
+return [
     '(General or main) Secretary' => '(General or main) Secretary',
     'Assignment Id: 148' => 'Assignment Id: 148',
     'Assignment Id: 157' => 'Assignment Id: 157',
@@ -9,7 +9,6 @@ return array(
     'Assistant moderator' => 'Assistant moderator',
     'Branch leader' => 'Branch leader',
     'Branch moderator' => 'Branch moderator',
-    'Colegio Mayor' => 'Colegio Mayor',
     'Committee member' => 'Committee member',
     'Coordination assistant' => 'Coordination assistant',
     'Coordinator' => 'Coordinator',
@@ -20,6 +19,7 @@ return array(
     'First councilor' => 'First councilor',
     'Fr.' => 'Fr.',
     'General superior' => 'General superior',
+    'Information has been hand checked' => 'Information has been hand checked',
     'Member' => 'Member',
     'Moderator' => 'Moderator',
     'Movement director' => 'Movement director',
@@ -27,11 +27,12 @@ return array(
     'Ms.' => 'Ms.',
     'No email associated with person' => 'No email associated with person',
     'President' => 'President',
+    'Public contact' => 'Public contact',
+    'Rector' => 'Rector',
     'Regens' => 'Regens',
     'Regional movement director' => 'Regional movement director',
     'Regional movement sister' => 'Regional movement sister',
-    'Rektor' => 'Rektor',
     'Schoenstatt Link' => 'Schoenstatt Link',
     'Secretaría Nacional' => 'National Secretariat',
     'Sr.' => 'Sr.',
-);
+];

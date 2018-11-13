@@ -1,7 +1,6 @@
 <?php
 
-return array(
-    'Colegio Mayor' => 'Colegio Mayor',
+return [
     'Coordination assistant' => 'Apoyo a Coordinación',
     'Coordinator' => 'Coordinador',
     'Councilor' => 'Consejero',
@@ -11,14 +10,15 @@ return array(
     'First councilor' => 'Primer consejero',
     'Fr.' => 'P.',
     'General superior' => 'Superior general',
+    'Information has been hand checked' => 'Información ha sido verificada manualmente',
     'Member' => 'Miembro',
     'Moderator' => 'Asesor',
     'Movement director' => 'Director del Movimiento',
     'Mr.' => 'Sr.',
     'Ms.' => 'Sra.',
     'President' => 'Presidente',
-    'Rektor' => 'Rector',
+    'Rector' => 'Rector',
     'Schoenstatt Link' => 'Schoenstatt Link',
     'Secretaría Nacional' => 'Secretaría Nacional',
     'Sr.' => 'Hna.',
-);
+];

@@ -1,7 +1,6 @@
 <?php
 
-return array(
-    'Colegio Mayor' => 'Colegio Mayor',
+return [
     'Coordinator' => 'Koordinator',
     'Councilor' => 'Rats- oder Leitungsmitglied',
     'Diocesan coordinator' => 'Diözesankoordinator',
@@ -14,8 +13,8 @@ return array(
     'Mr.' => 'Herr',
     'Ms.' => 'Frau',
     'President' => 'Vorsitzender',
-    'Rektor' => 'Rektor',
+    'Rector' => 'Rektor',
     'Schoenstatt Link' => 'Schoenstatt Link',
     'Secretaría Nacional' => 'Nationales Sekretariat',
     'Sr.' => 'Sr.',
-);
+];

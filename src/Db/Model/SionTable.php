@@ -476,6 +476,42 @@ class SionTable
     }
 
     /**
+     * Validate urls and configure their labels
+     * @param string[] $unprocessedUrls Should be a 2-dimensional array, each element containing a 'url' and 'label' key
+     * @throws \InvalidArgumentException
+     * @return string[]
+     *
+     * @todo check URL against Google Safe Browsing
+     */
+    public static function processJsonUrls($unprocessedUrls)
+    {
+        if (null === $unprocessedUrls) {
+            return null;
+        }
+        if (!is_array($unprocessedUrls)) {
+            throw new \InvalidArgumentException('unprocessedUrls must be a 2-dimensional array, each element containing keys \'url\' and \'label\'');
+        }
+        $urls = [];
+        foreach ($unprocessedUrls as $urlRow) {
+            if (!key_exists('url', $urlRow)) {
+                throw new \InvalidArgumentException('Each element of unprocessedUrls must contain key \'url\'');
+            }
+            if (null !== $urlRow['url']) {
+                $url = new Http($urlRow['url']);
+                if ($url->isValid()) {
+                    $urls[] = $url->toString();
+                }
+            }
+        }
+        if (0 === count($urls)) {
+            $urls = null;
+        } elseif (1 === count($urls)) {
+            $urls = $urls[0];
+        }
+        return $urls;
+    }
+
+    /**
      * Return the EntitySpec for a given $entity string identifier
      * @param string $entity
      * @throws \Exception

@@ -70,21 +70,21 @@ class SionController extends AbstractActionController
     protected $actionEntityIds = [];
 
     protected $createActionForm;
-    
+
     protected $editActionForm;
-    
+
     /** @var EntitiesService $entitiesService */
     protected $entitiesService;
-    
+
     protected $config;
-    
+
     /**
      * If a SionController needs more services than those provided they can specify these
      * in the 'controller_services' configuration, and they will be injected into this array.
      * @var array $services
      */
     protected $services;
-    
+
     /**
      * @param string $entity
      * @throws \Exception
@@ -132,7 +132,7 @@ class SionController extends AbstractActionController
         if (!isset($entitySpec->showRouteKey)) {
             throw new \Exception("Please set the show_route_key config key of $entity in order to use the showAction.");
         }
-        $id = (Int)$this->getEntityIdParam('show');
+        $id = $this->getEntityIdParam('show');
         if (!$id) {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
                 ->addMessage(ucwords($entity).' not found.');
@@ -156,7 +156,6 @@ class SionController extends AbstractActionController
         }
 
         $entityObject = $this->getEntityObject($id);
-//         var_dump($entityObject);
         //if the entity doesn't exist, redirect to the index or the default route
         if (!isset($entityObject)) {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
@@ -325,7 +324,7 @@ class SionController extends AbstractActionController
         if (!isset($entitySpec->editRouteKey)) {
             throw new \Exception("Please set the edit_route_key config key of $entity in order to use the editAction.");
         }
-        $id = (Int)$this->getEntityIdParam('edit');
+        $id = $this->getEntityIdParam('edit');
         //if the entity doesn't exist, redirect to the index or the default route
         if (! $id) {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
@@ -443,7 +442,7 @@ class SionController extends AbstractActionController
     {
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-        $id = (Int)$this->getEntityIdParam('touch');
+        $id = $this->getEntityIdParam('touch');
         //if the entity doesn't exist, redirect to the index or the default route
         if (! $id) {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)->addMessage(ucfirst($entity).' not found.');
@@ -506,7 +505,7 @@ class SionController extends AbstractActionController
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
 
-        $id = (Int)$this->getEntityIdParam('touchJson');
+        $id = $this->getEntityIdParam('touchJson');
         if (!isset($id)) {
             return $this->sendFailedMessage('Invalid id passed.');
         }
@@ -555,7 +554,7 @@ class SionController extends AbstractActionController
     public function deleteAction()
     {
         $entity = $this->getEntity();
-        $id = (Int)$this->getEntityIdParam('delete');
+        $id = $this->getEntityIdParam('delete');
         $entitySpec = $this->getEntitySpecification();
 
         $request = $this->getRequest();
@@ -590,6 +589,8 @@ class SionController extends AbstractActionController
         //make sure our table exists
         $table = $this->getSionTable();
 
+        var_dump($id);
+        return;
         //make sure our entity exists
         if (!$table->existsEntity($entity, $id)) {
             $this->getResponse()->setStatusCode(401);
@@ -703,15 +704,25 @@ class SionController extends AbstractActionController
         if (isset($this->actionRouteKeys[$action])) {
             $actionRouteKey = $this->actionRouteKeys[$action];
             if (isset($entitySpec->$actionRouteKey)) {
-                return $this->actionEntityIds[$action] =
-                    $this->params()->fromRoute($entitySpec->$actionRouteKey, $default);
+                $id = $this->params()->fromRoute($entitySpec->$actionRouteKey, $default);
+                if (is_numeric($id)) {
+                    $this->actionEntityIds[$action] = (int)$id;
+                } else {
+                    $this->actionEntityIds[$action] = $id;
+                }
+                return $this->actionEntityIds[$action];
             }
         } else {
             $actionRouteKey = 'defaultRouteKey';
         }
         if (isset($entitySpec->defaultRouteKey)) {
-            return $this->actionEntityIds[$action] =
-                $this->params()->fromRoute($entitySpec->defaultRouteKey, $default);
+            $id = $this->params()->fromRoute($entitySpec->defaultRouteKey, $default);
+            if (is_numeric($id)) {
+                $this->actionEntityIds[$action] = (int)$id;
+            } else {
+                $this->actionEntityIds[$action] = $id;
+            }
+            return $this->actionEntityIds[$action];
         }
         throw new \Exception("Please configure the $actionRouteKey for the $entity entity to use the $action action.");
     }
