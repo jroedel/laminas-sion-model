@@ -6,5 +6,5 @@ vendor/
 /tests/
 /composer.phar
 phploy.ini
-phploy.phar
 phploy.log
+.phploy
