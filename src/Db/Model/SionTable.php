@@ -483,7 +483,7 @@ class SionTable
      *
      * @todo check URL against Google Safe Browsing
      */
-    public static function processJsonUrls($unprocessedUrls)
+    public static function processJsonUrls($unprocessedUrls, $unacceptedLabels = [])
     {
         if (null === $unprocessedUrls) {
             return null;
@@ -491,10 +491,22 @@ class SionTable
         if (!is_array($unprocessedUrls)) {
             throw new \InvalidArgumentException('unprocessedUrls must be a 2-dimensional array, each element containing keys \'url\' and \'label\'');
         }
+        $lowerUnacceptedLabels = [];
+        foreach ($unacceptedLabels as $value) {
+            if (is_string($value)) {
+                $lowerUnacceptedLabels[] = strtolower($value);
+            }
+        }
+
         $urls = [];
         foreach ($unprocessedUrls as $urlRow) {
             if (!key_exists('url', $urlRow)) {
                 throw new \InvalidArgumentException('Each element of unprocessedUrls must contain key \'url\'');
+            }
+            if (isset($urlRow['label'])
+                && in_array(strtolower($urlRow['label']), $lowerUnacceptedLabels)
+            ) {
+                continue;
             }
             if (null !== $urlRow['url']) {
                 $url = new Http($urlRow['url']);

@@ -31,6 +31,7 @@ use Zend\ServiceManager\Proxy\LazyServiceFactory;
 use SionModel\Db\Model\PredicatesTable;
 use SionModel\Service\SionModelControllerFactory;
 use SionModel\Service\ChangesCollector;
+use SionModel\View\Helper\HelpBlock;
 
 return [
     'view_helpers' => [
@@ -43,17 +44,18 @@ return [
             'routeName'             => Service\RouteNameFactory::class,
         ],
         'invokables' => [
-            'formRow'               => SionFormRow::class,
-            'dayFormat'             => DayFormat::class,
-            'debugEncoding'         => DebugEncoding::class,
-            'diffForHumans'         => DiffForHumans::class,
-            'email'                 => Email::class,
-            'formatUrlObject'       => FormatUrlObject::class,
-            'jshrink'               => Jshrink::class,
-            'shortDateRange'        => ShortDateRange::class,
-            'telephone'             => Telephone::class,
-            'telephoneList'         => TelephoneList::class,
-            'tooltip'               => Tooltip::class,
+            'formRow'               => View\Helper\SionFormRow::class,
+            'dayFormat'             => View\Helper\DayFormat::class,
+            'debugEncoding'         => View\Helper\DebugEncoding::class,
+            'diffForHumans'         => View\Helper\DiffForHumans::class,
+            'email'                 => View\Helper\Email::class,
+            'formatUrlObject'       => View\Helper\FormatUrlObject::class,
+            'helpBlock'             => View\Helper\HelpBlock::class,
+            'jshrink'               => View\Helper\Jshrink::class,
+            'shortDateRange'        => View\Helper\ShortDateRange::class,
+            'telephone'             => View\Helper\Telephone::class,
+            'telephoneList'         => View\Helper\TelephoneList::class,
+            'tooltip'               => View\Helper\Tooltip::class,
         ],
     ],
     'validators' => [
