@@ -811,8 +811,15 @@ class SionTable
      * @param string|null $scope
      * @param string[]|null $manyToOneUpdateColumns
      */
-    protected function createHelper($data, $requiredCols, $updateCols, $entityType, $tableGateway, $manyToOneUpdateColumns = null, $reportChanges = false)
-    {
+    protected function createHelper(
+        $data,
+        $requiredCols,
+        $updateCols,
+        $entityType,
+        $tableGateway,
+        $manyToOneUpdateColumns = null,
+        $reportChanges = false
+    ) {
         //make sure required cols are being passed
         foreach ($requiredCols as $colName) {
             if (!isset($data[$colName])) {
@@ -875,7 +882,7 @@ class SionTable
             $updateVals[$updateCols['createdBy']] = $this->actingUserId;
         }
         if (count($updateVals) > 0) {
-            $resultsInsert = $tableGateway->insert($updateVals);
+            $tableGateway->insert($updateVals);
             $newId = $tableGateway->getLastInsertValue();
             $changeVals = [[
                 'entity'   => $entityType,
@@ -1219,8 +1226,6 @@ class SionTable
      */
     public function registerVisit($entity, $entityId)
     {
-        $entitySpec = $this->getEntitySpecification($entity);
-
         if (!is_numeric($entityId)) {
             throw new \InvalidArgumentException('Invalid entity id submitted for visit registration');
         }
@@ -1298,6 +1303,7 @@ class SionTable
         }
         $objects = $this->persistentCache->getItem($key, $success, $casToken);
         if ($success) {
+            $this->memoryCache[$key]=$objects;
             return $this->memoryCache[$key];
         }
         $null = null;
@@ -1519,6 +1525,7 @@ class SionTable
         $re = '/[0-9\.-]+/u';
 //         $str = 'POINT(76.2144 10.5276)';
 
+        $matches = null;
         preg_match_all($re, $str, $matches, PREG_SET_ORDER, 0);
 
         // Print the entire match result
