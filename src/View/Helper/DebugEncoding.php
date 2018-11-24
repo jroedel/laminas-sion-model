@@ -20,5 +20,6 @@ class DebugEncoding extends AbstractHelper
         foreach (mb_list_encodings() as $chr) {
             $return .= '<span>'.mb_convert_encoding($string, 'UTF-8', $chr)." : ".$chr."</span><br>";
         }
+        return $return;
     }
 }

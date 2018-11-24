@@ -1,7 +1,6 @@
 <?php
 namespace SionModel\Db\Model;
 
-use Zend\Validator\File\Extension;
 use Zend\Db\Adapter\AdapterInterface;
 
 class FilesTable extends SionTable

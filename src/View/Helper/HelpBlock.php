@@ -4,8 +4,6 @@
 namespace SionModel\View\Helper;
 
 use Zend\View\Helper\AbstractHelper;
-use Zend\Validator\EmailAddress;
-use Zend\Filter\StringTrim;
 use Zend\Form\ElementInterface;
 
 class HelpBlock extends AbstractHelper

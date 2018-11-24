@@ -406,7 +406,6 @@ class SionController extends AbstractActionController
     public function updateEntityPostFormValidation($id, $data, $form)
     {
         $entity = $this->getEntity();
-        $entitySpec = $this->getEntitySpecification();
         /** @var SionTable $table **/
         $table = $this->getSionTable();
         $table->updateEntity($entity, $id, $data);
@@ -511,7 +510,6 @@ class SionController extends AbstractActionController
     public function touchJsonAction()
     {
         $entity = $this->getEntity();
-        $entitySpec = $this->getEntitySpecification();
 
         $id = $this->getEntityIdParam('touchJson');
         if (!isset($id)) {
@@ -610,7 +608,7 @@ class SionController extends AbstractActionController
             $data = $request->getPost();
             $form->setData($data);
             if ($form->isValid()) {
-                $result = $table->deleteEntity($entity, $id);
+                $table->deleteEntity($entity, $id);
                 $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)
                 ->addMessage('Entity successfully deleted.');
                 return $this->redirectAfterDelete(true);

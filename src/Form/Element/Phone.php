@@ -11,7 +11,6 @@ namespace SionModel\Form\Element;
 
 use Zend\Filter\StringTrim;
 use Zend\Filter\StripNewlines;
-use Zend\Form\Element;
 use Zend\InputFilter\InputProviderInterface;
 use SionModel\Validator\Phone as PhoneValidator;
 use Zend\Validator\ValidatorInterface;

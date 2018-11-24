@@ -1,37 +1,9 @@
 <?php
 namespace SionModel;
 
-use SionModel\Form\View\Helper\SionFormRow;
-use SionModel\I18n\View\Helper\DayFormat;
-use SionModel\View\Helper\DebugEncoding;
-use SionModel\View\Helper\DiffForHumans;
-use SionModel\View\Helper\Email;
-use SionModel\View\Helper\FormatUrlObject;
-use SionModel\View\Helper\Jshrink;
-use SionModel\View\Helper\ShortDateRange;
-use SionModel\View\Helper\Telephone;
-use SionModel\View\Helper\TelephoneList;
-use SionModel\View\Helper\Tooltip;
-use SionModel\Validator\Skype;
-use SionModel\Validator\Twitter;
-use SionModel\Validator\Instagram;
-use SionModel\Validator\Phone;
-use SionModel\Validator\Slack;
-use SionModel\Db\Model\FilesTable;
-use SionModel\Form\SuggestForm;
-use SionModel\Problem\ProblemTable;
-use SionModel\Service\EntitiesService;
-use SionModel\Mailing\Mailer;
-use SionModel\Service\ProblemService;
-use SionModel\Controller\SionModelController;
 use Zend\Router\Http\Literal;
 use Zend\Router\Http\Segment;
-use SionModel\Controller\SionControllerFactory;
 use Zend\ServiceManager\Proxy\LazyServiceFactory;
-use SionModel\Db\Model\PredicatesTable;
-use SionModel\Service\SionModelControllerFactory;
-use SionModel\Service\ChangesCollector;
-use SionModel\View\Helper\HelpBlock;
 
 return [
     'view_helpers' => [
@@ -44,8 +16,8 @@ return [
             'routeName'             => Service\RouteNameFactory::class,
         ],
         'invokables' => [
-            'formRow'               => View\Helper\SionFormRow::class,
-            'dayFormat'             => View\Helper\DayFormat::class,
+            'formRow'               => Form\View\Helper\SionFormRow::class,
+            'dayFormat'             => I18n\View\Helper\DayFormat::class,
             'debugEncoding'         => View\Helper\DebugEncoding::class,
             'diffForHumans'         => View\Helper\DiffForHumans::class,
             'email'                 => View\Helper\Email::class,
@@ -60,11 +32,11 @@ return [
     ],
     'validators' => [
         'invokables' => [
-            'Skype'     => Skype::class,
-            'Twitter'   => Twitter::class,
-            'Instagram' => Instagram::class,
-            'Phone'     => Phone::class,
-            'Slack'     => Slack::class,
+            'Skype'     => Validator\Skype::class,
+            'Twitter'   => Validator\Twitter::class,
+            'Instagram' => Validator\Instagram::class,
+            'Phone'     => Validator\Phone::class,
+            'Slack'     => Validator\Slack::class,
          ],
     ],
     'form_elements' => [
@@ -83,10 +55,10 @@ return [
             //SionModelController::class => SionModelController::class,
         ],
         'factories' => [
-            SionModelController::class => SionModelControllerFactory::class,
+            Controller\SionModelController::class => Service\SionModelControllerFactory::class,
         ],
         'abstract_factories' => [
-            SionControllerFactory::class,
+            Controller\SionControllerFactory::class,
             \SionModel\Controller\LazyControllerFactory::class,
         ],
     ],
@@ -94,49 +66,49 @@ return [
         'factories' => [
             'CountryValueOptions'           => Service\CountryValueOptionsFactory::class,
             'SionModel\Config'              => Service\ConfigServiceFactory::class,
-            FilesTable::class               => Service\FilesTableFactory::class,
+            Db\Model\FilesTable::class      => Service\FilesTableFactory::class,
             Form\SuggestForm::class         => Service\SuggestFormFactory::class,
             'SionModel\PersistentCache'     => Service\PersistentCacheFactory::class,
-            ProblemTable::class             => Service\ProblemTableFactory::class,
-            EntitiesService::class          => Service\EntitiesServiceFactory::class,
-            ProblemService::class           => Service\ProblemServiceFactory::class,
-            ChangesCollector::class         => Service\ChangesCollectorFactory::class,
-            Mailer::class                   => Service\MailerFactory::class,
-            PredicatesTable::class          => Service\PredicatesTableFactory::class,
+            Problem\ProblemTable::class     => Service\ProblemTableFactory::class,
+            Service\EntitiesService::class  => Service\EntitiesServiceFactory::class,
+            Service\ProblemService::class   => Service\ProblemServiceFactory::class,
+            Service\ChangesCollector::class => Service\ChangesCollectorFactory::class,
+            Mailing\Mailer::class           => Service\MailerFactory::class,
+            Db\Model\PredicatesTable::class => Service\PredicatesTableFactory::class,
         ],
         'lazy_services' => [
             // Mapping services to their class names is required
             // since the ServiceManager is not a declarative DIC.
             'class_map' => [
-                FilesTable::class => FilesTable::class,
-                Mailer::class => Mailer::class,
-                ProblemService::class => ProblemService::class,
-                ProblemTable::class => ProblemTable::class,
-                SuggestForm::class => SuggestForm::class,
-                PredicatesTable::class => PredicatesTable::class,
-                ChangesCollector::class => ChangesCollector::class,
+                Db\Model\FilesTable::class => Db\Model\FilesTable::class,
+                Mailing\Mailer::class => Mailing\Mailer::class,
+                Service\ProblemService::class => Service\ProblemService::class,
+                Problem\ProblemTable::class => Problem\ProblemTable::class,
+                Form\SuggestForm::class => Form\SuggestForm::class,
+                Db\Model\PredicatesTable::class => Db\Model\PredicatesTable::class,
+                Service\ChangesCollector::class => Service\ChangesCollector::class,
             ],
         ],
         'delegators' => [
-            FilesTable::class => [
+            Db\Model\FilesTable::class => [
                 LazyServiceFactory::class,
             ],
-            Mailer::class => [
+            Mailing\Mailer::class => [
                 LazyServiceFactory::class,
             ],
-            ProblemService::class => [
+            Service\ProblemService::class => [
                 LazyServiceFactory::class,
             ],
-            ProblemTable::class => [
+            Problem\ProblemTable::class => [
                 LazyServiceFactory::class,
             ],
-            SuggestForm::class => [
+            Form\SuggestForm::class => [
                 LazyServiceFactory::class,
             ],
-            PredicatesTable::class => [
+            Db\Model\PredicatesTable::class => [
                 LazyServiceFactory::class,
             ],
-            ChangesCollector::class => [
+            Service\ChangesCollector::class => [
                 LazyServiceFactory::class,
             ],
         ],
@@ -155,9 +127,9 @@ return [
         ],
         'sion_controller_services' => [
             'SionModel\Config',
-            ProblemService::class,
+            Service\ProblemService::class,
             'SionModel\PersistentCache',
-            ChangesCollector::class,
+            Service\ChangesCollector::class,
         ],
         'url_map'                   => [ //@todo clarify this, for general users
             'g+' => [
@@ -430,15 +402,17 @@ return [
                 'table_name'                            => 'comments',
                 'table_key'                             => 'CommentId',
                 'entity_key_field'                      => 'commentId',
-                'sion_model_class'                      => PredicatesTable::class,
+                'sion_model_class'                      => Db\Model\PredicatesTable::class,
                 'get_object_function'                   => 'getComment',
                 'get_objects_function'                  => 'getComments',
-                //                 'format_view_helper'                    => 'formatEvent',
+                'sion_controllers'                          => [Controller\CommentController::class],//BorrowersController::class],
+                'controller_services'                       => [
+                ],
+//                 'format_view_helper'                    => 'formatEvent',
                 'required_columns_for_creation'         => [
-                    'originalFileName',
-                    'mimeType',
-                    'size',
-                    'sha1',
+                    'comment',
+                    'kind',
+                    'status',
                 ],
                 'name_field'                            => 'comment',
                 'name_field_is_translateable'           => false,
@@ -483,7 +457,7 @@ return [
                 'update_columns' => [
                     'commentId'         => 'CommentId',
                     'rating'            => 'Rating',
-                    'commentKind'       => 'CommentKind',
+                    'kind'              => 'CommentKind',
                     'comment'           => 'Comment',
                     'status'            => 'Status',
                     'reviewedBy'        => 'ReviewedBy',
@@ -499,9 +473,23 @@ return [
             'sion-model' => [
                 'type'    => Literal::class,
                 'options' => [
+                    'route'    => '/comments',
+                    'defaults' => [
+                        'controller' => Controller\CommentController::class,
+                        'action'     => 'index',
+                    ],
+                ],
+                'may_terminate' => false,
+                'child_routes' => [
+                    
+                ],
+            ],
+            'sion-model' => [
+                'type'    => Literal::class,
+                'options' => [
                     'route'    => '/sm',
                     'defaults' => [
-                        'controller' => SionModelController::class,
+                        'controller' => Controller\SionModelController::class,
                         'action'     => 'index',
                     ],
                 ],

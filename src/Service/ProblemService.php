@@ -82,7 +82,7 @@ class ProblemService
      */
     public function getProblems(array $entityKeys = null)
     {
-        $problems = $this->getCurrentProblems($entities);
+        $problems = $this->getCurrentProblems($entityKeys);
         return $problems;
     }
 

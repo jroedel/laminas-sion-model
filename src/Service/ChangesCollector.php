@@ -19,7 +19,7 @@ class ChangesCollector
         
         /** @var \SionModel\Db\Model\SionTable[] $sionModelsToQuery */
         $sionModelsToQuery = [];
-        foreach ($entiesSpecs as $entity => $entitySpec) {
+        foreach ($entiesSpecs as $entitySpec) {
             if (isset($entitySpec->sionModelClass) &&
                 !isset($sionModelsToQuery[$entitySpec->sionModelClass]) &&
                 $container->has($entitySpec->sionModelClass)
@@ -29,7 +29,7 @@ class ChangesCollector
             }
         }
         $changes = [];
-        foreach ($sionModelsToQuery as $sionModelKey => $table) {
+        foreach ($sionModelsToQuery as $table) {
             $changes[] = $table->getChanges();
         }
         //@todo fix bug where duplicate array keys between different changes arrays provoke unexpected results

@@ -9,8 +9,6 @@
 
 namespace SionModel\Controller;
 
-use SionModel;
-
 class FilesController extends SionController
 {
     public function __construct()
