@@ -1,0 +1,24 @@
+<?php
+/**
+ * Partial for generating markup for a new comment
+ * @param \SionModel\Form\CommentForm $form
+ * @param string $inLanguage (optional) @todo add message to user to let them know what language we're expecting
+ * @param array $options
+ */
+/** @var \SionModel\Form\CommentForm $form */
+$form = $this->form;
+$form->prepare();
+?>
+
+<!-- the comment box -->
+<div class="well">
+    <h4><i class="fa fa-paper-plane-o"></i> <?php echo $this->translate($form->get('comment')->getLabel());?>:</h4>
+    <?php echo $this->form()->openTag($form);?>
+        <div class="form-group">
+            <?php echo $this->formElement($form->get('comment'));?>
+        </div>
+        <?php echo $this->formRow($form->get('security'));
+        echo $this->formRow($form->get('submit'));?>
+        <!-- <button type="submit" class="btn btn-primary"><i class="fa fa-reply"></i> Submit</button> -->
+	<?php echo $this->form()->closeTag();?>
+</div>

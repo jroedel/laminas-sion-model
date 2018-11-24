@@ -61,7 +61,7 @@ class SionModelController extends AbstractActionController
     public function dataProblemsAction()
     {
         /** @var ProblemService $table */
-        $table = $services[ProblemService::class];
+        $table = $this->services[ProblemService::class];
 
         $problems = $table->getCurrentProblems();
 
@@ -78,7 +78,7 @@ class SionModelController extends AbstractActionController
         $simulate = true;
 
         /** @var ProblemService $table */
-        $table = $services[ProblemService::class];
+        $table = $this->services[ProblemService::class];
 
         $form = new ConfirmForm();
         $request = $this->getRequest();
@@ -115,11 +115,11 @@ class SionModelController extends AbstractActionController
             $collector = $this->services[ChangesCollector::class];
             $results = $collector->getAllChanges();
         } else {
-            if (!isset($services[$config['changes_model']])) {
+            if (!isset($this->services[$config['changes_model']])) {
                 throw new \InvalidArgumentException('The \'changes_model\' configuration is incorrect.');
             }
             /** @var SionTable $table */
-            $table = $services[$config['changes_model']];
+            $table = $this->services[$config['changes_model']];
             $getAllChanges = key_exists('changes_show_all', $config) && !is_null($config['changes_show_all']) ?
                 (bool)$config['changes_show_all'] : false;
             $results = $table->getChanges($getAllChanges);
@@ -138,16 +138,16 @@ class SionModelController extends AbstractActionController
 
     protected function getSionModelConfig()
     {
-        if (isset($services['SionModel\Config'])) {
-            return $services['SionModel\Config'];
+        if (isset($this->services['SionModel\Config'])) {
+            return $this->services['SionModel\Config'];
         }
         return [];
     }
 
     protected function getPersistentCache()
     {
-        if (isset($services['SionModel\PersistentCache'])) {
-            return $services['SionModel\PersistentCache'];
+        if (isset($this->services['SionModel\PersistentCache'])) {
+            return $this->services['SionModel\PersistentCache'];
         }
         return null;
     }
