@@ -25,6 +25,9 @@ use Zend\Mvc\MvcEvent;
 use Zend\Db\Sql\Select;
 use Zend\Db\Sql\Expression;
 use SionModel\Db\GeoPoint;
+use Zend\Db\Adapter\Driver\ResultInterface;
+use Zend\Db\Sql\Predicate\In;
+use Zend\Db\Sql\Predicate\Operator;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -128,6 +131,11 @@ class SionTable
      * @var TableGatewayInterface $visitTableGateway
      */
     protected $visitsTableGateway;
+    
+    /**
+     * @var Select[] $selectPrototypes
+     */
+    protected $selectPrototypes = [];
     /**
      * @var int $actingUserId
      */
@@ -365,6 +373,38 @@ class SionTable
         }
         return $entityData;
     }
+    
+    /**
+     * Try making an SQL query to get an object for the given entityType and identifier
+     * @param string $entity
+     * @param number|string $entityId
+     * @return mixed[]
+     */
+    protected function tryGettingObject($entity, $entityId)
+    {
+        if (!isset($entityId)) {
+            return null;
+        }
+        $entitySpec = $this->getEntitySpecification($entity);
+        if (!isset($entitySpec->tableName) || !isset($entitySpec->tableKey)) {
+            return null; //the calling function should throw an exception
+        }
+        $gateway = $this->getTableGateway($entitySpec->tableName);
+        $select = $this->getSelectPrototype($entity);
+        $predicate = new Operator($entitySpec->tableKey, Operator::OPERATOR_EQUAL_TO, $entityId);
+        $select->where($predicate);
+        $result = $gateway->selectWith($select);
+        if (!$result instanceof ResultInterface) {
+            return null;
+        }
+        $results = $result->toArray();
+        if (!isset($results[0])) {
+            return null;
+        }
+        
+        $object = $this->processEntityRow($entity, $results[0]);
+        return $object;
+    }
 
     public function getObjects($entity, $entityIds = [], $failSilently = false)
     {
@@ -373,7 +413,11 @@ class SionTable
         if (!method_exists($this, $objectsFunction) ||
             method_exists('SionTable', $objectsFunction)
         ) {
-            throw new \Exception('Invalid get_objects_function set for entity \''.$entity.'\'');
+            $objects = $this->tryGettingObjects($entity, $entityIds);
+            if (!isset($objects)) {
+                throw new \Exception('Invalid get_objects_function set for entity \''.$entity.'\'');
+            }
+            return $objects;
         }
         $objects = $this->$objectsFunction($entityIds);
         if (!$objects && !$failSilently) {
@@ -381,7 +425,81 @@ class SionTable
         }
         return $objects;
     }
+    
+    protected function tryGettingObjects($entity, $entityIds = [])
+    {
+        //@todo should we cache these objects by default?
+//         $cacheKey = 'predicates';
+//         if (null !== ($cache = $this->fetchCachedEntityObjects($cacheKey))) {
+//             return $cache;
+//         }
+        $entitySpec = $this->getEntitySpecification($entity);
+        if (!isset($entitySpec->tableName) || !isset($entitySpec->tableKey)) {
+            return null; //the calling function should throw an exception
+        }
+        $gateway = $this->getTableGateway($entitySpec->tableName);
+        $select = $this->getSelectPrototype($entity);
+        if (!empty($entityIds)) {
+            $predicate = new In($entitySpec->tableKey, $entityIds);
+            $select->where($predicate);
+        }
+        $result = $gateway->selectWith($select);
+        if (!$result instanceof ResultInterface) {
+            return null;
+        }
+        $results = $result->toArray();
+        $objects = [];
+        foreach ($results as $row) {
+            $data = $this->processEntityRow($entity, $row);
+            $id = $data[$entitySpec->entityKeyField];
+            $objects[$id] = $data;
+        }
+        
+//         $this->cacheEntityObjects($cacheKey, $objects);
+        return $objects;
+    }
+    
+    /**
+     * Process an SQL-returned row, mapping column names to our field names
+     * @param string $entity
+     * @param array $row
+     * @return mixed[]
+     */
+    protected function processEntityRow($entity, array $row)
+    {
+        $entitySpec = $this->getEntitySpecification($entity);
+        //@todo check if the entity has registered a row processor
+        $columnsMap = $entitySpec->updateColumns;
+        $data = [];
+        foreach ($row as $column => $value) {
+            if (isset($columnsMap[$column])) {
+                //@todo add some generic filter here to convert datetimes
+                $data[$columnsMap[$column]] = $value;
+            }
+        }
+        return $data;
+    }
 
+    /**
+     * Get a standardized select object to retrieve records from the database
+     * @return Select
+     */
+    protected function getSelectPrototype($entity)
+    {
+        if (isset($this->selectPrototypes[$entity])) {
+            return clone $this->selectPrototypes[$entity];
+        }
+        $entitySpec = $this->getEntitySpecification($entity);
+        if (!isset($entitySpec->tableName) || empty($entitySpec->updateColumns)) {
+            throw new \Exception("Cannot construct select prototype for `$entity`");
+        }
+        $select = new Select($entitySpec->tableName);
+        $select->columns(array_keys($entitySpec->updateColumns));
+        //@todo maybe add an order config to entity specs
+        $this->selectPrototypes[$entity] = $select;
+        return clone $select;
+    }
+    
     /**
      * Sort an entity object
      * @param mixed[] $array
@@ -552,10 +670,11 @@ class SionTable
         $entitySpec = $this->getEntitySpecification($entity);
         if (!$entitySpec->isEnabledForUpdateAndCreate()) {
             throw new \Exception('The following config keys are required to update entity \''.
-                '\': table_name, table_key, get_object_function, update_columns');
+                '\': table_name, table_key, update_columns');
         }
-        if (!method_exists($this, $this->entitySpecifications[$entity]->getObjectFunction) ||
-            method_exists('SionTable', $this->entitySpecifications[$entity]->getObjectFunction)
+        if (isset($this->entitySpecifications[$entity]->getObjectFunction)
+            && (!method_exists($this, $this->entitySpecifications[$entity]->getObjectFunction)
+                || method_exists('SionTable', $this->entitySpecifications[$entity]->getObjectFunction))
         ) {
             throw new \Exception('\'get_object_function\' configuration for entity \''.$entity.'\' refers to a function that doesn\'t exist');
         }
@@ -823,7 +942,7 @@ class SionTable
         //make sure required cols are being passed
         foreach ($requiredCols as $colName) {
             if (!isset($data[$colName])) {
-                throw new \InvalidArgumentException('Not all required fields for the creation of an entity were provided.');
+                throw new \InvalidArgumentException("Not all required fields for the creation of an entity were provided. Missing `$colName`");
             }
         }
 
@@ -900,10 +1019,11 @@ class SionTable
     /**
      * Get an instance of a TableGateway for a particular table name
      * @param string $tableName
+     * @return TableGateway
      */
     protected function getTableGateway($tableName)
     {
-        if (key_exists($tableName, $this->tableGatewaysCache)) {
+        if (isset($this->tableGatewaysCache[$tableName])) {
             return $this->tableGatewaysCache[$tableName];
         }
         $gateway = new TableGateway($tableName, $this->adapter);
@@ -932,6 +1052,42 @@ class SionTable
             throw new \Exception('Improper primary key configuration of entity \''.$entity.'\'. Multiple records returned.');
         }
         return true;
+    }
+    
+    /**
+     * Similar to the existsEntity function, this one checks for the existence of
+     * several objects, by id and returns an associative array mapping $id => bool
+     * @param string $entity
+     * @param number[]|string[] $ids
+     * @return bool[]
+     */
+    public function existsEntities($entity, array $ids)
+    {
+        $entitySpec = $this->getEntitySpecification($entity);
+        $tableName  = $entitySpec->tableName;
+        $tableKey   = $entitySpec->tableKey;
+        
+        $return = [];
+        foreach ($ids as $value) {
+            $return[$value] = false;
+        }
+        
+        $select = new Select($tableName);
+        $select->columns([$tableKey]);
+        
+        /** @var TableGateway $gateway */
+        $gateway    = $this->getTableGateway($tableName);
+        $result     = $gateway->select([$tableKey => $ids]);
+        if (!$result instanceof ResultSet) {
+            return $return;
+        }
+        $results = $result->toArray();
+        foreach ($results as $row) {
+            if (isset($return[$row[$tableKey]])) {
+                $return[$row[$tableKey]] = true;
+            }
+        }
+        return $return;
     }
 
     /**

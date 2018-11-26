@@ -2,12 +2,16 @@
 namespace SionModel\Db\Model;
 
 use Zend\Db\Sql\Select;
-use Zend\Db\Sql\Predicate\Predicate;
+use Zend\Db\Sql\Where;
+use Zend\Db\Sql\Predicate\Operator;
+use Zend\Db\Sql\Predicate\PredicateSet;
+use Zend\Db\Sql\Predicate\In;
 
 class PredicatesTable extends SionTable
 {
-    const COMMENT_KIND_COMMENT = 'comment';
-    const COMMENT_KIND_REVIEW = 'review';
+    const COMMENT_KIND_COMMENT = 'comment'; //only comment
+    const COMMENT_KIND_RATING = 'rating'; //only rating
+    const COMMENT_KIND_REVIEW = 'review'; //comment+rating
     
     const COMMENT_STATUS_IN_REVIEW = 'in-review';
     const COMMENT_STATUS_PUBLISHED = 'published';
@@ -19,22 +23,63 @@ class PredicatesTable extends SionTable
      * @param array $query
      * @param array $options
      */
-    public function getCommentsForEntity($query, array $options = [])
+    public function getComments($query = [], array $options = [])
     {
         $gateway = $this->getTableGateway('comments');
-        $where = [];
-        $where['relationships.PredicateKind'] = $query['predicate'];
-        if (!is_array($query['objectId'])) {
-            $where['relationships.ObjectEntityId'] = $query['objectId'];
+        $select = $this->getCommentSelectPrototype();
+        $where = new Where();
+        $combination = (isset($options['orCombination']) && $options['orCombination']) 
+            ? PredicateSet::OP_OR 
+            : PredicateSet::OP_AND;
+        $fieldMap = $this->getEntitySpecification('comment')->updateColumns;
+        
+        if (isset($query['objectEntityId'])) {
+            if (!isset($query['predicateKind'])) {
+                throw new \Exception('When asking for comments refering to a specific entity, '
+                    .'please specify the predicateKind');
+            }
+            $joinPredicate = new PredicateSet();
+            $joinPredicate->addPredicate(
+                new Operator('relationships.PredicateKind', Operator::OPERATOR_EQUAL_TO, $query['predicateKind'])
+                );
+            $objectEntityIdPredicate = null;
+            if (is_array($query['objectEntityId'])) {
+                if (empty($query['objectEntityId'])) {
+                } elseif(1 === count($query['objectEntityId'])) {
+                    $query['objectEntityId'] = $query['objectEntityId'][0];
+                } else {
+                    $objectEntityIdPredicate = new In('relationships.ObjectEntityId', $query['objectEntityId']);
+                }
+            }
+            if (!is_array($query['objectEntityId'])) {
+                $objectEntityIdPredicate = new Operator(
+                    'relationships.ObjectEntityId', 
+                    Operator::OPERATOR_EQUAL_TO, 
+                    $query['objectEntityId']
+                    );
+            }
+            if (isset($objectEntityIdPredicate)) {
+                $joinPredicate->addPredicate($objectEntityIdPredicate);
+            }
+        }
+        if (isset($joinPredicate)) {
+            $select->join('relationships',
+                $joinPredicate,
+                [],
+                Select::JOIN_INNER
+                );
+        }
+        
+        if (isset($query['status'])) {
+            $statusClause = new Operator(
+                $fieldMap['status'],
+                Operator::OPERATOR_EQUAL_TO,
+                $query['status']
+                );
+            $where->addPredicate($statusClause, $combination);
         }
     
-        $select = $this->getCommentSelectPrototype();
         $select->where($where);
-        
-        if (is_array($query['objectId'])) {
-            $predicate = new Predicate();
-            $select->where($predicate->in('ObjectEntityId', $query['objectId']));
-        }
         $results = $gateway->selectWith($select);
         
         $entities = [];
@@ -43,6 +88,25 @@ class PredicatesTable extends SionTable
             $entities[$processedRow['commentId']] = $processedRow;
         }
         return $entities;
+    }
+    
+    public function getComment($id)
+    {
+        static $gateway;
+        if (!isset($gateway)) {
+            $gateway = $this->getTableGateway('comments');
+        }
+        $select = $this->getCommentSelectPrototype();
+        $select->where(['CommentId' => $id]);
+        /** @var ResultSet $result */
+        $result = $gateway->selectWith($select);
+        $results = $result->toArray();
+        
+        if (!isset($results[0])) {
+            return null;
+        }
+        $object = $this->processCommentRow($results[0]);
+        return $object;
     }
     
     /**
@@ -82,7 +146,6 @@ class PredicatesTable extends SionTable
             $select = new Select('comments');
             $select->columns(['CommentId', 'Rating', 'CommentKind', 'Comment', 'Status',
                 'ReviewedBy', 'ReviewedOn', 'CreatedOn', 'CreatedBy']);
-            $select->join('relationships', 'relationships.SubjectEntityId=comments.CommentId', [], Select::JOIN_INNER);
             $select->order(['CreatedOn']);
         }
         
@@ -91,16 +154,25 @@ class PredicatesTable extends SionTable
     
     protected function processCommentRow($row)
     {
+        static $usernames;
+        if (!isset($usernames)) {
+            $usernames = $this->getUserTable()->getUsernames();
+        }
+        $reviewedBy = $this->filterDbId($row['ReviewedBy']);
+        $createdBy = $this->filterDbId($row['CreatedBy']);
         $data = [
             'commentId'         => $this->filterDbId($row['CommentId']),
             'rating'            => $this->filterDbInt($row['Rating']),
             'commentKind'       => $row['CommentKind'],
             'comment'           => $row['Comment'],
             'status'            => $row['Status'],
-            'reviewedBy'        => $this->filterDbId($row['ReviewedBy']),
             'reviewedOn'        => $this->filterDbDate($row['ReviewedOn']),
-            'createdOn'         => $this->filterDbId($row['CreatedOn']),
-            'createdBy'         => $this->filterDbDate($row['CreatedBy']),
+            'reviewedBy'        => $reviewedBy,
+            'createdOn'         => $this->filterDbDate($row['CreatedOn']),
+            'createdBy'         => $createdBy,
+            
+            'reviewedByUsername' => isset($usernames[$reviewedBy]) ? $usernames[$reviewedBy] : null,
+            'createdByUsername' => isset($usernames[$createdBy]) ? $usernames[$createdBy] : null,
         ];
         return $data;
     }
@@ -164,22 +236,24 @@ class PredicatesTable extends SionTable
         return clone $select;
     }
     
+    
+    
     protected function processRelationshipRow($row)
     {
         $data = [
-            'relationshipId' => $row['RelationshipId'],
-            'subjectEntityId' => $row['SubjectEntityId'],
-            'objectEntityId' => $row['ObjectEntityId'],
+            'relationshipId' => $this->filterDbId($row['RelationshipId']),
+            'subjectEntityId' => $this->filterDbId($row['SubjectEntityId']),
+            'objectEntityId' => $this->filterDbId($row['ObjectEntityId']),
             'predicateKind' => $row['PredicateKind'],
             'priority' => $row['Priority'],
             'publicNotes' => $row['PublicNotes'],
             'adminNotes' => $row['AdminNotes'],
-            'publicNotesUpdatedOn' => $row['PublicNotesUpdatedOn'],
-            'publicNotesUpdatedBy' => $row['PublicNotesUpdatedBy'],
-            'adminNotesUpdatedOn' => $row['AdminNotesUpdatedOn'],
-            'adminNotesUpdatedBy' => $row['AdminNotesUpdatedBy'],
-            'updatedOn' => $row['UpdatedOn'],
-            'updatedBy' => $row['UpdatedBy'],
+            'publicNotesUpdatedOn' => $this->filterDbDate($row['PublicNotesUpdatedOn']),
+            'publicNotesUpdatedBy' => $this->filterDbId($row['PublicNotesUpdatedBy']),
+            'adminNotesUpdatedOn' => $this->filterDbDate($row['AdminNotesUpdatedOn']),
+            'adminNotesUpdatedBy' => $this->filterDbId($row['AdminNotesUpdatedBy']),
+            'updatedOn' => $this->filterDbDate($row['UpdatedOn']),
+            'updatedBy' => $this->filterDbId($row['UpdatedBy']),
         ];
         return $data;
     }

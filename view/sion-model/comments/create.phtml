@@ -17,7 +17,8 @@ $form->prepare();
         <div class="form-group">
             <?php echo $this->formElement($form->get('comment'));?>
         </div>
-        <?php echo $this->formRow($form->get('security'));
+        <?php echo $this->formRow($form->get('redirect'));
+        echo $this->formRow($form->get('security'));
         echo $this->formRow($form->get('submit'));?>
         <!-- <button type="submit" class="btn btn-primary"><i class="fa fa-reply"></i> Submit</button> -->
 	<?php echo $this->form()->closeTag();?>

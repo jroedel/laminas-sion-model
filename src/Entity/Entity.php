@@ -399,9 +399,9 @@ class Entity
      */
     public function isEnabledForEntityDelete()
     {
-        return (bool)$this->enableDeleteAction &&
-            $this->tableName && 0 !== strlen($this->tableName) &&
-            $this->tableKey && 0 !== strlen($this->tableKey);
+        return (bool)$this->enableDeleteAction
+            && isset($this->tableName)
+            && isset($this->tableKey);
     }
 
     /**
@@ -410,8 +410,7 @@ class Entity
      */
     public function isEnabledForUpdateAndCreate()
     {
-        return !is_null($this->tableName) && !is_null($this->tableKey) &&
-            !is_null($this->getObjectFunction) &&
-            !is_null($this->updateColumns) && !empty($this->updateColumns);
+        return isset($this->tableName) && isset($this->tableKey)
+            && isset($this->updateColumns) && is_array($this->updateColumns) &&!empty($this->updateColumns);
     }
 }

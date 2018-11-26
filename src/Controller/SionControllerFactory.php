@@ -6,6 +6,7 @@ use Zend\ServiceManager\Factory\AbstractFactoryInterface;
 use SionModel\Service\EntitiesService;
 use Zend\ServiceManager\Exception\ServiceNotFoundException;
 use Zend\ServiceManager\Exception\ServiceNotCreatedException;
+use SionModel\Db\Model\PredicatesTable;
 
 class SionControllerFactory implements AbstractFactoryInterface
 {
@@ -63,6 +64,8 @@ class SionControllerFactory implements AbstractFactoryInterface
             throw new \Exception('Invalid SionModel class set for entity \''.$entity.'\'');
         }
         $sionTable = $parentLocator->get($entitySpec->sionModelClass);
+        
+        $predicateTable = $parentLocator->get(PredicatesTable::class);
 
         //get createActionForm
         /** @var SionForm $createActionForm **/
@@ -100,6 +103,7 @@ class SionControllerFactory implements AbstractFactoryInterface
             $entity,
             $this->entitiesService,
             $sionTable,
+            $predicateTable,
             $createActionForm,
             $editActionForm,
             $config,

@@ -22,6 +22,10 @@ class CommentForm extends SionForm implements InputFilterProviderInterface
                 'rows' => 3,
             ],
         ]);
+        $this->add([
+            'name' => 'redirect',
+            'type' => 'Hidden',
+        ]);
 //We won't allow editing the legacy columns
         $this->add([
             'name' => 'submit',

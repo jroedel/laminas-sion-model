@@ -21,6 +21,9 @@ use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
 use Zend\View\Model\JsonModel;
 use Zend\Form\Form;
+use Zend\Form\FormInterface;
+use SionModel\Db\Model\PredicatesTable;
+use SionModel\Form\CommentForm;
 
 class SionController extends AbstractActionController
 {
@@ -48,6 +51,11 @@ class SionController extends AbstractActionController
     * @var array $sionModelConfig
     */
     protected $sionModelConfig;
+    
+    /**
+     * @var PredicatesTable $predicateTable
+     */
+    protected $predicateTable;
 
     protected $actionRouteKeys = [
         'show'      => 'showRouteKey',
@@ -89,12 +97,13 @@ class SionController extends AbstractActionController
      * @param string $entity
      * @throws \Exception
      */
-    public function __construct($entity = null, EntitiesService $entitiesService, SionTable $sionTable, $createActionForm, $editActionForm, array $config, array $services)
+    public function __construct($entity = null, EntitiesService $entitiesService, SionTable $sionTable, PredicatesTable $predicateTable, $createActionForm, $editActionForm, array $config, array $services)
     {
         //@todo check the types
         $this->setEntity($entity);
         $this->entitiesService = $entitiesService;
         $this->sionTable = $sionTable;
+        $this->predicateTable = $predicateTable;
         $this->createActionForm = $createActionForm;
         $this->editActionForm = $editActionForm;
         $this->config = $config;
@@ -164,6 +173,28 @@ class SionController extends AbstractActionController
         }
 
         $changes = $table->getEntityChanges($entity, $id);
+        
+        $comments = [];
+        $commentForm = null;
+        $predicateTable = $this->getPredicateTable();
+        $commentableEntities = $predicateTable->getCommentPredicates();
+        if (isset($commentableEntities[$entity])) { //this entity has a comments predicate, assume the user wants them
+            $comments = $predicateTable->getComments([
+                'predicateKind' => $commentableEntities[$entity],
+                'objectEntityId' => $id,
+                'status' => PredicatesTable::COMMENT_STATUS_PUBLISHED,
+            ]);
+            
+            $commentForm = new CommentForm();
+            $commentUrl = $this->url()->fromRoute('comments/create', [
+                //@todo this should be configurable
+                'kind' => \SionModel\Db\Model\PredicatesTable::COMMENT_KIND_COMMENT,
+                'entity' => $entity,
+                'entity_id' => $id,
+            ]);
+            $commentForm->setAttribute('action', $commentUrl);
+            $commentForm->get('redirect')->setValue($this->url()->fromRoute(null, [], [], true));
+        }
 
         $table->registerVisit($entity, $entityObject[$entitySpec->entityKeyField]);
 
@@ -185,6 +216,8 @@ class SionController extends AbstractActionController
             'entityId'      => $id,
             'entity'        => $entityObject,
             'changes'       => $changes,
+            'comments'      => $comments,
+            'commentForm'   => $commentForm,
 //             'suggestForm'   => $suggestForm,
 //             'deviceType'    => $deviceType,
         ]);
@@ -273,7 +306,7 @@ class SionController extends AbstractActionController
         } else {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)
             ->addMessage(ucwords($entity).' successfully created.');
-            return $this->redirectAfterCreate((int) $newId);
+            return $this->redirectAfterCreate((int) $newId, $data, $form);
         }
     }
 
@@ -281,10 +314,12 @@ class SionController extends AbstractActionController
      * This function is called after a successful entity creation to redirect the user.
      * May be overwritten by a child Controller to add functionality.
      * @param int $newId
+     * @param mixed[] $data
+     * @param FormInterface $form
      * @throws \Exception
      * @return \Zend\Stdlib\ResponseInterface
      */
-    public function redirectAfterCreate($newId)
+    public function redirectAfterCreate($newId, $data = [], $form = null)
     {
         /** @var SionTable $table **/
         $table = $this->getSionTable();
@@ -410,16 +445,18 @@ class SionController extends AbstractActionController
         $table = $this->getSionTable();
         $table->updateEntity($entity, $id, $data);
         $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)->addMessage(ucfirst($entity).' successfully updated.');
-        return $this->redirectAfterEdit($id);
+        return $this->redirectAfterEdit($id, $data, $form);
     }
 
     /**
      * Redirects the user after successfully editing an entity.
      * @param int $id
+     * @param mixed[] $data
+     * @param FormInterface $form
      * @throws \Exception
      * @return \Zend\Stdlib\ResponseInterface
      */
-    public function redirectAfterEdit($id)
+    public function redirectAfterEdit($id, $data = [], $form = null)
     {
         $entitySpec = $this->getEntitySpecification();
         $entityObject = $this->getEntityObject($id);
@@ -838,6 +875,28 @@ class SionController extends AbstractActionController
             throw new \Exception('Expecting SionModelClass to be a SionTable instance.');
         }
         $this->sionTable = $sionTable;
+        return $this;
+    }
+    
+    /**
+     * Get the sionTable value
+     * @return PredicatesTable
+     */
+    public function getPredicateTable()
+    {
+        if (!isset($this->predicateTable)) {
+            throw new \Exception('Missing predicate table');
+        }
+        return $this->predicateTable;
+    }
+    
+    /**
+     * @param PredicatesTable $predicateTable
+     * @return self
+     */
+    public function setPredicateTable(PredicatesTable $predicateTable)
+    {
+        $this->predicateTable = $predicateTable;
         return $this;
     }
 

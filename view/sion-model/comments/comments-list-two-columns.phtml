@@ -1,0 +1,34 @@
+<?php 
+/**
+ * @param $comments
+ */
+if (isset($this->comments) && is_array($this->comments) && !empty($this->comments)):?>
+
+<div class="row">
+<div class="col-sm-12">
+<h3><?php echo $this->translate('Comments');?></h3>
+</div><!-- /col-sm-12 -->
+<?php foreach ($this->comments as $commentId => $object) :?>
+<div class="col-sm-1">
+<div class="thumbnail">
+<img class="img-responsive user-photo" src="https://ssl.gstatic.com/accounts/ui/avatar_2x.png">
+</div><!-- /thumbnail -->
+</div><!-- /col-sm-1 -->
+
+<div class="col-sm-5">
+<div class="panel panel-default">
+<div class="panel-heading">
+<strong><?php echo $this->escapeHtml($object['createdByUsername']);?></strong> <span class="text-muted"><?php 
+if ($object['createdOn'] instanceof \DateTime) {
+    echo $this->diffForHumans($object['createdOn']);
+}?></span>
+</div>
+<div class="panel-body">
+<?php echo $this->escapeHtml($object['comment']);?>
+</div><!-- /panel-body -->
+</div><!-- /panel panel-default -->
+</div><!-- /col-sm-5 -->
+<?php endforeach;?>
+</div><!-- /row -->
+
+<?php endif;?>
