@@ -39,9 +39,16 @@ class PredicatesTable extends SionTable
                     .'please specify the predicateKind');
             }
             $joinPredicate = new PredicateSet();
-            $joinPredicate->addPredicate(
+            $joinPredicate->addPredicates([
+                new Operator(
+                    'relationships.SubjectEntityId', 
+                    Operator::OPERATOR_EQUAL_TO, 
+                    'comments.CommentId', 
+                    Operator::TYPE_IDENTIFIER, 
+                    Operator::TYPE_IDENTIFIER
+                    ),
                 new Operator('relationships.PredicateKind', Operator::OPERATOR_EQUAL_TO, $query['predicateKind'])
-                );
+                ]);
             $objectEntityIdPredicate = null;
             if (is_array($query['objectEntityId'])) {
                 if (empty($query['objectEntityId'])) {
