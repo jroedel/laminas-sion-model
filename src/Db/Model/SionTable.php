@@ -28,6 +28,8 @@ use SionModel\Db\GeoPoint;
 use Zend\Db\Adapter\Driver\ResultInterface;
 use Zend\Db\Sql\Predicate\In;
 use Zend\Db\Sql\Predicate\Operator;
+use Zend\Db\Sql\Predicate\PredicateInterface;
+use Zend\Db\Sql\Predicate\PredicateSet;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -406,46 +408,95 @@ class SionTable
         return $object;
     }
 
-    public function getObjects($entity, $entityIds = [], $failSilently = false)
+    public function getObjects($entity, $query = [], $options = [])
     {
         $entitySpec = $this->getEntitySpecification($entity);
         $objectsFunction = $entitySpec->getObjectsFunction;
         if (!method_exists($this, $objectsFunction) ||
             method_exists('SionTable', $objectsFunction)
         ) {
-            $objects = $this->tryGettingObjects($entity, $entityIds);
+            $objects = $this->queryObjects($entity, $query, $options);
             if (!isset($objects)) {
                 throw new \Exception('Invalid get_objects_function set for entity \''.$entity.'\'');
             }
             return $objects;
         }
-        $objects = $this->$objectsFunction($entityIds);
-        if (!$objects && !$failSilently) {
+        $objects = $this->$objectsFunction($query, $options);
+        $shouldFailSilently = isset($options['failSilently']) ? (bool)$options['failSilently'] : false;
+        if (!$objects && !$shouldFailSilently) {
             throw new \InvalidArgumentException('No entity provided.');
         }
         return $objects;
     }
     
-    protected function tryGettingObjects($entity, $entityIds = [])
+    /**
+     * Try a query given certain parameters and options
+     * @param string $entity
+     * @param array|PredicateInterface|PredicateInterface[] $query
+     * @param array $options 'failSilently'(bool), 'orCombination'(bool), 'limit'(int), 'offset'(int), 'order'
+     * @throws \Exception
+     * @return mixed[][]
+     */
+    public function queryObjects($entity, $query = [], $options = [])
     {
-        //@todo should we cache these objects by default?
-//         $cacheKey = 'predicates';
-//         if (null !== ($cache = $this->fetchCachedEntityObjects($cacheKey))) {
-//             return $cache;
-//         }
+        $cacheKey = null;
+        if (is_array($query) && empty($query) && empty($options)) {
+            $cacheKey = 'query-objects-'.$entity;
+            if (null !== ($cache = $this->fetchCachedEntityObjects($cacheKey))) {
+                return $cache;
+            }
+        }
         $entitySpec = $this->getEntitySpecification($entity);
         if (!isset($entitySpec->tableName) || !isset($entitySpec->tableKey)) {
             return null; //the calling function should throw an exception
         }
         $gateway = $this->getTableGateway($entitySpec->tableName);
         $select = $this->getSelectPrototype($entity);
-        if (!empty($entityIds)) {
-            $predicate = new In($entitySpec->tableKey, $entityIds);
-            $select->where($predicate);
+        $fieldMap = $entitySpec->updateColumns;
+        
+        $shouldFailSilently = isset($options['failSilently']) ? (bool)$options['failSilently'] : false;
+        $combination = (isset($options['orCombination']) && $options['orCombination']) ? PredicateSet::OP_OR : PredicateSet::OP_AND;
+        
+        if ($query instanceof PredicateInterface) {
+            $where = $query;
+        } else {
+            $where = new Where();
+            foreach ($query as $key => $value) {
+                if ($value instanceof PredicateInterface) {
+                    $where->addPredicate($value, $combination);
+                }
+                if (isset($fieldMap[$key])) {
+                    continue;
+                }
+                if (is_array($value)) {
+                    $clause = new In($fieldMap[$key], $value);
+                } else {
+                    $clause = new Operator($fieldMap[$key], Operator::OPERATOR_EQUAL_TO, $value);
+                }
+                $where->addPredicate($clause, $combination);
+            }
         }
+        if (isset($options['limit'])) {
+            $select->limit($options['limit']);
+        }
+        if (isset($options['offset'])) {
+            $select->offset($options['offset']);
+        }
+        if (isset($options['order'])) {
+            $select->order($options['order']);
+        }
+        
         $result = $gateway->selectWith($select);
         if (!$result instanceof ResultInterface) {
-            return null;
+            if ($shouldFailSilently) {
+                return null;
+            } else {
+                $type = gettype($result);
+                if ('object' === $type) {
+                    $type = get_class($result);
+                }
+                throw new \Exception("Unexpected query result of type `$type`");
+            }
         }
         $results = $result->toArray();
         $objects = [];
@@ -455,7 +506,10 @@ class SionTable
             $objects[$id] = $data;
         }
         
-//         $this->cacheEntityObjects($cacheKey, $objects);
+        if (isset($cacheKey)) {
+            //@todo we could create a 'dependsOnEntities' key in the entity specs to add it to this array
+            $this->cacheEntityObjects($cacheKey, $objects, [$entitySpec->name]); 
+        }
         return $objects;
     }
     
@@ -494,7 +548,7 @@ class SionTable
             throw new \Exception("Cannot construct select prototype for `$entity`");
         }
         $select = new Select($entitySpec->tableName);
-        $select->columns(array_keys($entitySpec->updateColumns));
+        $select->columns(array_values($entitySpec->updateColumns));
         //@todo maybe add an order config to entity specs
         $this->selectPrototypes[$entity] = $select;
         return clone $select;
@@ -1291,7 +1345,11 @@ class SionTable
 
         $objects = [];
         foreach ($objectKeyList as $entity => $entityIds) {
-            $objects[$entity] = $this->getObjects($entity, $entityIds, true);
+            $objects[$entity] = $this->getObjects(
+                $entity, 
+                [$this->entitySpecifications[$entity]->tableKey => $entityIds], 
+                ['failSilently' => true]
+                );
         }
 
         $changes = [];

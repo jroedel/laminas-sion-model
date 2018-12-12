@@ -13,7 +13,7 @@ $title = isset($this->panelTitle) ? $this->panelTitle : 'Changes';
 <div class="panel-heading">
 	<h3 class="panel-title"><?php echo $this->translate($title);?></h3>
 </div>
-<div class="panel-body" style="overflow:scroll">
+<div class="panel-body">
 	<?php if (!empty($this->changes)) {
 	    echo $this->partial('sion-model/sion-model/changes-table', [
     	    'changes' => $this->changes,

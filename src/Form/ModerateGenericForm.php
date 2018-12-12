@@ -11,6 +11,7 @@ class ModerateGenericForm extends Form implements InputFilterProviderInterface
         // we want to ignore the name passed
         parent::__construct('moderate_generic');
 //      $this->setAttribute('method', 'GET');
+        //@todo get rid of this style attr, not allowed by CSP
         $this->setAttribute('style', 'display: inline;');
         $this->add(array(
             'name' => 'suggestionId',

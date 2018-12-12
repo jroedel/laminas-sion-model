@@ -8,6 +8,8 @@ use Zend\ServiceManager\Proxy\LazyServiceFactory;
 return [
     'view_helpers' => [
         'factories' => [
+            'inlineScript'          => Service\InlineScriptFactory::class,
+            \Zend\View\Helper\InlineScript::class => Service\InlineScriptFactory::class,
             'address'               => Service\AddressFactory::class,
             'editPencil'            => Service\EditPencilFactory::class,
             'formatEntity'          => Service\FormatEntityFactory::class,
@@ -75,6 +77,7 @@ return [
             Service\ChangesCollector::class => Service\ChangesCollectorFactory::class,
             Mailing\Mailer::class           => Service\MailerFactory::class,
             Db\Model\PredicatesTable::class => Service\PredicatesTableFactory::class,
+            Mvc\CspListener::class          => Service\CspListenerFactory::class,
         ],
         'lazy_services' => [
             // Mapping services to their class names is required

@@ -3,6 +3,13 @@ namespace Project;
 
 return [
     'sion_model' => [
+        //config for Content Security Policy
+        'csp_config' => [
+            //https://csp-evaluator.withgoogle.com
+            'csp_string' => "script-src 'strict-dynamic' 'nonce-{:nonce}' 'unsafe-inline' https:; object-src 'none'; base-uri 'none'; report-uri https://csp.example.com;",
+            //if this header isn't set, no Content-Security-Policy header will be set
+            'inject_headers_event' => \Zend\Mvc\MvcEvent::EVENT_FINISH,
+        ],
         /**
          * Database table name of where to store change records
          */
@@ -80,12 +87,12 @@ return [
                 'show_route'                                => 'events/event',
                 'show_route_key'                            => 'event_id',
                 'show_route_key_field'                      => 'eventId',
-                'edit_action_form'                          => Form\EditEventForm::class,
+//                 'edit_action_form'                          => Form\EditEventForm::class,
 //                 'edit_action_template'                      => 'project/events/edit',
                 'edit_route'                                => 'events/event/edit',
                 'edit_route_key'                            => 'event_id',
                 'edit_route_key_field'                      => 'eventId',
-                'create_action_form'                        => Form\CreateEventForm::class,
+//                 'create_action_form'                        => Form\CreateEventForm::class,
                 'create_action_valid_data_handler'          => 'createEvent',
                 'create_action_redirect_route'              => 'events/event',
                 'create_action_redirect_route_key'          => 'event_id',

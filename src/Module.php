@@ -8,6 +8,7 @@ namespace SionModel;
 
 use Zend\Mvc\MvcEvent;
 use BjyAuthorize\Service\Authorize;
+use SionModel\Mvc\CspListener;
 
 class Module
 {
@@ -26,5 +27,9 @@ class Module
         //I think the following doesn't do anything: @todo check this
         \Zend\View\Helper\Navigation\AbstractHelper::setDefaultAcl($acl);
         \Zend\View\Helper\Navigation\AbstractHelper::setDefaultRole($role);
+        
+        $app = $e->getApplication();
+        $strategy = $sm->get(CspListener::class);
+        $strategy->attach($app->getEventManager());
     }
 }
