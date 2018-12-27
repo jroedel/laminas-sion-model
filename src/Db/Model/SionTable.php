@@ -30,6 +30,8 @@ use Zend\Db\Sql\Predicate\In;
 use Zend\Db\Sql\Predicate\Operator;
 use Zend\Db\Sql\Predicate\PredicateInterface;
 use Zend\Db\Sql\Predicate\PredicateSet;
+use Zend\ServiceManager\ServiceLocatorInterface;
+use Zend\Db\ResultSet\ResultSetInterface;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -205,11 +207,10 @@ class SionTable
     const ENTITY_ACTION_SUGGEST = 'entity-action-suggest';
 
     /**
-     * If $changesTableName is left null, no changes will be made.
-     * @param TableGatewayInterface $tableGateway
-     * @param Entity[] $entities
+     * 
+     * @param AdapterInterface $dbAdapter
+     * @param ServiceLocatorInterface $serviceLocator
      * @param int $actingUserId
-     * @param null|string $changesTableName
      */
     public function __construct(AdapterInterface $dbAdapter, $serviceLocator, $actingUserId)
     {
@@ -412,8 +413,9 @@ class SionTable
     {
         $entitySpec = $this->getEntitySpecification($entity);
         $objectsFunction = $entitySpec->getObjectsFunction;
-        if (!method_exists($this, $objectsFunction) ||
-            method_exists('SionTable', $objectsFunction)
+        if (!isset($objectsFunction)
+            || !method_exists($this, $objectsFunction) 
+            || method_exists('SionTable', $objectsFunction)
         ) {
             $objects = $this->queryObjects($entity, $query, $options);
             if (!isset($objects)) {
@@ -487,7 +489,7 @@ class SionTable
         }
         
         $result = $gateway->selectWith($select);
-        if (!$result instanceof ResultInterface) {
+        if (!$result instanceof ResultSetInterface) {
             if ($shouldFailSilently) {
                 return null;
             } else {
@@ -502,8 +504,15 @@ class SionTable
         $objects = [];
         foreach ($results as $row) {
             $data = $this->processEntityRow($entity, $row);
-            $id = $data[$entitySpec->entityKeyField];
-            $objects[$id] = $data;
+            $id = isset($data[$entitySpec->entityKeyField]) 
+                ? $data[$entitySpec->entityKeyField]
+                : null;
+            //make sure we don't overwrite other entries
+            if (isset($id) && !isset($objects[$id])) {
+                $objects[$id] = $data;
+            } else {
+                $objects[] = $data;
+            }
         }
         
         if (isset($cacheKey)) {
