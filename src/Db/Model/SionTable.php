@@ -25,7 +25,6 @@ use Zend\Mvc\MvcEvent;
 use Zend\Db\Sql\Select;
 use Zend\Db\Sql\Expression;
 use SionModel\Db\GeoPoint;
-use Zend\Db\Adapter\Driver\ResultInterface;
 use Zend\Db\Sql\Predicate\In;
 use Zend\Db\Sql\Predicate\Operator;
 use Zend\Db\Sql\Predicate\PredicateInterface;
@@ -364,13 +363,24 @@ class SionTable
     public function getObject($entity, $id, $failSilently = false)
     {
         $entitySpec = $this->getEntitySpecification($entity);
-        $entityFunction = $entitySpec->getObjectFunction;
-        if (!method_exists($this, $entityFunction) ||
-            method_exists('SionTable', $entityFunction)
+        $objectFunction = $entitySpec->getObjectFunction;
+        if (!isset($objectFunction)
+            || !method_exists($this, $objectFunction)
+            || method_exists('SionTable', $objectFunction)
         ) {
-            throw new \Exception('Invalid get_object_function set for entity \''.$entity.'\'');
+            if ($failSilently) {
+                try {
+                    $object = $this->tryGettingObject($entity, $id);
+                } catch (\Exception $e) {
+                    $object = null;
+                }
+            } else {
+                $object = $this->tryGettingObject($entity, $id);
+            }
+            return $object;
         }
-        $entityData = $this->$entityFunction($id);
+        //@todo clarify which exceptions are thrown and when. Why the NOT operator?
+        $entityData = $this->$objectFunction($id);
         if (!$entityData && !$failSilently) {
             throw new \InvalidArgumentException('No entity provided.');
         }
@@ -386,19 +396,19 @@ class SionTable
     protected function tryGettingObject($entity, $entityId)
     {
         if (!isset($entityId)) {
-            return null;
+            throw new \Exception('Invalid entity id requested.');
         }
         $entitySpec = $this->getEntitySpecification($entity);
         if (!isset($entitySpec->tableName) || !isset($entitySpec->tableKey)) {
-            return null; //the calling function should throw an exception
+            throw new \Exception("Invalid entity configuration for `$entity`.");
         }
         $gateway = $this->getTableGateway($entitySpec->tableName);
         $select = $this->getSelectPrototype($entity);
         $predicate = new Operator($entitySpec->tableKey, Operator::OPERATOR_EQUAL_TO, $entityId);
         $select->where($predicate);
         $result = $gateway->selectWith($select);
-        if (!$result instanceof ResultInterface) {
-            return null;
+        if (!$result instanceof ResultSetInterface) {
+            throw new \Exception("Unexpected query result for entity `$entity`");
         }
         $results = $result->toArray();
         if (!isset($results[0])) {
