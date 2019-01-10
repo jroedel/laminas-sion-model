@@ -31,6 +31,7 @@ use Zend\Db\Sql\Predicate\PredicateInterface;
 use Zend\Db\Sql\Predicate\PredicateSet;
 use Zend\ServiceManager\ServiceLocatorInterface;
 use Zend\Db\ResultSet\ResultSetInterface;
+use Matriphe\ISO639\ISO639;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -188,6 +189,24 @@ class SionTable
      * @var array
      */
     protected $cacheDependencies = [];
+    
+    /**
+     * Class to get language information
+     * @var ISO639 $iso639
+     */
+    protected $iso639;
+    
+    /**
+     * An associative array mapping 2-digit iso-639 codes to the english name of a language
+     * @var string[]
+     */
+    protected $languageNames;
+    
+    /**
+     * An associative array mapping 2-digit iso-639 codes to the native name of a language
+     * @var string[]
+     */
+    protected $nativeLanguageNames;
 
     /**
      * Represents the action of updating an entity
@@ -2052,5 +2071,79 @@ class SionTable
     {
         $this->visitsTableGateway = $gateway;
         return $this;
+    }
+    
+    protected function getIso639()
+    {
+        if (!isset($this->iso639)) {
+            $this->iso639 = new ISO639();
+        }
+        return $this->iso639;
+    }
+    
+    /**
+     * Returns an associative array mapping 2-digit ISO-639 language codes to the english language name
+     * @return string[]
+     */
+    public function getLanguageNames()
+    {
+        if (!isset($this->languageNames)) {
+            $languageRecords = $this->getIso639()->allLanguages();
+            $this->languageNames = [];
+            foreach ($languageRecords as $item) {
+                $this->languageNames[$item[0]] = $item[4];
+            }
+        }
+        return $this->languageNames;
+    }
+    
+    /**
+     * Returns an associative array mapping 2-digit ISO-639 language codes to the native language name
+     * @return string[]
+     */
+    public function getNativeLanguageNames()
+    {
+        if (!isset($this->nativeLanguageNames)) {
+            $languageRecords = $this->getIso639()->allLanguages();
+            $this->nativeLanguageNames = [];
+            foreach ($languageRecords as $item) {
+                $this->nativeLanguageNames[$item[0]] = $item[5];
+            }
+        }
+        return $this->nativeLanguageNames;
+    }
+    
+    /**
+     * Get the name of a language by its 2-digit ISO-639 code
+     * @param string $twoDigitLangCode
+     * @return string
+     */
+    public function getLanguageName($twoDigitLangCode)
+    {
+        if (!isset($twoDigitLangCode) || !is_string($twoDigitLangCode)) {
+            throw new \InvalidArgumentException('Please pass a two-digit language code to get its name');
+        }
+        if (!isset($this->languageNames)) {
+            $this->getLanguageNames();
+        }
+        return isset($this->languageNames[$twoDigitLangCode]) ? $this->languageNames[$twoDigitLangCode] : null;
+    }
+    
+    /**
+     * Get the native name of a language by its 2-digit ISO-639 code
+     * @param string $twoDigitLangCode
+     * @return string
+     */
+    public function getNativeLanguageName($twoDigitLangCode)
+    {
+        if (!isset($twoDigitLangCode) || !is_string($twoDigitLangCode)) {
+            throw new \InvalidArgumentException('Please pass a two-digit language code to get its native name');
+        }
+        if (!isset($this->nativeLanguageNames)) {
+            $this->getNativeLanguageNames();
+        }
+        return isset($this->nativeLanguageNames[$twoDigitLangCode]) 
+            ? $this->nativeLanguageNames[$twoDigitLangCode] 
+            : null;
     }
 }

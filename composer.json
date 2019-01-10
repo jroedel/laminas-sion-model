@@ -7,10 +7,11 @@
         "giggsey/libphonenumber-for-php": "^8.9",
         "neitanod/forceutf8": "^2.0",
         "tedivm/jshrink": "^1.1",
-        "voku/html2text": "^3.4",
+        "voku/html2text": "^5.0",
         "tijsverkoyen/css-to-inline-styles": "^2.2",
         "neilime/zf2-twb-bundle": "^3.0",
-    	"acelaya/zf2-acmailer": "5.*"
+    	"acelaya/zf2-acmailer": "5.*",
+        "matriphe/iso-639": "^1.2"
     },
     "license": "MIT",
     "minimum-stability": "stable",
