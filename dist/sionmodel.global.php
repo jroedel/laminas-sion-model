@@ -3,6 +3,9 @@ namespace Project;
 
 return [
     'sion_model' => [
+        //change values to modify hashing of ip addresses and user agents
+        'privacy_hash_algorithm' => 'sha256',
+        'privacy_hash_salt' => 'O3!k5Uvv@',
         //config for Content Security Policy
         'csp_config' => [
             //https://csp-evaluator.withgoogle.com

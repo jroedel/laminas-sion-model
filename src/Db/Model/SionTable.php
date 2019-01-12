@@ -32,6 +32,7 @@ use Zend\Db\Sql\Predicate\PredicateSet;
 use Zend\ServiceManager\ServiceLocatorInterface;
 use Zend\Db\ResultSet\ResultSetInterface;
 use Matriphe\ISO639\ISO639;
+use Zend\Crypt\Hash;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -207,6 +208,10 @@ class SionTable
      * @var string[]
      */
     protected $nativeLanguageNames;
+    
+    protected $privacyHashAlgorithm = 'sha256';
+    
+    protected $privacyHashSalt = '78z^PjApc';
 
     /**
      * Represents the action of updating an entity
@@ -260,7 +265,14 @@ class SionTable
         if (isset($config['max_items_to_cache'])) {
             $this->maxItemsToCache = $config['max_items_to_cache'];
         }
-
+        if (isset($config['privacy_hash_algorithm']) && Hash::isSupported($config['privacy_hash_algorithm'])) {
+            $this->privacyHashAlgorithm = $config['privacy_hash_algorithm'];
+        } elseif (array_key_exists('privacy_hash_algorithm', $config) && null === $config['privacy_hash_algorithm']) {
+            $this->privacyHashAlgorithm = null;
+        }
+        if (isset($config['privacy_hash_salt'])) {
+            $this->privacyHashSalt = $config['privacy_hash_salt'];
+        }
         //if we have it, use it
         if ($serviceLocator->has('JUser\Model\UserTable')) {
             $userTable = $serviceLocator->get('JUser\Model\UserTable');
@@ -1473,24 +1485,39 @@ class SionTable
     /**
      * Register a visit in the visits table as defined by the config
      * @param string $entity
-     * @param int $entityId
+     * @param int $entityId If null, it refers to an entity index that was visited
      * @throws \InvalidArgumentException
      */
-    public function registerVisit($entity, $entityId)
+    public function registerVisit($entity, $entityId = null)
     {
-        if (!is_numeric($entityId)) {
-            throw new \InvalidArgumentException('Invalid entity id submitted for visit registration');
-        }
-
         $date = new \DateTime(null, new \DateTimeZone('UTC'));
         $params = [
             'Entity' => $entity,
             'EntityId' => $entityId,
             'UserId' => $this->actingUserId,
-            'IpAddress' => $_SERVER['REMOTE_ADDR'],
+            'IpAddress' => $this->privacyHash($_SERVER['REMOTE_ADDR']),
+            'UserAgent' => $this->privacyHash($_SERVER['HTTP_USER_AGENT']),
             'VisitedAt' => $date->format('Y-m-d H:i:s'),
         ];
         $this->getVisitTableGateway()->insert($params);
+    }
+    
+    /**
+     * Hashes some data using the configured hash algorithm and salt.
+     * @param string $data
+     */
+    public function privacyHash($data)
+    {
+        if (!isset($data)) {
+            return null;
+        }
+        if (isset($this->privacyHashAlgorithm)) {
+            if (isset($this->privacyHashSalt)) {
+                $data = $this->privacyHashSalt.$data;
+            }
+            return Hash::compute($this->privacyHashAlgorithm, $data);
+        }
+        return $data;
     }
 
     /**
