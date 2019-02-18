@@ -511,7 +511,7 @@ class SionTable
                 if ($value instanceof PredicateInterface) {
                     $where->addPredicate($value, $combination);
                 }
-                if (isset($fieldMap[$key])) {
+                if (!isset($fieldMap[$key])) {
                     continue;
                 }
                 if (is_array($value)) {
@@ -1396,9 +1396,6 @@ class SionTable
      */
     public function getChanges($maxRows = 250)
     {
-        if ($cache = $this->fetchCachedEntityObjects('changes')) {
-            return $cache;
-        }
         $entityTypes = $this->getTableEntities();
         $gateway = $this->getChangesTableGateway();
         $select = new Select($this->changeTableName);
@@ -1443,7 +1440,6 @@ class SionTable
         }
         krsort($changes);
 
-        $this->cacheEntityObjects('changes', $changes);
         return $changes;
     }
 

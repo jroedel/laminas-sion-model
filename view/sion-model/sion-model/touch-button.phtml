@@ -61,15 +61,15 @@ $("#touch_entity").submit(function(event) {
 	    jsonp: "callback",
 	    // Tell jQuery we're expecting JSONP
 	    dataType: "jsonp",
-	    data: requestData
-	})
-	.success(function( data ) {
-		console.log("Message from server:"+JSON.stringify(data));
-        $(".modal-body").html("<p>"+data['message']+"</p>");
-	})
-	.fail(function(data) {
-		console.log("There was a problem: "+JSON.stringify(data));
-        $(".modal-body").html("<p class=\"text-danger\">"+data['message']+"</p>");
+	    data: requestData,
+        success: function( data ) {
+            console.log("Message from server:"+JSON.stringify(data));
+            $(".modal-body").html("<p>"+data['message']+"</p>");
+        },
+        error: function(data) {
+            console.log("There was a problem: "+JSON.stringify(data));
+            $(".modal-body").html("<p class=\"text-danger\">"+data['message']+"</p>");
+        }
 	});
     $(this).button('loading');
 });
