@@ -29,8 +29,10 @@ class CspListener implements ListenerAggregateInterface
      */
     public function __construct($config)
     {
+        //@todo make nonce length configurable
         $this->nonce = Rand::getString(12);
         $this->config = $config;
+        //@todo propagate nonce through a service injected into corresponding view helpers
         $GLOBALS['inline-nonce'] = $this->nonce;
     }
 
@@ -39,8 +41,13 @@ class CspListener implements ListenerAggregateInterface
      */
     public function attach(EventManagerInterface $events, $priority = 1)
     {
-        $eventName = $this->config['sion_model']['csp_config']['inject_headers_event'];
-        $this->listeners[] = $events->attach($eventName, array($this, 'injectHeader'), 5000);
+        if (isset($this->config['sion_model']['csp_config']) 
+            && isset($this->config['sion_model']['csp_config']['inject_headers_event'])
+            && isset($this->config['sion_model']['csp_config']['csp_string'])
+        ) {
+            $eventName = $this->config['sion_model']['csp_config']['inject_headers_event'];
+            $this->listeners[] = $events->attach($eventName, array($this, 'injectHeader'), 5000);
+        }
     }
 
     /**
@@ -56,9 +63,7 @@ class CspListener implements ListenerAggregateInterface
     }
     
     /**
-     * Callback used when a dispatch error occurs. Modifies the
-     * response object with an according error if the application
-     * event contains an exception related with authorization.
+     * Callback used 
      *
      * @param MvcEvent $event
      *

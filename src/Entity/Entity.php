@@ -58,6 +58,22 @@ class Entity
      */
     public $getObjectsFunction;
     /**
+     * Name of a function that recieves the raw database row in an array format
+     * and returns an array of the processed data.
+     * Is delegated from the processEntityRow function
+     * @var string $rowProcessorFunction
+     */
+    public $rowProcessorFunction;
+    /**
+     * A list of entity names this one depends on to complete it's data.
+     * This is used for cache management. For example, if entity A depends on entity B and a row of entity B
+     * has been modified, the cached results of both B and A will be invalidated.
+     * If the function returns null for a particular row, that row will not be included in the results
+     * Value used in the queryObjects function
+     * @var string[] $dependsOnEntities
+     */
+    public $dependsOnEntities = [];
+    /**
      * A registered alias of a view helper to render the entity
      * @var string $formatViewHelper
      */

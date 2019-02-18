@@ -97,7 +97,6 @@ class SionTable
     protected $tableGateway;
 
     /**
-     *
      * @var Adapter $adapter
      */
     protected $adapter;
@@ -107,10 +106,6 @@ class SionTable
      * @var TableGateway[] $tableGatewaysCache
      */
     protected $tableGatewaysCache = [];
-
-    protected $select;
-
-    protected $sql;
 
     /**
      * @var Entity[] $entitySpecifications
@@ -169,7 +164,7 @@ class SionTable
 
     /**
      * List of keys that should be persisted onFinish
-     * @var array
+     * @var array $newPersistentCacheItems
      */
     protected $newPersistentCacheItems = [];
 
@@ -187,7 +182,7 @@ class SionTable
      * ]
      * That is to say, each time an entity of that type is created or updated,
      * the cache will be invalidated.
-     * @var array
+     * @var array $cacheDependencies
      */
     protected $cacheDependencies = [];
     
@@ -199,18 +194,26 @@ class SionTable
     
     /**
      * An associative array mapping 2-digit iso-639 codes to the english name of a language
-     * @var string[]
+     * @var string[] $languageNames
      */
     protected $languageNames;
     
     /**
      * An associative array mapping 2-digit iso-639 codes to the native name of a language
-     * @var string[]
+     * @var string[] $nativeLanguageNames
      */
     protected $nativeLanguageNames;
     
+    /**
+     * Default algorithm for hashing sensitive data
+     * @var string $privacyHashAlgorithm
+     */
     protected $privacyHashAlgorithm = 'sha256';
     
+    /**
+     * Default random salt for hashing sensitive data
+     * @var string $privacyHashSalt
+     */
     protected $privacyHashSalt = '78z^PjApc';
 
     /**
@@ -545,6 +548,9 @@ class SionTable
         $objects = [];
         foreach ($results as $row) {
             $data = $this->processEntityRow($entity, $row);
+            if (null === $data) {
+                continue;
+            }
             $id = isset($data[$entitySpec->entityKeyField]) 
                 ? $data[$entitySpec->entityKeyField]
                 : null;
@@ -557,8 +563,11 @@ class SionTable
         }
         
         if (isset($cacheKey)) {
-            //@todo we could create a 'dependsOnEntities' key in the entity specs to add it to this array
-            $this->cacheEntityObjects($cacheKey, $objects, [$entitySpec->name]); 
+            $dependencies = $entitySpec->dependsOnEntities;
+            if (!in_array($entity, $dependencies)) {
+                $dependencies[] = $entity;
+            }
+            $this->cacheEntityObjects($cacheKey, $objects, $dependencies); 
         }
         return $objects;
     }
@@ -572,7 +581,16 @@ class SionTable
     protected function processEntityRow($entity, array $row)
     {
         $entitySpec = $this->getEntitySpecification($entity);
-        //@todo check if the entity has registered a row processor
+        
+        if (isset($entitySpec->rowProcessorFunction)
+            && method_exists($this, $entitySpec->rowProcessorFunction)
+            && !method_exists('SionTable', $entitySpec->rowProcessorFunction)
+        ) {
+            $processor = $entitySpec->rowProcessorFunction;
+            $data = $this->$processor($row);
+            return $data;
+        }
+        
         $columnsMap = $entitySpec->updateColumns;
         $data = [];
         foreach ($row as $column => $value) {
@@ -813,7 +831,6 @@ class SionTable
             $field = [$field];
         }
         $fields = null !== $field ? $field : [$entitySpec->entityKeyField];
-//         var_dump($fields);
         return $this->updateEntity($entity, $id, [], $fields, $refreshCache);
     }
 
@@ -1133,6 +1150,24 @@ class SionTable
         $gateway = new TableGateway($tableName, $this->adapter);
         //@todo is there a way to make sure the table exists?
         return $this->tableGatewaysCache[$tableName] = $gateway;
+    }
+    
+    /**
+     * Get a TableGateway instance for a given entity name
+     * @param string $entity
+     * @throws \Exception
+     * @return \Zend\Db\TableGateway\TableGateway
+     */
+    protected function getTableGatewayForEntity($entity)
+    {
+        if (!isset($this->entitySpecifications[$entity])) {
+            throw new \Exception("Entity not found: `$entity`");
+        }
+        $spec = $this->entitySpecifications[$entity];
+        if (!isset($spec->tableName)) {
+            throw new \Exception("Table not found for entity `$entity`");
+        }
+        return $this->getTableGateway($spec->tableName);
     }
 
     /**
