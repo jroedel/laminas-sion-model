@@ -505,7 +505,7 @@ class SionTable
         
         if ($query instanceof PredicateInterface) {
             $where = $query;
-        } else {
+        } elseif (is_array($query)) {
             $where = new Where();
             foreach ($query as $key => $value) {
                 if ($value instanceof PredicateInterface) {
@@ -521,7 +521,12 @@ class SionTable
                 }
                 $where->addPredicate($clause, $combination);
             }
+        } else {
+            throw new \InvalidArgumentException(
+                'Invalid query parameter. Should be either array or PredicateInterface'
+                );
         }
+        $select->where($where);
         if (isset($options['limit'])) {
             $select->limit($options['limit']);
         }
@@ -1362,6 +1367,7 @@ class SionTable
 
     /**
      * Get changes for a particular entity
+     * @todo factor out the SQL code to a queryChanges function where we can do more complex searches
      * @param string $entity
      * @param int|string $entityId
      * @return mixed[]
