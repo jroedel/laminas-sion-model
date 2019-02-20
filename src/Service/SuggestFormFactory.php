@@ -4,6 +4,7 @@ namespace SionModel\Service;
 use Zend\ServiceManager\Factory\FactoryInterface;
 use Interop\Container\ContainerInterface;
 use SionModel\Form\SuggestForm;
+use Patres\Model\PatresTable;
 
 /**
  * Factory responsible of priming the SuggestForm
@@ -22,7 +23,7 @@ class SuggestFormFactory implements FactoryInterface
         /**
          * @var EntitiesService $entitiesService
          */
-        $entitiesService = $container->get('SionModel\Service\EntitiesService');
+        $entitiesService = $container->get(EntitiesService::class);
         $entities = $entitiesService->getEntities();
         $entityHaystack = [];
         foreach ($entities as $entity) {
@@ -30,7 +31,10 @@ class SuggestFormFactory implements FactoryInterface
         }
         
         $form = new SuggestForm($entityHaystack);
-        $form->prepareForSuggestion($container);
+        //@todo both of these must be configurable!!! FIXME
+        $auth = $container->get('zfcuser_auth_service');
+        $personProvider = $container->get(PatresTable::class);
+        $form->prepareForSuggestion($auth,$personProvider);
 
         return $form;
     }
