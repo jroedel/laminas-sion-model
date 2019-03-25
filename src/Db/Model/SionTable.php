@@ -499,6 +499,8 @@ class SionTable
         $gateway = $this->getTableGateway($entitySpec->tableName);
         $select = $this->getSelectPrototype($entity);
         $fieldMap = $entitySpec->updateColumns;
+        $tableName = $entitySpec->tableName;
+        $columnPrefix = "$tableName.";
         
         $shouldFailSilently = isset($options['failSilently']) ? (bool)$options['failSilently'] : false;
         $combination = (isset($options['orCombination']) && $options['orCombination']) ? PredicateSet::OP_OR : PredicateSet::OP_AND;
@@ -515,9 +517,9 @@ class SionTable
                     continue;
                 }
                 if (is_array($value)) {
-                    $clause = new In($fieldMap[$key], $value);
+                    $clause = new In($columnPrefix.$fieldMap[$key], $value);
                 } else {
-                    $clause = new Operator($fieldMap[$key], Operator::OPERATOR_EQUAL_TO, $value);
+                    $clause = new Operator($columnPrefix.$fieldMap[$key], Operator::OPERATOR_EQUAL_TO, $value);
                 }
                 $where->addPredicate($clause, $combination);
             }
@@ -781,7 +783,7 @@ class SionTable
             throw new \Exception('No entity specifications are loaded. Please see sionmodel.global.php.dist');
         }
         if (!key_exists($entity, $this->entitySpecifications)) {
-            throw new \InvalidArgumentException('The request entity is unspecified. \''.$entity.'\'');
+            throw new \InvalidArgumentException('The request entity was not found. \''.$entity.'\'');
         }
         return $this->entitySpecifications[$entity];
     }
