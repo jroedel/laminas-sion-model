@@ -1627,6 +1627,24 @@ class SionTable
         $null = null;
         return $null;
     }
+    
+    /**
+     * Very similar to fetchCachedEntityObjects, but only returns data if 
+     * a memory cached version is already available. This can be useful if
+     * the program must decide between executing a delimited query or reusing
+     * pre-queried data
+     * @param string $key
+     * @return mixed
+     */
+    public function &fetchMemoryCachedEntityObjects($key)
+    {
+        $key = $this->getSionTableIdentifier().'-'.$key;
+        if (isset($this->memoryCache[$key])) {
+            return $this->memoryCache[$key];
+        }
+        $null = null;
+        return $null;
+    }
 
     /**
      * Examine the $this->cacheDependencies array to see if any depends on the entity passed.
