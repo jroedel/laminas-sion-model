@@ -452,7 +452,15 @@ class SionTable
         $object = $this->processEntityRow($entity, $results[0]);
         return $object;
     }
-
+    /**
+     * 
+     * @param string $entity
+     * @param array|PredicateInterface|PredicateInterface[] $query
+     * @param array $options 'failSilently'(bool), 'orCombination'(bool), 'limit'(int), 'offset'(int), 'order'
+     * @throws \Exception
+     * @throws \InvalidArgumentException
+     * @return mixed[][]
+     */
     public function getObjects($entity, $query = [], $options = [])
     {
         $entitySpec = $this->getEntitySpecification($entity);
@@ -483,7 +491,7 @@ class SionTable
      * @throws \Exception
      * @return mixed[][]
      */
-    public function queryObjects($entity, $query = [], $options = [])
+    public function queryObjects($entity, $query = [], array $options = [])
     {
         $cacheKey = null;
         if (is_array($query) && empty($query) && empty($options)) {
@@ -535,8 +543,18 @@ class SionTable
         if (isset($options['offset'])) {
             $select->offset($options['offset']);
         }
+        //@todo map field to column name, think about this well
         if (isset($options['order'])) {
-            $select->order($options['order']);
+//             if (is_array($options['order']) 
+//                 && (!isset($options['noOrderFieldMapping']) || !$options['noOrderFieldMapping'])
+//             ) {
+//                 $order = [];
+//                 foreach ($ as $key => $value) {
+//                     ;
+//                 }
+//             } else {
+                $select->order($options['order']);
+//             }
         }
         
         $result = $gateway->selectWith($select);
@@ -874,7 +892,6 @@ class SionTable
          * Run the new/old data throught the preprocessor function if it exists
          */
         if (isset($entitySpec->databaseBoundDataPreprocessor) &&
-            null !== $entitySpec->databaseBoundDataPreprocessor &&
             method_exists($this, $entitySpec->databaseBoundDataPreprocessor) &&
             !method_exists('SionTable', $entitySpec->databaseBoundDataPreprocessor) //make sure noone's being sneaky)
         ) {
@@ -889,8 +906,8 @@ class SionTable
 
         //if the id is being changed, update it
         $keyField = $entitySpec->entityKeyField;
-        if (isset($data[$keyField]) && null !== $data[$keyField] &&
-            isset($entityData[$keyField]) && null !== $entityData[$keyField] &&
+        if (isset($data[$keyField]) && 
+            isset($entityData[$keyField]) &&
             $data[$keyField] !== $entityData[$keyField]
         ) {
             $id = $data[$keyField];
@@ -900,7 +917,6 @@ class SionTable
          * Run the changed/new data through the preprocessor function if it exists
          */
         if (isset($entitySpec->databaseBoundDataPostprocessor) &&
-            null !== $entitySpec->databaseBoundDataPostprocessor &&
             method_exists($this, $entitySpec->databaseBoundDataPostprocessor) &&
             !method_exists('SionTable', $entitySpec->databaseBoundDataPostprocessor) //make sure noone's being sneaky
         ) {
@@ -908,6 +924,7 @@ class SionTable
             $postprocessor = $entitySpec->databaseBoundDataPostprocessor;
             $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_UPDATE);
         }
+        
         return $return;
     }
 
@@ -993,16 +1010,17 @@ class SionTable
                 $updateVals[$updateCols['updatedOn']] = $now;
             }
             if (isset($updateCols['updatedBy']) && !isset($updateVals[$updateCols['updatedBy']]) &&
-                null !== $this->actingUserId) {
-                    $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
+                isset($this->actingUserId)
+            ) {
+                $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
             }
-                $result = $tableGateway->update($updateVals, [$tableKey => $id]);
+            $result = $tableGateway->update($updateVals, [$tableKey => $id]);
             if ($reportChanges) {
                 $this->reportChange($changes);
             }
-                return $result;
+            return $result;
         }
-        return true;
+        return -1;
     }
 
     public function createEntity($entity, $data, $refreshCache = true)
