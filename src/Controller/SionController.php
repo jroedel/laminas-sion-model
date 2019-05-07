@@ -24,6 +24,8 @@ use Zend\Form\Form;
 use Zend\Form\FormInterface;
 use SionModel\Db\Model\PredicatesTable;
 use SionModel\Form\CommentForm;
+use Zend\Stdlib\ResponseInterface;
+use SionModel\Form\SionForm;
 
 class SionController extends AbstractActionController
 {
@@ -247,7 +249,10 @@ class SionController extends AbstractActionController
             throw new \InvalidArgumentException('If the createAction for \''.$entity.'\' is to be used, it must specify the create_action_form configuration.');
         }
         $form = $this->createActionForm;
-
+        $view = new ViewModel([
+            'form' => $form,
+        ]);
+        
         $request = $this->getRequest();
         if ($request->isPost()) {
             $data = $this->getPostDataForCreateAction();
@@ -265,15 +270,23 @@ class SionController extends AbstractActionController
                     //don't return here so that if the handler doesn't redirect, we send them back to the form
                     $this->$handlerFunction($data, $form);
                 } else { //if we have no data handler, we'll do it ourselves
-                    $this->createEntityPostFormValidation($data, $form);
+                    $response = $this->createEntityPostFormValidation($data, $form);
+                    if ($response instanceof ResponseInterface) {
+                        return $response;
+                    }
                 }
             } else {
-                $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review.');
+                $response = $this->doWorkWhenFormInvalidForCreateAction($view);
+                if ($response instanceof ResponseInterface) {
+                    return $response;
+                }
+            }
+        } else {
+            $response = $this->doWorkWhenNotPostForCreateAction($view);
+            if ($response instanceof ResponseInterface) {
+                return $response;
             }
         }
-        $view = new ViewModel([
-            'form' => $form,
-        ]);
 
         //check if the user has the createActionTemplate option set, if not they'll go to the default
         if (isset($entitySpec->createActionTemplate)) {
@@ -281,6 +294,30 @@ class SionController extends AbstractActionController
             $view->setTemplate($template);
         }
         return $view;
+    }
+    
+    /**
+     * This function will be executed within the create action
+     * if the form doesn't validate properly. This is for a
+     * consumer of this class to overload this method.
+     * @param ViewModel $view
+     */
+    public function doWorkWhenFormInvalidForCreateAction(ViewModel $view)
+    {
+        /** @var SionForm $form */
+        $form = $view->getVariable('form');
+        $messages = $form->getMessages();
+        $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review: '.implode(', ', array_keys($messages)));
+    }
+    
+    /**
+     * This function will be executed within the create action
+     * if the page load was not a POST method. This is for a
+     * consumer of this class to overload this method.
+     * @param ViewModel $view
+     */
+    public function doWorkWhenNotPostForCreateAction(ViewModel $view)
+    {
     }
 
     /**
@@ -296,6 +333,7 @@ class SionController extends AbstractActionController
      * Creates a new entity, notifies the user via flash messenger and redirects.
      * @param mixed[] $data
      * @param Form $form
+     * @return \Zend\Stdlib\ResponseInterface|NULL
      */
     public function createEntityPostFormValidation($data, $form)
     {
@@ -306,7 +344,7 @@ class SionController extends AbstractActionController
         } else {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)
             ->addMessage(ucwords($entity).' successfully created.');
-            return $this->redirectAfterCreate((int) $newId, $data, $form);
+            return $this->redirectAfterCreate((int)$newId, $data, $form);
         }
     }
 
@@ -329,7 +367,7 @@ class SionController extends AbstractActionController
         //check if user has the redirect route set
         if (isset($entitySpec->createActionRedirectRoute)) {
             if (!isset($entitySpec->createActionRedirectRouteKeyField) ||
-                $entitySpec->createActionRedirectRouteKeyField == $entitySpec->entityKeyField ||
+                $entitySpec->createActionRedirectRouteKeyField === $entitySpec->entityKeyField ||
                 !isset($entitySpec->createActionRedirectRouteKey)
             ) {
                 return $this->redirect()->toRoute(
@@ -844,13 +882,19 @@ class SionController extends AbstractActionController
         return $this->entitySpecifications;
     }
 
+    /**
+     * Get an array representing the entity object given by a particular id
+     * @param number $id
+     * @return mixed[]
+     */
     public function getEntityObject($id)
     {
         if (isset($this->object[$id])) {
             return $this->object[$id];
         }
         $table = $this->getSionTable();
-        return $this->object[$id] = $table->getObject($this->getEntity(), $id, true);
+        $this->object[$id] = $table->getObject($this->getEntity(), $id, true);
+        return $this->object[$id];
     }
 
     /**

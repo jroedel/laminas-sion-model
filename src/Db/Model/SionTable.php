@@ -33,6 +33,8 @@ use Zend\ServiceManager\ServiceLocatorInterface;
 use Zend\Db\ResultSet\ResultSetInterface;
 use Matriphe\ISO639\ISO639;
 use Zend\Crypt\Hash;
+use SionModel\Service\EntitiesService;
+use SionModel\Service\ProblemService;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -243,7 +245,7 @@ class SionTable
         /**
          * @var EntitiesService $entities
          */
-        $entities = $serviceLocator->get('SionModel\Service\EntitiesService');
+        $entities = $serviceLocator->get(EntitiesService::class);
 
         $config = $serviceLocator->get('SionModel\Config');
         if ($serviceLocator->has('SionModel\PersistentCache')) {
@@ -277,8 +279,8 @@ class SionTable
             $this->privacyHashSalt = $config['privacy_hash_salt'];
         }
         //if we have it, use it
-        if ($serviceLocator->has('JUser\Model\UserTable')) {
-            $userTable = $serviceLocator->get('JUser\Model\UserTable');
+        if ($serviceLocator->has(UserTable::class)) {
+            $userTable = $serviceLocator->get(UserTable::class);
             $this->setUserTable($userTable);
         }
 
@@ -289,7 +291,7 @@ class SionTable
             /**
              * @var ProblemService $problemService
              */
-            $problemService = $serviceLocator->get('SionModel\Service\ProblemService');
+            $problemService = $serviceLocator->get(ProblemService::class);
             $this->entityProblemPrototype = $problemService->getEntityProblemPrototype();
         }
     }
@@ -555,6 +557,30 @@ class SionTable
 //             } else {
                 $select->order($options['order']);
 //             }
+        }
+        
+        $prefixColumnsWithTable = true;
+        if (isset($options['prefixColumnsWithTable'])) {
+            $prefixColumnsWithTable = $options['prefixColumnsWithTable'];
+        }
+        if (isset($options['columns'])) {
+            $select->columns($options['columns'], $prefixColumnsWithTable);
+        } elseif (isset($options['fields']) && is_array($options['fields'])) {
+            $columns = [];
+            foreach ($options['fields'] as $key => $value) {
+                $fieldName = $value;
+                $aliasName = is_int($key) ? $key : null;
+                if (!isset($fieldMap[$fieldName])) {
+                    throw new \Exception('Unknown field name');
+                }
+                $column = $fieldMap[$fieldName];
+                if (isset($aliasName)) {
+                    $columns[$aliasName] = $column;
+                } else {
+                    $columns[] = $column;
+                }
+            }
+            $select->columns($columns, $prefixColumnsWithTable);
         }
         
         $result = $gateway->selectWith($select);
