@@ -437,7 +437,10 @@ class SionController extends AbstractActionController
             $form->setData($data);
             if ($form->isValid()) {
                 $data = $form->getData();
-                $this->updateEntityPostFormValidation($id, $data, $form);
+                $response = $this->updateEntityPostFormValidation($id, $data, $form);
+                if ($response instanceof ResponseInterface) {
+                    return $response;
+                }
             } else {
                 $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review.');
             }
