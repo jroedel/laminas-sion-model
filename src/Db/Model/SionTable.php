@@ -35,6 +35,7 @@ use Matriphe\ISO639\ISO639;
 use Zend\Crypt\Hash;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
+use Carbon\Carbon;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -1792,7 +1793,7 @@ class SionTable
     }
 
     /**
-     * Check if an assignment should be considered active based on the start/end date
+     * Check if an assignment should be considered active based on the start/end date inclusive
      * @param null|\DateTime $startDate
      * @param null|\DateTime $endDate
      * @throws \InvalidArgumentException
@@ -1805,13 +1806,14 @@ class SionTable
         ) {
             throw new \InvalidArgumentException('Invalid value passed to `areWeWithinDateRange`');
         }
-        static $now;
-        if (!isset($now)) {
+        static $today;
+        if (!isset($today)) {
             $timeZone = new \DateTimeZone('UTC');
-            $now = new \DateTime(null, $timeZone);
+            $today = new \DateTime(null, $timeZone);
+            $today->setTime(0, 0, 0, 0);
         }
-        return ($startDate <= $now && (null === $endDate || $endDate > $now)) ||
-            (null === $startDate && ((null === $endDate || $endDate > $now)));
+        return ($startDate <= $today && (null === $endDate || $endDate >= $today)) ||
+            (null === $startDate && ((null === $endDate || $endDate >= $today)));
     }
 
     /**
