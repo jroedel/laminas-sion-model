@@ -35,7 +35,6 @@ use Matriphe\ISO639\ISO639;
 use Zend\Crypt\Hash;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
-use Carbon\Carbon;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -72,6 +71,8 @@ use Carbon\Carbon;
  */
 class SionTable
 {
+    use SionCacheTrait;
+    
     const SUGGESTION_ERROR = 'Error';
     const SUGGESTION_INREVIEW = 'In review';
     const SUGGESTION_ACCEPTED = 'Accepted';
@@ -249,17 +250,17 @@ class SionTable
         $entities = $serviceLocator->get(EntitiesService::class);
 
         $config = $serviceLocator->get('SionModel\Config');
+        
+        //setup cache
         if ($serviceLocator->has('SionModel\PersistentCache')) {
-            $this->persistentCache = $serviceLocator->get('SionModel\PersistentCache');
-            $hasCacheDependencies = false;
-            $cacheDependencies = $this->persistentCache->getItem($this->getSionTableIdentifier().'cachedependencies', $hasCacheDependencies);
-            if ($hasCacheDependencies) {
-                $this->cacheDependencies = $cacheDependencies;
-            }
+            $this->setPersistentCache($serviceLocator->get('SionModel\PersistentCache'));
 
             //setup listener for onFinish, so move objects to persistent storage
             $em = $serviceLocator->get('Application')->getEventManager();
-            $em->attach(MvcEvent::EVENT_FINISH, [$this, 'onFinish'], -1);
+            $this->wireOnFinishTrigger($em);
+            if (isset($config['max_items_to_cache'])) {
+                $this->setMaxItemsToCache($config['max_items_to_cache']);
+            }
         }
 
         $this->tableGateway     = new TableGateway('', $dbAdapter);
@@ -268,9 +269,6 @@ class SionTable
         $this->actingUserId     = $actingUserId;
         $this->changeTableName  = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
-        if (isset($config['max_items_to_cache'])) {
-            $this->maxItemsToCache = $config['max_items_to_cache'];
-        }
         if (isset($config['privacy_hash_algorithm']) && Hash::isSupported($config['privacy_hash_algorithm'])) {
             $this->privacyHashAlgorithm = $config['privacy_hash_algorithm'];
         } elseif (array_key_exists('privacy_hash_algorithm', $config) && null === $config['privacy_hash_algorithm']) {
@@ -352,42 +350,6 @@ class SionTable
         return $mailing;
     }
 
-    /**
-     * Get a string to identify this SionTable amongst others. Based on a transformed class name.
-     * @return string
-     */
-    public function getSionTableIdentifier()
-    {
-        static $filter;
-        if (!is_object($filter)) {
-            $filter = new FilterChain();
-            $filter->attach(new StringToLower())
-            ->attach(new PregReplace(['pattern' => '/\\\\/', 'replacement' => '']));
-        }
-        return $filter->filter(get_class($this));
-    }
-
-    /**
-     * At the end of the page load, cache any uncached items up to max_number_of_items_to_cache.
-     * This is because serializing big objects can be very memory expensive.
-     */
-    public function onFinish()
-    {
-        $maxObjects = $this->getMaxItemsToCache();
-        $count = 0;
-        if (is_object($this->persistentCache)) {
-            $this->persistentCache->setItem($this->getSionTableIdentifier().'cachedependencies', $this->cacheDependencies);
-            foreach ($this->newPersistentCacheItems as $key) {
-                if (key_exists($key, $this->memoryCache)) {
-                    $this->persistentCache->setItem($key, $this->memoryCache[$key]);
-                    $count++;
-                }
-                if ($count >= $maxObjects) {
-                    break;
-                }
-            }
-        }
-    }
 
     /**
      * Get entity data for the specified entity and id
@@ -599,6 +561,7 @@ class SionTable
         $results = $result->toArray();
         $objects = [];
         foreach ($results as $row) {
+            //@todo since this line may be called thousands of times, check first if we have a row processor
             $data = $this->processEntityRow($entity, $row);
             if (null === $data) {
                 continue;
@@ -827,7 +790,7 @@ class SionTable
         if (empty($this->entitySpecifications)) {
             throw new \Exception('No entity specifications are loaded. Please see sionmodel.global.php.dist');
         }
-        if (!key_exists($entity, $this->entitySpecifications)) {
+        if (!isset($this->entitySpecifications[$entity])) {
             throw new \InvalidArgumentException('The request entity was not found. \''.$entity.'\'');
         }
         return $this->entitySpecifications[$entity];
@@ -1622,137 +1585,7 @@ class SionTable
         $this->userTable = $userTable;
         return $this;
     }
-
-    /**
-     * Cache some entities. A simple proxy of the cache's setItem method with dependency support.
-     *
-     * @param string $cacheKey
-     * @param mixed[] $objects
-     * @param array $entityDependencies
-     * @return boolean
-     */
-    public function cacheEntityObjects($cacheKey, &$objects, array $cacheDependencies = [])
-    {
-        if (!isset($this->persistentCache)) {
-            throw new \Exception('The cache must be configured to cache entites.');
-        }
-        $cacheKey = $this->getSionTableIdentifier().'-'.$cacheKey;
-        $this->memoryCache[$cacheKey] = $objects;
-        $this->newPersistentCacheItems[] = $cacheKey;
-        $this->cacheDependencies[$cacheKey] = $cacheDependencies;
-        return true;
-    }
-
-    /**
-     * Retrieve a cache item. A simple proxy of the cache's getItem method.
-     * First we check the memoryCache, if it's not there, we look in the
-     * persistent cache. If it's in the persistent cache, we set it in the
-     * memory cache and return the objects. If we don't find the key we
-     * return null.
-     * @param string $key
-     * @param bool $success
-     * @param mixed $casToken
-     * @throws \Exception
-     * @return mixed|null
-     */
-    public function &fetchCachedEntityObjects($key, &$success = null, $casToken = null)
-    {
-        if (null === $this->persistentCache) {
-            throw new \Exception('Please set a cache before fetching cached entities.');
-        }
-        $key = $this->getSionTableIdentifier().'-'.$key;
-        if (isset($this->memoryCache[$key])) {
-            return $this->memoryCache[$key];
-        }
-        $objects = $this->persistentCache->getItem($key, $success, $casToken);
-        if ($success) {
-            $this->memoryCache[$key]=$objects;
-            return $this->memoryCache[$key];
-        }
-        $null = null;
-        return $null;
-    }
     
-    /**
-     * Very similar to fetchCachedEntityObjects, but only returns data if 
-     * a memory cached version is already available. This can be useful if
-     * the program must decide between executing a delimited query or reusing
-     * pre-queried data
-     * @param string $key
-     * @return mixed
-     */
-    public function &fetchMemoryCachedEntityObjects($key)
-    {
-        $key = $this->getSionTableIdentifier().'-'.$key;
-        if (isset($this->memoryCache[$key])) {
-            return $this->memoryCache[$key];
-        }
-        $null = null;
-        return $null;
-    }
-
-    /**
-     * Examine the $this->cacheDependencies array to see if any depends on the entity passed.
-     * @param string $entity
-     * @return bool
-     */
-    public function removeDependentCacheItems($entity)
-    {
-        $cache = $this->getPersistentCache();
-        foreach ($this->cacheDependencies as $key => $dependentEntities) {
-            if (in_array($entity, $dependentEntities) || $key == 'changes' || $key == 'problems') {
-                if (is_object($cache)) {
-                    $cache->removeItem($key);
-                }
-                if (isset($this->memoryCache[$key])) {
-                    unset($this->memoryCache[$key]);
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /**
-    * Get the maxItemsToCache value
-    * @return int
-    */
-    public function getMaxItemsToCache()
-    {
-        return $this->maxItemsToCache;
-    }
-
-    /**
-    *
-    * @param int $maxItemsToCache
-    * @return self
-    */
-    public function setMaxItemsToCache($maxItemsToCache)
-    {
-        $this->maxItemsToCache = $maxItemsToCache;
-        return $this;
-    }
-
-    /**
-     * Get the cache value
-     * @return StorageInterface
-     */
-    public function getPersistentCache()
-    {
-        return $this->persistentCache;
-    }
-
-    /**
-     *
-     * @param StorageInterface $cache
-     * @return self
-     */
-    public function setPersistentCache($cache)
-    {
-        $this->persistentCache = $cache;
-        return $this;
-    }
-
     /**
      * Takes two DateTime objects and returns a string of the range of years the dates involve.
      * If one date is null, just the one year is returned. If both dates are null, null is returned.

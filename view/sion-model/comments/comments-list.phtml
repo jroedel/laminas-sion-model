@@ -3,7 +3,7 @@
  * @param $comments
  */
 if (isset($this->comments) && is_array($this->comments) && !empty($this->comments)):
-foreach ($this->comments as $commentId => $object) :?>
+foreach ($this->comments as $object) :?>
     <h3><i class="fa fa-comment"></i> <?php echo sprintf($this->translate('%s says'), $this->escapeHtml($object['createdByUsername']));?>:
         <small> <?php if ($object['createdOn'] instanceof \DateTime) {
             echo $this->diffForHumans($object['createdOn']);

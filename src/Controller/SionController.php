@@ -25,7 +25,6 @@ use Zend\Form\FormInterface;
 use SionModel\Db\Model\PredicatesTable;
 use SionModel\Form\CommentForm;
 use Zend\Stdlib\ResponseInterface;
-use SionModel\Form\SionForm;
 
 class SionController extends AbstractActionController
 {
@@ -140,9 +139,6 @@ class SionController extends AbstractActionController
     {
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-        if (!isset($entitySpec->showRouteKey)) {
-            throw new \Exception("Please set the show_route_key config key of $entity in order to use the showAction.");
-        }
         $id = $this->getEntityIdParam('show');
         if (!$id) {
             $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
@@ -202,7 +198,7 @@ class SionController extends AbstractActionController
 
         //@todo enable suggest form
 //         $sm = $this->getServiceLocator ();
-//         /** @var SionForm $suggestForm **/
+//         /** @var SionModel\Form\SionForm $suggestForm **/
 //         if (!isset($entitySpec->suggestForm)) {
 //             $suggestForm = $sm->get('SionModel\Form\SuggestForm');
 //         } elseif ($sm->has($entitySpec->suggestForm)) {
@@ -304,7 +300,7 @@ class SionController extends AbstractActionController
      */
     public function doWorkWhenFormInvalidForCreateAction(ViewModel $view)
     {
-        /** @var SionForm $form */
+        /** @var SionModel\Form\SionForm $form */
         $form = $view->getVariable('form');
         $messages = $form->getMessages();
         $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)->addMessage('Error in form submission, please review: '.implode(', ', array_keys($messages)));
@@ -896,7 +892,7 @@ class SionController extends AbstractActionController
             return $this->object[$id];
         }
         $table = $this->getSionTable();
-        $this->object[$id] = $table->getObject($this->getEntity(), $id, true);
+        $this->object[$id] = $table->getObject($this->getEntity(), $id, false);
         return $this->object[$id];
     }
 

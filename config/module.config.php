@@ -633,7 +633,7 @@ return [
                             'constraints' => [
                                 'entity_id' => '[0-9]{1,5}',
                                 'entity' => '[a-zA-Z_-]{1,25}',
-                                'kind' => '(comment|review)',
+                                'kind' => '(comment|review|rating)',
                             ],
                         ],
                     ],

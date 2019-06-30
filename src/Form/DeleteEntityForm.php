@@ -35,30 +35,12 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
                 'value' => 'Cancel',
                 'id' => 'submit',
                 'data-dismiss' => 'modal'
-//              'class' => 'btn-danger'
             ],
         ]);
     }
 
     public function getInputFilterSpecification()
     {
-        return [
-//          'entityId' => [
-//              'required' => true,
-//              'validators' => [
-//                  [
-//                      'name'    => 'Zend\Validator\Db\RecordExists',
-//                      'options' => [
-//                          'table' => $this->tableName,
-//                          'field' => $this->tableKey,
-//                          'adapter' => \Zend\Db\TableGateway\Feature\GlobalAdapterFeature::getStaticAdapter(),
-//                          'messages' => [
-//                              \Zend\Validator\Db\RecordExists::ERROR_NO_RECORD_FOUND => 'Entity not found in database'
-//                          ],
-//                      ],
-//                  ],
-//              ],
-//          ],
-        ];
+        return [];
     }
 }

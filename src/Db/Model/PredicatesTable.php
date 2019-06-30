@@ -12,6 +12,11 @@ class PredicatesTable extends SionTable
     const COMMENT_KIND_COMMENT = 'comment'; //only comment
     const COMMENT_KIND_RATING = 'rating'; //only rating
     const COMMENT_KIND_REVIEW = 'review'; //comment+rating
+    const COMMENT_KINDS = [
+        self::COMMENT_KIND_COMMENT => 'Comment',
+        self::COMMENT_KIND_RATING => 'Rating',
+        self::COMMENT_KIND_REVIEW => 'Review'
+    ];
     
     const COMMENT_STATUS_IN_REVIEW = 'in-review';
     const COMMENT_STATUS_PUBLISHED = 'published';
