@@ -6,7 +6,6 @@ use Zend\Db\Adapter\Adapter;
 use Zend\Db\Sql\Insert;
 use Zend\Db\TableGateway\TableGateway;
 use Zend\Filter\Boolean;
-use Zend\Filter\FilterChain;
 use Zend\Validator\EmailAddress;
 use SionModel\Entity\Entity;
 use Zend\Db\TableGateway\TableGatewayInterface;
@@ -19,9 +18,6 @@ use Zend\Stdlib\StringUtils;
 use SionModel\Problem\EntityProblem;
 use Zend\Db\ResultSet\ResultSet;
 use Zend\Cache\Storage\StorageInterface;
-use Zend\Filter\StringToLower;
-use Zend\Filter\PregReplace;
-use Zend\Mvc\MvcEvent;
 use Zend\Db\Sql\Select;
 use Zend\Db\Sql\Expression;
 use SionModel\Db\GeoPoint;
@@ -734,7 +730,7 @@ class SionTable
      * Validate urls and configure their labels
      * @param string[] $unprocessedUrls Should be a 2-dimensional array, each element containing a 'url' and 'label' key
      * @throws \InvalidArgumentException
-     * @return string[]
+     * @return string[]|null
      *
      * @todo check URL against Google Safe Browsing
      */
@@ -772,8 +768,6 @@ class SionTable
         }
         if (0 === count($urls)) {
             $urls = null;
-        } elseif (1 === count($urls)) {
-            $urls = $urls[0];
         }
         return $urls;
     }
