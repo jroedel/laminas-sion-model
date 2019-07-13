@@ -12,7 +12,7 @@ use Cake\Utility\Text;
 <?php $standingTimeString = '';
 $showEntity = isset($this->showEntity) ? (bool)$this->showEntity : true;
 $maxRows = isset($this->maxRows) ? $this->maxRows : null;
-$limitRows = !is_null($maxRows);
+$limitRows = isset($maxRows);
 $counter = 0;
 foreach ($this->changes as $row):
     ++$counter;
@@ -34,13 +34,16 @@ foreach ($this->changes as $row):
 	</tr>
 	</thead>
 	<?php endif;
-	$geoText = $row['ipAddress'].' ';
-    $geo = $this->geoip($row['ipAddress']);
-	if ($geo&&$geo->getCity()) {
-	    $geoText .= ' ' . mb_convert_encoding($geo->getCity(),"UTF-8","Windows-1252").", ";
-	}
-	if ($geo&&$geo->getCountryName()) {
-	    $geoText .= mb_convert_encoding($geo->getCountryName(),"UTF-8","Windows-1252");
+	$geoText = null;
+	if (isset($row['ipAddress'])) {
+    	$geoText = '';
+        $geo = $this->geoip($row['ipAddress']);
+    	if ($geo && $geo->getCity()) {
+    	    $geoText .= ' ' . mb_convert_encoding($geo->getCity(),"UTF-8","Windows-1252").", ";
+    	}
+    	if ($geo && $geo->getCountryName()) {
+    	    $geoText .= mb_convert_encoding($geo->getCountryName(),"UTF-8","Windows-1252");
+    	}
 	}?>
 	<tr>
     	<td><span <?php if ($geoText):?>data-toggle="tooltip" data-placement="bottom" data-container="body"
