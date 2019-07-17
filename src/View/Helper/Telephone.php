@@ -43,11 +43,6 @@ class Telephone extends AbstractHelper
         }
         try {
             $numberProto = $this->phoneUtil->parse($telephone, "DE");
-//          var_dump($numberProto);
-//          var_dump($this->phoneUtil->format($numberProto, \libphonenumber\PhoneNumberFormat::INTERNATIONAL));
-//          var_dump($this->phoneUtil->getRegionCodeForNumber($numberProto));
-//          var_dump($this->phoneUtil->getNumberType($numberProto));
-//          var_dump($this->geocoder->getDescriptionForNumber($numberProto, "en_US"));
             //@todo add in the current user's locale
             if (!is_null($numberProto)) {
                 $telephone = $this->phoneUtil->format($numberProto, \libphonenumber\PhoneNumberFormat::INTERNATIONAL);

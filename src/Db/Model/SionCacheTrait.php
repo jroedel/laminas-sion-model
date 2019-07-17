@@ -54,7 +54,7 @@ trait SionCacheTrait
     
     public function wireOnFinishTrigger(EventManagerInterface $em, $priority = 100)
     {
-        $em->attach(MvcEvent::EVENT_FINISH, [$this, 'onFinish'], $priority);
+        $em->attach(MvcEvent::EVENT_FINISH, [$this, 'onFinishWriteCache'], $priority);
     }
     
     /**
@@ -220,14 +220,32 @@ trait SionCacheTrait
      * At the end of the page load, cache any uncached items up to max_number_of_items_to_cache.
      * This is because serializing big objects can be very memory expensive.
      */
-    public function onFinish()
+    public function onFinishWriteCache()
     {
         $maxObjects = $this->getMaxItemsToCache();
         $count = 0;
         if (is_object($this->persistentCache)) {
             foreach ($this->newPersistentCacheItems as $fullyQualifiedCacheKey) {
                 if (key_exists($fullyQualifiedCacheKey, $this->memoryCache)) {
-                    $this->persistentCache->setItem($fullyQualifiedCacheKey, $this->memoryCache[$fullyQualifiedCacheKey]);
+                    if (isset($this->logger)) {
+                        $this->logger->debug("Writing cache.", ['cacheKey' => $fullyQualifiedCacheKey]);
+                    }
+                    //add some debugging information since it's often difficult to cache really large objects
+                    $start = microtime(true);
+                    $startMemory = memory_get_peak_usage(false);
+                    $this->persistentCache->setItem(
+                        $fullyQualifiedCacheKey, 
+                        $this->memoryCache[$fullyQualifiedCacheKey]
+                        );
+                    $memorySpike = (memory_get_peak_usage(false)-$startMemory)/1024/1024;
+                    $timeElapsedSecs = microtime(true) - $start;
+                    if (isset($this->logger)) {
+                        $this->logger->debug("Successfully wrote cache.", [
+                            'cacheKey' => $fullyQualifiedCacheKey,
+                            'elapsedTime' => $timeElapsedSecs,
+                            'memorySpike' => $memorySpike." MiB",
+                        ]);
+                    }
                     $count++;
                 }
                 if ($count >= $maxObjects) {

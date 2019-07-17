@@ -12,7 +12,7 @@ use SionModel\Mailing\Mailer;
 /**
  * Factory responsible of priming the Mailer service
  *
- * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
+ * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
 class MailerFactory implements FactoryInterface
 {

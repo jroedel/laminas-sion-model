@@ -8,7 +8,7 @@ use SionModel\Controller\SionModelController;
 /**
  * Factory responsible of priming the PatresTable service
  *
- * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
+ * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
 class SionModelControllerFactory implements FactoryInterface
 {

@@ -8,7 +8,7 @@ use SionModel\View\Helper\FormatEntity;
 /**
  * Factory responsible of constructing the FormatEntity view helper
  *
- * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
+ * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
 class FormatEntityFactory implements FactoryInterface
 {

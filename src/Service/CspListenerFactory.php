@@ -8,7 +8,7 @@ use SionModel\Mvc\CspListener;
 /**
  * Factory responsible of constructing the central collection of Entity's
  *
- * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
+ * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
 class CspListenerFactory implements FactoryInterface
 {

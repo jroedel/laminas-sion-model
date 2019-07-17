@@ -6,7 +6,7 @@ use Interop\Container\ContainerInterface;
 use SionModel\View\Helper\RouteName;
 
 /**
- * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
+ * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
 class RouteNameFactory implements FactoryInterface
 {

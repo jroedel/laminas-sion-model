@@ -11,8 +11,6 @@ class ShortDateRange extends AbstractHelper
     
     public function __invoke($date1, $date2)
     {
-//         var_dump($date1);
-//         var_dump($date2);
         if (!$date1 instanceof \DateTime && !$date2 instanceof \DateTime) {
             return '';
         }

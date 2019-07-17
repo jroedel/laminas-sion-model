@@ -31,6 +31,7 @@ use Matriphe\ISO639\ISO639;
 use Zend\Crypt\Hash;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
+use Zend\Log\LoggerInterface;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -217,6 +218,10 @@ class SionTable
     protected $privacyHashSalt = '78z^PjApc';
 
     /**
+     * @var LoggerInterface $logger
+     */
+    protected $logger;
+    /**
      * Represents the action of updating an entity
      * @var string
      */
@@ -265,16 +270,24 @@ class SionTable
         $this->actingUserId     = $actingUserId;
         $this->changeTableName  = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
+        
         if (isset($config['privacy_hash_algorithm']) && Hash::isSupported($config['privacy_hash_algorithm'])) {
             $this->privacyHashAlgorithm = $config['privacy_hash_algorithm'];
         } elseif (array_key_exists('privacy_hash_algorithm', $config) && null === $config['privacy_hash_algorithm']) {
             $this->privacyHashAlgorithm = null;
         }
+        
         if (isset($config['privacy_hash_salt'])) {
             $this->privacyHashSalt = $config['privacy_hash_salt'];
         }
-        //if we have it, use it
-        if ($serviceLocator->has(UserTable::class)) {
+        
+        if ($serviceLocator->has(LoggerInterface::class)) {
+            $logger = $serviceLocator->get(LoggerInterface::class);
+            $this->logger = $logger;
+        }
+        
+        //if we have it, use it; careful because UserTable is itself a SionTable
+        if (UserTable::class !== get_class($this) && $serviceLocator->has(UserTable::class)) {
             $userTable = $serviceLocator->get(UserTable::class);
             $this->setUserTable($userTable);
         }
@@ -413,6 +426,7 @@ class SionTable
         $object = $this->processEntityRow($entity, $results[0]);
         return $object;
     }
+    
     /**
      * 
      * @param string $entity
@@ -1027,7 +1041,7 @@ class SionTable
         if (null !== $preprocessor = $entitySpec->databaseBoundDataPreprocessor) {
             $data = $this->$preprocessor($data, [], self::ENTITY_ACTION_CREATE);
         }
-
+        
         $return = $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $manyToOneUpdateColumns, $reportChanges);
 
         if ($refreshCache) {
@@ -1461,14 +1475,15 @@ class SionTable
      */
     protected function processChangeRow($row, array &$objects, array &$changes)
     {
-        static $userTable;
+        static $users;
         $user = null;
-        if ($row['UpdatedBy'] && is_numeric($row['UpdatedBy'])) {
-            if (!is_object($userTable)) {
+        if (isset($row['UpdatedBy']) && is_numeric($row['UpdatedBy'])) {
+            if (!isset($users)) {
                 $userTable = $this->getUserTable();
+                $users = $userTable->getUsers();
             }
-            if (is_object($userTable)) {
-                $user = $userTable->getUser($row['UpdatedBy']);
+            if (isset($users[$row['UpdatedBy']])) {
+                $user = $users[$row['UpdatedBy']];
             } else {
                 $user = [
                     'userId' => $this->filterDbId($row['UpdatedBy']),
@@ -1481,7 +1496,7 @@ class SionTable
         //only bring in recognized entities from this class
         if (!isset($this->entitySpecifications[$entity]) ||
             $this->entitySpecifications[$entity]->sionModelClass !== get_class($this) ||
-            null === $updatedOn
+            !isset($updatedOn)
         ) {
             return false;
         }
@@ -1980,6 +1995,24 @@ class SionTable
     public function setActingUserId($actingUserId)
     {
         $this->actingUserId = $actingUserId;
+        return $this;
+    }
+    
+    /**
+     * @return LoggerInterface
+     */
+    public function getLogger()
+    {
+        return $this->logger;
+    }
+    
+    /**
+     * @param LoggerInterface $logger
+     * @return self
+     */
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
         return $this;
     }
 

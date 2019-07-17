@@ -9,7 +9,7 @@ use Patres\Model\PatresTable;
 /**
  * Factory responsible of priming the SuggestForm
  *
- * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
+ * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
 class SuggestFormFactory implements FactoryInterface
 {
