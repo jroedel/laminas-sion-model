@@ -73,11 +73,16 @@ trait SionCacheTrait
         }
         $fullyQualifiedCacheKey = $this->getClassIdentifier().'-'.$cacheKey;
         $this->memoryCache[$fullyQualifiedCacheKey] = $objects;
-        $this->newPersistentCacheItems[] = $fullyQualifiedCacheKey;
-        $this->cacheDependencies[$fullyQualifiedCacheKey] = $entityDependencies;
-        //don't wait till the end of the call, because sometimes we get short circuited
-        if (is_object($this->persistentCache)) {
-            $this->persistentCache->setItem($this->getClassIdentifier().'-cachedependencies', $this->cacheDependencies);
+        if (!in_array($fullyQualifiedCacheKey, $this->newPersistentCacheItems, true)) {
+            $this->newPersistentCacheItems[] = $fullyQualifiedCacheKey;
+        }
+        //we suppose that the dependencies for a given cacheKey will not change
+        if (!isset($this->cacheDependencies[$fullyQualifiedCacheKey])) {
+            $this->cacheDependencies[$fullyQualifiedCacheKey] = $entityDependencies;
+            //don't wait till the end of the call, because sometimes we get short circuited
+            if (is_object($this->persistentCache)) {
+                $this->persistentCache->setItem($this->getClassIdentifier().'-cachedependencies', $this->cacheDependencies);
+            }
         }
         return true;
     }
