@@ -33,6 +33,10 @@ return [
          * Database table name of where to store visit records
          */
         'visits_table' => 'project_visits',
+        /**
+         * Used for auto-generating navigation pages for breadcrumbs
+         */
+        'navigation_key' => 'default',
 
 //        'post_place_line_format' => ':zip :cityState',
 //        'post_place_line_format_by_country' => [

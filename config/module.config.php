@@ -65,6 +65,9 @@ return [
         ],
     ],
     'service_manager' => [
+        'invokables' => [
+            I18n\LanguageSupport::class     => I18n\LanguageSupport::class
+        ],
         'factories' => [
             'CountryValueOptions'           => Service\CountryValueOptionsFactory::class,
             'SionModel\Config'              => Service\ConfigServiceFactory::class,

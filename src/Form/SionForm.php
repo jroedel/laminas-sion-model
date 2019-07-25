@@ -243,7 +243,7 @@ class SionForm extends Form
         foreach ($filterSpec as $key => $value) {
             if (isset($value['filters'])) {
                 foreach ($value['filters'] as $filterArray) {
-                    if ($filterArray['name'] == 'HtmlEntities') {
+                    if ($filterArray['name'] === 'HtmlEntities') {
                         $htmlEntitiesElements[] = $key;
                         break;
                     }
