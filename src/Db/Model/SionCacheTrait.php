@@ -145,15 +145,23 @@ trait SionCacheTrait
         $cache = $this->getPersistentCache();
         $changesKey = $this->getClassIdentifier().'-changes';
         $problemsKey = $this->getClassIdentifier().'-problems';
+        $removedItems = [];
         foreach ($this->cacheDependencies as $fullyQualifiedCacheKey => $dependentEntities) {
             if (in_array($entity, $dependentEntities) || $changesKey === $fullyQualifiedCacheKey || $problemsKey === $fullyQualifiedCacheKey) {
                 if (is_object($cache)) {
                     $cache->removeItem($fullyQualifiedCacheKey);
+                    $removedItems[] = $fullyQualifiedCacheKey;
                 }
                 if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
                     unset($this->memoryCache[$fullyQualifiedCacheKey]);
                 }
             }
+        }
+        if (isset($this->logger)) {
+            $this->logger->debug("An entity cache has been expired.", [
+                'entity' => $entity,
+                'removedItems' => $removedItems,
+            ]);
         }
         
         return true;

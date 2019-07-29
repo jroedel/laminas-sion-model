@@ -480,9 +480,9 @@ class SionController extends AbstractActionController
         $entity = $this->getEntity();
         /** @var SionTable $table **/
         $table = $this->getSionTable();
-        $table->updateEntity($entity, $id, $data);
+        $updatedObject = $table->updateEntity($entity, $id, $data);
         $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)->addMessage(ucfirst($entity).' successfully updated.');
-        return $this->redirectAfterEdit($id, $data, $form);
+        return $this->redirectAfterEdit($id, $data, $form, $updatedObject);
     }
 
     /**
@@ -493,25 +493,45 @@ class SionController extends AbstractActionController
      * @throws \Exception
      * @return \Zend\Stdlib\ResponseInterface
      */
-    public function redirectAfterEdit($id, $data = [], $form = null)
+    public function redirectAfterEdit($id, $data = [], $form = null, $updatedObject = [])
     {
         $entitySpec = $this->getEntitySpecification();
         $entityObject = $this->getEntityObject($id);
-        if ($entitySpec->showRouteKey && $entitySpec->showRouteKey &&
+        
+        if ($entitySpec->showRoute && (is_array($entitySpec->showRouteParams) 
+                || is_array($entitySpec->defaultRouteParams))
+        ) {
+            $paramsSpec = is_array($entitySpec->showRouteParams)
+                ? $entitySpec->showRouteParams : $entitySpec->defaultRouteParams;
+            $params = [];
+            foreach ($paramsSpec as $routeParam => $entityField) {
+                if (!isset($updatedObject[$entityField])) {
+                    //@todo log this
+//                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
+                } else {
+                    $params[$routeParam] = $data[$entityField];
+                }
+            }
+            if (count($params) === count($paramsSpec)) {
+                return $this->redirect()->toRoute($entitySpec->showRoute, $params);
+            }
+        }
+        if ($entitySpec->showRoute && $entitySpec->showRouteKey &&
             $entitySpec->showRouteKeyField
         ) {
             if (!isset($entityObject[$entitySpec->showRouteKeyField])) {
+                //@todo log this, and go on with life
                 throw new \Exception("show_route_key_field config for entity '$entity' refers to a key that doesn't exist");
             }
             return $this->redirect()->toRoute(
                 $entitySpec->showRoute,
                 [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]
             );
-        } elseif ($entitySpec->indexRoute) {
-            return $this->redirect()->toRoute($entitySpec->indexRoute);
-        } else {
-            return $this->redirect()->toRoute($this->getDefaultRedirectRoute());
         }
+        if ($entitySpec->indexRoute) {
+            return $this->redirect()->toRoute($entitySpec->indexRoute);
+        }
+        return $this->redirect()->toRoute($this->getDefaultRedirectRoute());
     }
 
     /**
@@ -892,7 +912,7 @@ class SionController extends AbstractActionController
             return $this->object[$id];
         }
         $table = $this->getSionTable();
-        $this->object[$id] = $table->getObject($this->getEntity(), $id, false);
+        $this->object[$id] = $table->getObject($this->getEntity(), $id, true);
         return $this->object[$id];
     }
 

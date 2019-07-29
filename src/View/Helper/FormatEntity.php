@@ -140,7 +140,6 @@ class FormatEntity extends AbstractHelper
     }
 
     /**
-     * @todo remove dependency on isAllowed view helper, make optional
      * @param string $entityType
      * @param array $data
      * @param string $linkText
@@ -149,13 +148,32 @@ class FormatEntity extends AbstractHelper
     protected function wrapAsLink($entityType, $data, $linkText)
     {
         $entitySpec = $this->entities[$entityType];
-        if ($entitySpec->showRoute &&
-            $entitySpec->showRouteKey &&
-            $entitySpec->showRouteKeyField &&
-            isset($data[$entitySpec->showRouteKeyField]) &&
-            $this->isActionAllowed('show', $entityType, $data)
+        $route = $entitySpec->showRoute;
+        if (!isset($route) || !$this->isActionAllowed('show', $entityType, $data)) {
+            return $linkText;
+        }
+        if (is_array($entitySpec->showRouteParams) || is_array($entitySpec->defaultRouteParams)) {
+            $params = [];
+            $paramsSpec = is_array($entitySpec->showRouteParams) 
+                ? $entitySpec->showRouteParams : $entitySpec->defaultRouteParams;
+            foreach ($paramsSpec as $routeParam => $entityField) {
+                if (!isset($data[$entityField])) {
+                    //@todo log this
+//                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
+                } else {
+                    $params[$routeParam] = $data[$entityField];
+                }
+            }
+            if (count($params) === count($paramsSpec)) {
+                return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);
+            }
+        }
+        if ($entitySpec->showRoute
+            && $entitySpec->showRouteKey
+            && $entitySpec->showRouteKeyField
+            && isset($data[$entitySpec->showRouteKeyField])
+            && $this->isActionAllowed('show', $entityType, $data)
         ) {
-            $route = $entitySpec->showRoute;
             $routeKey = $entitySpec->showRouteKey;
             $id = $data[$entitySpec->showRouteKeyField];
             return sprintf('<a href="%s">%s</a>', $this->view->url($route, [$routeKey => $id]), $linkText);

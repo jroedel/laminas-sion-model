@@ -32,6 +32,7 @@ use Zend\Crypt\Hash;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
 use Zend\Log\LoggerInterface;
+use Zend\Db\Sql\Predicate\IsNull;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -501,6 +502,8 @@ class SionTable
                 }
                 if (is_array($value)) {
                     $clause = new In($columnPrefix.$fieldMap[$key], $value);
+                } elseif (null === $value) {
+                    $clause = new IsNull($columnPrefix.$fieldMap[$key]);
                 } else {
                     $clause = new Operator($columnPrefix.$fieldMap[$key], Operator::OPERATOR_EQUAL_TO, $value);
                 }
@@ -896,7 +899,7 @@ class SionTable
             $preprocessor = $entitySpec->databaseBoundDataPreprocessor;
             $data = $this->$preprocessor($data, $entityData, self::ENTITY_ACTION_UPDATE);
         }
-        $return = $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges, $fieldsToTouch);
+        $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges, $fieldsToTouch);
 
         if ($refreshCache) {
             $this->removeDependentCacheItems($entity);
@@ -910,7 +913,9 @@ class SionTable
         ) {
             $id = $data[$keyField];
         }
-
+        
+        $newEntityData = $this->getObject($entity, $id);
+        
         /*
          * Run the changed/new data through the preprocessor function if it exists
          */
@@ -918,12 +923,11 @@ class SionTable
             method_exists($this, $entitySpec->databaseBoundDataPostprocessor) &&
             !method_exists('SionTable', $entitySpec->databaseBoundDataPostprocessor) //make sure noone's being sneaky
         ) {
-            $newEntityData = $this->getObject($entity, $id);
             $postprocessor = $entitySpec->databaseBoundDataPostprocessor;
             $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_UPDATE);
         }
         
-        return $return;
+        return $newEntityData;
     }
 
     /**

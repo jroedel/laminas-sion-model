@@ -39,6 +39,7 @@ class Entity
      * Name of identifier field
      * Example: 'personId'
      * @var string $entityKeyField
+     * @todo allow for tables keyed on more than one field
      */
     public $entityKeyField;
     /**
@@ -139,8 +140,14 @@ class Entity
     /**
      * The route parameter to pass the entity id, if a more specific one isn't specified
      * @var string $defaultRouteKey
+     * @deprecated
      */
     public $defaultRouteKey;
+    /**
+     * An associative array mapping route parameters to properties of the entity.
+     * @var string[] $defaultRouteParams
+     */
+    public $defaultRouteParams;
     /**
      * Template stack address to render on the SionController::showAction
      * @var string $showActionTemplate
@@ -153,15 +160,22 @@ class Entity
      */
     public $showRoute;
     /**
+     * An associative array mapping route parameters to properties of the entity.
+     * @var string[] $showRouteParams
+     */
+    public $showRouteParams;
+    /**
      * The route parameter to pass when generating the URL to the show route
      * Example: 'person_id'
      * @var string $showRouteKey
+     * @deprecated
      */
     public $showRouteKey;
     /**
      * The entity field to pass as the show route parameter
      * Example: 'personId'
      * @var string $showRouteKeyField
+     * @deprecated
      */
     public $showRouteKeyField;
     /**
@@ -181,15 +195,22 @@ class Entity
      */
     public $editRoute;
     /**
+     * An associative array mapping route parameters to properties of the entity.
+     * @var string[] $editRouteParams
+     */
+    public $editRouteParams;
+    /**
      * The route parameter to pass when generating the URL to the edit route
      * Example: 'person_id'
      * @var string $editRouteKey
+     * @deprecated
      */
     public $editRouteKey;
     /**
      * The entity field to pass as the edit route parameter
      * Example: 'personId'
      * @var string $editRouteKeyField
+     * @deprecated
      */
     public $editRouteKeyField;
 
@@ -212,18 +233,25 @@ class Entity
      * @var string $createActionRedirectRoute
      */
     public $createActionRedirectRoute;
+    /**
+     * An associative array mapping route parameters to properties of the entity.
+     * @var string[] $createActionRedirectRouteParams
+     */
+    public $createActionRedirectRouteParams;
 
     /**
      * The route parameter to be paired with the $createActionRedirectRoute.
      * The value will be the new PRIMARYKEY value of the newly created entity.
      * If this value is omitted, the user will be redirected with no route parameter
      * @var string $createActionRedirectRouteKey
+     * @deprecated
      */
     public $createActionRedirectRouteKey;
 
     /**
      * Entity field to use as route key value upon successfully creating an entity instance
      * @var string $createActionRedirectRouteKeyField
+     * @deprecated
      */
     public $createActionRedirectRouteKeyField;
 
@@ -240,8 +268,14 @@ class Entity
      */
     public $touchDefaultField;
     /**
+     * An associative array mapping route parameters to properties of the entity.
+     * @var string[] $touchRouteParams
+     */
+    public $touchRouteParams;
+    /**
      * A route key that specifies the entity id to touch in the touchAction
      * @var string $touchRouteKey
+     * @deprecated
      */
     public $touchRouteKey;
     /**
@@ -249,6 +283,7 @@ class Entity
      * and touchJsonAction of SionController.
      * If not specified, the $touchDefaultField will be touched
      * @var string $touchFieldRouteKey
+     * @deprecated
      */
     public $touchFieldRouteKey;
     /**
@@ -258,9 +293,15 @@ class Entity
      */
     public $touchJsonRoute;
     /**
+     * An associative array mapping route parameters to properties of the entity.
+     * @var string[] $touchJsonRouteParams
+     */
+    public $touchJsonRouteParams;
+    /**
      * The route parameter to pass when generating the URL to the edit route
      * Example: 'person_id'
      * @var string $editRouteKey
+     * @deprecated
      */
     public $touchJsonRouteKey;
 
