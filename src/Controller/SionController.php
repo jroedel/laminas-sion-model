@@ -497,22 +497,25 @@ class SionController extends AbstractActionController
     {
         $entitySpec = $this->getEntitySpecification();
         $entityObject = $this->getEntityObject($id);
-        
-        if ($entitySpec->showRoute && (is_array($entitySpec->showRouteParams) 
-                || is_array($entitySpec->defaultRouteParams))
-        ) {
-            $paramsSpec = is_array($entitySpec->showRouteParams)
-                ? $entitySpec->showRouteParams : $entitySpec->defaultRouteParams;
+        /*
+         * Priority of redirect options
+         * 1. showRouteParams
+         * 2. showRouteKey+showRouteKeyField
+         * 3. defaultRouteParams
+         * 4. index route
+         * 5. default redirect route
+         */
+        if ($entitySpec->showRoute && is_array($entitySpec->showRouteParams)) {
             $params = [];
-            foreach ($paramsSpec as $routeParam => $entityField) {
+            foreach ($entitySpec->showRouteParams as $routeParam => $entityField) {
                 if (!isset($updatedObject[$entityField])) {
                     //@todo log this
 //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
                 } else {
-                    $params[$routeParam] = $data[$entityField];
+                    $params[$routeParam] = $updatedObject[$entityField];
                 }
             }
-            if (count($params) === count($paramsSpec)) {
+            if (count($params) === count($entitySpec->showRouteParams)) {
                 return $this->redirect()->toRoute($entitySpec->showRoute, $params);
             }
         }
@@ -527,6 +530,20 @@ class SionController extends AbstractActionController
                 $entitySpec->showRoute,
                 [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]
             );
+        }
+        if ($entitySpec->showRoute && is_array($entitySpec->defaultRouteParams)) {
+            $params = [];
+            foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
+                if (!isset($updatedObject[$entityField])) {
+                    //@todo log this
+                    //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
+                } else {
+                    $params[$routeParam] = $updatedObject[$entityField];
+                }
+            }
+            if (count($params) === count($entitySpec->defaultRouteParams)) {
+                return $this->redirect()->toRoute($entitySpec->showRoute, $params);
+            }
         }
         if ($entitySpec->indexRoute) {
             return $this->redirect()->toRoute($entitySpec->indexRoute);

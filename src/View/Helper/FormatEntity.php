@@ -152,11 +152,9 @@ class FormatEntity extends AbstractHelper
         if (!isset($route) || !$this->isActionAllowed('show', $entityType, $data)) {
             return $linkText;
         }
-        if (is_array($entitySpec->showRouteParams) || is_array($entitySpec->defaultRouteParams)) {
+        if (is_array($entitySpec->showRouteParams)) {
             $params = [];
-            $paramsSpec = is_array($entitySpec->showRouteParams) 
-                ? $entitySpec->showRouteParams : $entitySpec->defaultRouteParams;
-            foreach ($paramsSpec as $routeParam => $entityField) {
+            foreach ($entitySpec->showRouteParams as $routeParam => $entityField) {
                 if (!isset($data[$entityField])) {
                     //@todo log this
 //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
@@ -164,12 +162,11 @@ class FormatEntity extends AbstractHelper
                     $params[$routeParam] = $data[$entityField];
                 }
             }
-            if (count($params) === count($paramsSpec)) {
+            if (count($params) === count($entitySpec->showRouteParams)) {
                 return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);
             }
         }
-        if ($entitySpec->showRoute
-            && $entitySpec->showRouteKey
+        if ($entitySpec->showRouteKey
             && $entitySpec->showRouteKeyField
             && isset($data[$entitySpec->showRouteKeyField])
             && $this->isActionAllowed('show', $entityType, $data)
@@ -177,6 +174,20 @@ class FormatEntity extends AbstractHelper
             $routeKey = $entitySpec->showRouteKey;
             $id = $data[$entitySpec->showRouteKeyField];
             return sprintf('<a href="%s">%s</a>', $this->view->url($route, [$routeKey => $id]), $linkText);
+        }
+        if (is_array($entitySpec->defaultRouteParams)) {
+            $params = [];
+            foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
+                if (!isset($data[$entityField])) {
+                    //@todo log this
+                    //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
+                } else {
+                    $params[$routeParam] = $data[$entityField];
+                }
+            }
+            if (count($params) === count($entitySpec->defaultRouteParams)) {
+                return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);
+            }
         }
         return $linkText;
     }
