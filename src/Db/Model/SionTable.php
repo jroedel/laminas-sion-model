@@ -861,7 +861,7 @@ class SionTable
     }
 
     /**
-     *
+     * @todo group $fieldsToTouch, $refreshCache into $options and add an option to not registerChange
      * @param string $entity
      * @param number $id
      * @param array $data
@@ -1313,6 +1313,7 @@ class SionTable
         }
         $i = 0;
         $date = new \DateTime(null, new \DateTimeZone('utc'));
+        $maxTextColumnLength = 2 ** 16;
         foreach ($data as $row) {
             if (isset($row['entity']) && isset($row['field']) && isset($row['id'])
             ) {
@@ -1327,6 +1328,13 @@ class SionTable
                 }
                 if (isset($row['newValue']) && is_array($row['newValue'])) {
                     $row['newValue'] = $this->formatDbArray($row['newValue']);
+                }
+                //if the value is too long, don't insert it.
+                if (is_string($row['oldValue']) && strlen($row['oldValue']) > $maxTextColumnLength) {
+                    unset($row['oldValue']);
+                }
+                if (is_string($row['newValue']) && strlen($row['newValue']) > $maxTextColumnLength) {
+                    unset($row['newValue']);
                 }
                 $params = [
                     'ChangedEntity'    => $row['entity'],
