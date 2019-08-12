@@ -388,7 +388,7 @@ class SionTable
             }
             return $object;
         }
-        //@todo clarify which exceptions are thrown and when. Why the NOT operator?
+        //@todo clarify which exceptions are thrown and when.
         $entityData = $this->$objectFunction($id);
         if (!$entityData && !$failSilently) {
             throw new \InvalidArgumentException('No entity provided.');
@@ -901,6 +901,16 @@ class SionTable
         }
         $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges, $fieldsToTouch);
 
+        /*
+         * This is a little early to flush the cache, because there may be more changes
+         * in the postprocessor, but we'll do it just in case the user has registered
+         * some cache item that needs to be updated before we return the new entity data to 
+         * the user.
+         * This shouldn't cause problems because usually a getObject call doesn't result in 
+         * a cache set.
+         * @todo When we implement an options array, we should add an option to control this 
+         * potentially resource-heavy operation
+         */ 
         if ($refreshCache) {
             $this->removeDependentCacheItems($entity);
         }
@@ -925,6 +935,9 @@ class SionTable
         ) {
             $postprocessor = $entitySpec->databaseBoundDataPostprocessor;
             $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_UPDATE);
+        }
+        if ($refreshCache) {
+            $this->removeDependentCacheItems($entity);
         }
         
         return $newEntityData;
