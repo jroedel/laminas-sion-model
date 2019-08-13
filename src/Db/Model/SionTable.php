@@ -1343,10 +1343,16 @@ class SionTable
                     $row['newValue'] = $this->formatDbArray($row['newValue']);
                 }
                 //if the value is too long, don't insert it.
-                if (is_string($row['oldValue']) && strlen($row['oldValue']) > $maxTextColumnLength) {
+                if (isset($row['oldValue']) 
+                    && is_string($row['oldValue']) 
+                    && strlen($row['oldValue']) > $maxTextColumnLength
+                ) {
                     unset($row['oldValue']);
                 }
-                if (is_string($row['newValue']) && strlen($row['newValue']) > $maxTextColumnLength) {
+                if (isset($row['newValue']) 
+                    && is_string($row['newValue']) 
+                    && strlen($row['newValue']) > $maxTextColumnLength
+                ) {
                     unset($row['newValue']);
                 }
                 $params = [
