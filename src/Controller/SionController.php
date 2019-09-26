@@ -397,9 +397,9 @@ class SionController extends AbstractActionController
     {
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-        if (!isset($entitySpec->editRouteKey)) {
-            throw new \Exception("Please set the edit_route_key config key of $entity in order to use the editAction.");
-        }
+//         if (!isset($entitySpec->editRouteKey)) {
+//             throw new \Exception("Please set the edit_route_key config key of $entity in order to use the editAction.");
+//         }
         $id = $this->getEntityIdParam('edit');
         //if the entity doesn't exist, redirect to the index or the default route
         if (! $id) {

@@ -31,11 +31,13 @@ class EditPencil extends AbstractHelper
         //if there's not enough info we won't do anything
         if (!$id || $id == '' || !isset($this->entities[$entityType]) ||
             !$this->entities[$entityType]->editRoute ||
-            !$this->entities[$entityType]->editRouteKey
+            (!$this->entities[$entityType]->editRouteKey) //&& !$this->entities[$entityType]->editRouteParams
+//                 && !$this->entities[$entityType]->defaultRouteParams)
         ) {
             return '';
         }
 
+//         $entitySpec = $this->entities[$entityType];
         $isAllowed = true; //if there is an exception, we'll assume there's no route permissions configured
         try {
             $isAllowed = $this->view->isAllowed('route/'.$this->entities[$entityType]->editRoute);
@@ -45,13 +47,39 @@ class EditPencil extends AbstractHelper
             return '';
         }
         $otherAttributes = $openInNewTab ? 'target="_blank"' : '';
+        
+        /*
+         * @todo find url according to the following priority:
+         * 1. using editRouteParams
+         * 2. using editRouteKey/Field
+         * 3. using defaultParams
+         * 
+         * In order to do this we need to receive more info. Major BC break
+         */
+//         if (isset($entitySpec->editRouteParams)) {
+            
+//         } elseif (isset($entitySpec->editRouteKey) && isset($entitySpec->editRouteKeyField)) {
+//             $url = $this->view->url(
+//                 $this->entities[$entityType]->editRoute,
+//                 [$this->entities[$entityType]->editRouteKey => $id]
+//                 );
+//         } elseif (isset($entitySpec->defaultRouteParams) || isset()) {
+//             $params = [];
+//             $url = $this->view->url(
+//                 $this->entities[$entityType]->editRoute,
+//                 [$this->entities[$entityType]->editRouteKey => $id]
+//                 );
+//         } else {
+            
+//         }
+        
         $pattern = ' <a href="%s" %s><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></a>';
         $finalMarkup = sprintf(
             $pattern,
             $this->view->url(
-                $this->entities[$entityType]->editRoute,
-                [$this->entities[$entityType]->editRouteKey => $id]
-            ),
+                    $this->entities[$entityType]->editRoute,
+                    [$this->entities[$entityType]->editRouteKey => $id]
+                    ),
             $otherAttributes
         );
         return $finalMarkup;
