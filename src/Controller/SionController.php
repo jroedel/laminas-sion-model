@@ -196,6 +196,16 @@ class SionController extends AbstractActionController
 
         $table->registerVisit($entity, $entityObject[$entitySpec->entityKeyField]);
 
+        $visitsArray = $table->getVisitCounts($entity, [$id]);
+        if (isset($visitsArray[$id])) {
+            $visits = $visitsArray[$id];
+        } else {
+            $visits = [
+                'total' => 0,
+                'pastMonth' => 0,
+            ];
+        }
+        
         //@todo enable suggest form
 //         $sm = $this->getServiceLocator ();
 //         /** @var SionModel\Form\SionForm $suggestForm **/
@@ -209,13 +219,13 @@ class SionController extends AbstractActionController
 //         } else {
 //             throw new \InvalidArgumentException('Invalid suggest_form specified for \''.$entity.'\' entity.');
 //         }
-
         $view = new ViewModel([
             'entityId'      => $id,
             'entity'        => $entityObject,
             'changes'       => $changes,
             'comments'      => $comments,
             'commentForm'   => $commentForm,
+            'visits'        => $visits,
 //             'suggestForm'   => $suggestForm,
 //             'deviceType'    => $deviceType,
         ]);

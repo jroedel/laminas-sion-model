@@ -2,7 +2,6 @@
 namespace SionModel\Db\Model;
 
 use Zend\Db\Adapter\Adapter;
-
 use Zend\Db\Sql\Insert;
 use Zend\Db\TableGateway\TableGateway;
 use Zend\Filter\Boolean;
@@ -656,6 +655,75 @@ class SionTable
         //@todo maybe add an order config to entity specs
         $this->selectPrototypes[$entity] = $select;
         return clone $select;
+    }
+    
+    /**
+     * Query visit counts for a particular entity. The ids to aggregate can be 
+     * specified by the 2nd parameter. The options array is reserved for adding 
+     * further aggregate types in the future.
+     * An associative array keyed on the entityId is returned containing at least 
+     * elements 'total' and 'pastMonth'
+     * @param string $entity
+     * @param array $ids
+     * @param array $options
+     */
+    public function getVisitCounts($entity, $ids = [], $options = [])
+    {
+        $counts = [];
+        $gateway = $this->getVisitTableGateway();
+         
+        //query the total values
+        $select = new Select($this->visitsTableName);
+        $select->columns([
+            'EntityId',
+            'TotalVisits' => new Expression('COUNT(*)'),
+        ]);
+        $where = new PredicateSet([new Operator('Entity', Operator::OPERATOR_EQUAL_TO, $entity)]);
+        if (!empty($ids)) {
+            $where->addPredicate(new In('EntityId', $ids));
+        }
+        $select->where($where)
+        ->group(['EntityId']);
+        $result = $gateway->selectWith($select);
+        foreach ($result as $row) {
+            if (!isset($row['EntityId'])) {
+                continue;
+            }
+            if (!isset($counts[$row['EntityId']])) {
+                $counts[$row['EntityId']] = [
+                    'total' => 0,
+                    'pastMonth' => 0,
+                ];
+            }
+            $counts[$row['EntityId']]['total'] = (int)$row['TotalVisits'];
+        }
+        
+        //query the pastMonth values
+        $select = new Select($this->visitsTableName);
+        $select->columns([
+            'EntityId',
+            'PastMonthVisits' => new Expression('COUNT(*)'),
+        ]);
+        $where->addPredicate(
+            new \Zend\Db\Sql\Predicate\Expression('`VisitedAt` >= DATE_ADD(NOW(), INTERVAL -1 MONTH)')
+            );
+        $select->where($where)
+        ->group(['EntityId']);
+        $result = $gateway->selectWith($select);
+        foreach ($result as $row) {
+            if (!isset($row['EntityId'])) {
+                continue;
+            }
+            if (!isset($counts[$row['EntityId']])) {
+                $counts[$row['EntityId']] = [
+                    'total' => 0,
+                    'pastMonth' => 0,
+                ];
+            }
+            $counts[$row['EntityId']]['pastMonth'] = (int)$row['PastMonthVisits'];
+        }
+        
+        return $counts;
     }
     
     /**
