@@ -1653,6 +1653,9 @@ class SionTable
      */
     public function registerVisit($entity, $entityId = null)
     {
+        if (!is_numeric($entityId)) {
+            throw new \InvalidArgumentException('entityId must be a numeric value');
+        }
         $date = new \DateTime(null, new \DateTimeZone('UTC'));
         $params = [
             'Entity' => $entity,
