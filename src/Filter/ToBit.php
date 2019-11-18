@@ -5,9 +5,17 @@ use Zend\Filter\AbstractFilter;
 
 class ToBit extends AbstractFilter
 {
+    public function __construct()
+    {
+        $this->options['null_defaults_to'] = false;
+    }
+    
     public function filter($value)
     {
-        if (is_null($value)) {
+        if (!isset($value)) {
+            if (isset($this->options['null_defaults_to']) && is_bool($this->options['null_defaults_to'])) {
+                return $this->options['null_defaults_to'];
+            }
             return 0;
         }
         if ($value === '0' || $value === '1') {
