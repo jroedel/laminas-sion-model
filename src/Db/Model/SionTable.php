@@ -581,7 +581,6 @@ class SionTable
         $results = $result->toArray();
         $objects = [];
         foreach ($results as $row) {
-            //@todo since this line may be called thousands of times, check first if we have a row processor
             $data = $this->processEntityRow($entity, $row);
             if (null === $data) {
                 continue;
@@ -615,23 +614,40 @@ class SionTable
      */
     protected function processEntityRow($entity, array $row)
     {
-        $entitySpec = $this->getEntitySpecification($entity);
+        //this variable maps entity types to rowProcessorFunction names... for performance
+        static $entityRowFunctionCache;
+        $entitySpec = null;
         
-        if (isset($entitySpec->rowProcessorFunction)
-            && method_exists($this, $entitySpec->rowProcessorFunction)
-            && !method_exists('SionTable', $entitySpec->rowProcessorFunction)
-        ) {
-            $processor = $entitySpec->rowProcessorFunction;
-            $data = $this->$processor($row);
-            return $data;
+        //first figure out if we have a processing function or not
+        if (!isset($entityRowFunctionCache[$entity])) {
+            $entitySpec = $this->getEntitySpecification($entity);
+            
+            if (isset($entitySpec->rowProcessorFunction)
+                && method_exists($this, $entitySpec->rowProcessorFunction)
+                && !method_exists('SionTable', $entitySpec->rowProcessorFunction)
+            ) {
+                $entityRowFunctionCache[$entity] = $entitySpec->rowProcessorFunction;
+            } else {
+                $entityRowFunctionCache[$entity] = false;
+            }
         }
         
-        $columnsMap = $entitySpec->updateColumns;
-        $data = [];
-        foreach ($row as $column => $value) {
-            if (isset($columnsMap[$column])) {
-                //@todo add some generic filter here to convert datetimes
-                $data[$columnsMap[$column]] = $value;
+        //then actually process the row
+        if (false !== $entityRowFunctionCache[$entity]) {
+            $processor = $entityRowFunctionCache[$entity];
+            $data = $this->$processor($row);
+            return $data;
+        } else {
+            if (!isset($entitySpec)) {
+                $entitySpec = $this->getEntitySpecification($entity);
+            }
+            $columnsMap = $entitySpec->updateColumns;
+            $data = [];
+            foreach ($row as $column => $value) {
+                if (isset($columnsMap[$column])) {
+                    //@todo add some generic filter here to convert datetimes
+                    $data[$columnsMap[$column]] = $value;
+                }
             }
         }
         return $data;
