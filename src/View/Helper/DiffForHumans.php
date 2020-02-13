@@ -17,8 +17,7 @@ class DiffForHumans extends AbstractHelper
         }
 
         if ($this->firstInvocation) {
-            $lang = \Locale::getPrimaryLanguage(\Locale::getDefault());
-            Carbon::setLocale($lang);
+            Carbon::setLocale(\Locale::getDefault());
             $this->firstInvocation = false;
         }
         

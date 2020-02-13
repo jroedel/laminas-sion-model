@@ -7,6 +7,18 @@ use Zend\Filter\ToNull;
 use Zend\ServiceManager\ServiceLocatorInterface;
 use Zend\Authentication\AuthenticationServiceInterface;
 use SionModel\Person\PersonProviderInterface;
+use Zend\Validator\StringLength;
+use SionModel\Validator\Phone;
+use Zend\Filter\StripTags;
+use Zend\Filter\StripNewlines;
+use Zend\Filter\StringTrim;
+use Zend\Form\Element\Csrf;
+use Zend\Form\Element\Textarea;
+use Zend\Form\Element\Email;
+use Zend\Filter\ToInt;
+use Zend\Form\Element\Hidden;
+use Zend\Form\Element\Submit;
+use Zend\Validator\EmailAddress;
 
 class SionForm extends Form
 {
@@ -22,7 +34,7 @@ class SionForm extends Form
 
         $this->add([
             'name' => 'security',
-            'type' => 'csrf',
+            'type' => Csrf::class,
             'options' => [
                 'csrf_options' => [
                     'timeout' => 900,
@@ -33,31 +45,31 @@ class SionForm extends Form
         $this->phoneInputFilterSpec = [
             'required' => false,
             'filters'  => [
-                ['name' => 'ToNull'],
+                ['name' => ToNull::class],
             ],
             'validators' => [
                 [
-                    'name' => 'StringLength',
+                    'name' => StringLength::class,
                     'options' => [
                         'encoding' => 'UTF-8',
                         'max' => 50,
                     ],
                 ],
-                ['name' => 'SionModel\Validator\Phone'],
+                ['name' => Phone::class],
             ],
         ];
 
         $this->phoneLabelInputFilterSpec = [
             'required' => false,
             'filters' => [
-                ['name' => 'StripTags'],
-                ['name' => 'StripNewlines'],
-                ['name' => 'StringTrim'],
-                ['name' => 'ToNull'],
+                ['name' => StripTags::class],
+                ['name' => StripNewlines::class],
+                ['name' => StringTrim::class],
+                ['name' => ToNull::class],
             ],
             'validators' => [
                 [
-                    'name' => 'StringLength',
+                    'name' => StringLength::class,
                     'options' => [
                         'encoding' => 'UTF-8',
                         'max' => 50,
@@ -88,7 +100,7 @@ class SionForm extends Form
         $this->setName('suggest_'.$name);
         $this->add([
             'name' => 'suggestionNotes',
-            'type' => 'Textarea',
+            'type' => Textarea::class,
             'options' => [
                 'label' => 'Notes to the reviewer of your suggestion',
                 'required' => false,
@@ -100,7 +112,7 @@ class SionForm extends Form
         ]);
         $this->add([ //only for users with the multiPersonUser bit
             'name' => 'suggestionByPersonId',
-            'type' => 'Select',
+            'type' => Select::class,
             'options' => [
                 'label' => 'Your name',
                 'empty_option' => '',
@@ -112,7 +124,7 @@ class SionForm extends Form
         ]);
         $this->add([ //only for users with the multiPersonUser bit
             'name' => 'suggestionByEmail',
-            'type' => 'Email',
+            'type' => Email::class,
             'options' => [
                 'label' => 'Your email',
             ],
@@ -126,15 +138,15 @@ class SionForm extends Form
         $inputSpec['suggestionNotes'] = [
             'required' => false,
             'filters' => [
-                ['name' => 'StripTags'],
-                ['name' => 'ToNull'],
+                ['name' => StripTags::class],
+                ['name' => ToNull::class],
             ],
         ];
         $inputSpec['suggestionByPersonId'] = [
             'required' => false,
             'filters' => [
-                ['name' => 'ToInt'],
-                ['name' => 'ToNull',
+                ['name' => ToInt::class],
+                ['name' => ToNull::class,
                     'options' => [
                         'type' => ToNull::TYPE_INTEGER,
                     ],
@@ -144,15 +156,15 @@ class SionForm extends Form
         $inputSpec['suggestionByEmail'] = [
             'required' => false,
             'filters' => [
-                ['name' => 'StringTrim'],
-                ['name' => 'ToNull',
+                ['name' => StringTrim::class],
+                ['name' => ToNull::class,
                     'options' => [
                         'type' => ToNull::TYPE_STRING,
                     ]
                 ],
             ],
             'validators' => [
-                ['name' => 'EmailAddress'],
+                ['name' => EmailAddress::class],
             ],
         ];
         $this->setInputFilterSpecification($inputSpec);
@@ -195,7 +207,7 @@ class SionForm extends Form
         }
         $this->add([
             'name' => 'suggestionResponse',
-            'type' => 'Textarea',
+            'type' => Textarea::class,
             'options' => [
                 'label' => 'Response to the contributor of this suggestion',
                 'required' => false,
@@ -207,11 +219,11 @@ class SionForm extends Form
         ]);
         $this->add([
             'name' => 'suggestionId',
-            'type' => 'Hidden',
+            'type' => Hidden::class,
         ]);
         $this->add([
             'name' => 'deny',
-            'type' => 'Submit',
+            'type' => Submit::class,
             'attributes' => [
                 'value' => 'Deny',
                 'class' => 'btn-danger'

@@ -243,21 +243,37 @@ trait SionCacheTrait
                     if (isset($this->logger)) {
                         $this->logger->debug("Writing cache.", ['cacheKey' => $fullyQualifiedCacheKey]);
                     }
-                    //add some debugging information since it's often difficult to cache really large objects
-                    $start = microtime(true);
-                    $startMemory = memory_get_peak_usage(false);
-                    $this->persistentCache->setItem(
-                        $fullyQualifiedCacheKey, 
-                        $this->memoryCache[$fullyQualifiedCacheKey]
-                        );
-                    $memorySpike = (memory_get_peak_usage(false)-$startMemory)/1024/1024;
-                    $timeElapsedSecs = microtime(true) - $start;
-                    if (isset($this->logger)) {
-                        $this->logger->debug("Successfully wrote cache.", [
-                            'cacheKey' => $fullyQualifiedCacheKey,
-                            'elapsedTime' => $timeElapsedSecs,
-                            'memorySpike' => $memorySpike." MiB",
-                        ]);
+                    try {
+                        //add some debugging information since it's often difficult to cache really large objects
+                        $start = microtime(true);
+                        $startMemory = memory_get_peak_usage(false);
+                        $this->persistentCache->setItem(
+                            $fullyQualifiedCacheKey, 
+                            $this->memoryCache[$fullyQualifiedCacheKey]
+                            );
+                        $memorySpike = (memory_get_peak_usage(false)-$startMemory)/1024/1024;
+                        $timeElapsedSecs = microtime(true) - $start;
+                        if (isset($this->logger)) {
+                            $this->logger->debug("Successfully wrote cache.", [
+                                'cacheKey' => $fullyQualifiedCacheKey,
+                                'elapsedTime' => $timeElapsedSecs,
+                                'memorySpike' => $memorySpike." MiB",
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        //This probably means we've used up all the memory. Free some and continue gracefully
+                        unset($this->memoryCache);
+                        $memorySpike = (memory_get_peak_usage(false)-$startMemory)/1024/1024;
+                        $timeElapsedSecs = microtime(true) - $start;
+                        if (isset($this->logger)) {
+                            $this->logger->error("Error writing cache.", [
+                                'cacheKey' => $fullyQualifiedCacheKey,
+                                'elapsedTime' => $timeElapsedSecs,
+                                'memorySpike' => $memorySpike." MiB",
+                                'exception' => $e->getMessage(),
+                            ]);
+                        }
+                        return;
                     }
                     $count++;
                 }
