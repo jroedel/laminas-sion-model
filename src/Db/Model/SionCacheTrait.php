@@ -266,7 +266,7 @@ trait SionCacheTrait
                         $memorySpike = (memory_get_peak_usage(false)-$startMemory)/1024/1024;
                         $timeElapsedSecs = microtime(true) - $start;
                         if (isset($this->logger)) {
-                            $this->logger->error("Error writing cache.", [
+                            $this->logger->err("Error writing cache.", [
                                 'cacheKey' => $fullyQualifiedCacheKey,
                                 'elapsedTime' => $timeElapsedSecs,
                                 'memorySpike' => $memorySpike." MiB",
