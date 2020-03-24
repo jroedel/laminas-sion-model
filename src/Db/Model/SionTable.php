@@ -1664,14 +1664,12 @@ class SionTable
     /**
      * Register a visit in the visits table as defined by the config
      * @param string $entity
-     * @param int $entityId If null, it refers to an entity index that was visited
+     * @param int $entityId If null, it refers to an entity index that was visited, or 
+     *                      non-numeric entity on the site
      * @throws \InvalidArgumentException
      */
     public function registerVisit($entity, $entityId = null)
     {
-        if (!is_numeric($entityId)) {
-            throw new \InvalidArgumentException('entityId must be a numeric value');
-        }
         $date = new \DateTime(null, new \DateTimeZone('UTC'));
         $params = [
             'Entity' => $entity,
