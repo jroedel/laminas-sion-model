@@ -21,7 +21,7 @@ class ToGeoPoint extends AbstractFilter
         }
         $re = '/[0-9\.-]+/u';
 //         $str = '76.2144, 10.5276';
-
+        $matches = null;
         preg_match_all($re, $value, $matches, PREG_SET_ORDER, 0);
 
         // Print the entire match result

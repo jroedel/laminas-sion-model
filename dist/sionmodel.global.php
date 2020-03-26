@@ -3,6 +3,14 @@ namespace Project;
 
 return [
     'sion_model' => [
+        /**
+         * An AuthenticationServiceInterface instance to be fetched from service manager
+         */
+        'default_authentication_service' => 'zfcuser_auth_service',
+        /**
+         * This PersonProvider will be used by the SuggestFormFactory if we have a multi-person user
+         */
+        'multi_person_user_person_provider' => 'Project\Model\MyPersonProvider',
         //change values to modify hashing of ip addresses and user agents
         'privacy_hash_algorithm' => 'sha256',
         'privacy_hash_salt' => 'O3!k5Uvv@',

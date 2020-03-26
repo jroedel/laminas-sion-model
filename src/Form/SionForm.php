@@ -4,7 +4,6 @@ namespace SionModel\Form;
 use Zend\Form\Form;
 use Zend\Form\Element\Select;
 use Zend\Filter\ToNull;
-use Zend\ServiceManager\ServiceLocatorInterface;
 use Zend\Authentication\AuthenticationServiceInterface;
 use SionModel\Person\PersonProviderInterface;
 use Zend\Validator\StringLength;
@@ -86,12 +85,14 @@ class SionForm extends Form
 
     /**
      * Primes the form for a suggestion. If user is a multi-person-user,
-     * it fetches records for the value options of suggestionByPersonId
-     * @param ServiceLocatorInterface $serviceLocator
+     * it fetches records for the value options of suggestionByPersonId.
+     * 
+     * @param AuthenticationServiceInterface $authService
+     * @param PersonProviderInterface $personProvider
      */
     public function prepareForSuggestion(
         AuthenticationServiceInterface $authService,
-        PersonProviderInterface $personProvider
+        PersonProviderInterface $personProvider = null
     ) {
         $name = $this->getName();
         if (false !== ($lastUnderscore = strrpos($name, '_'))) {
@@ -172,6 +173,12 @@ class SionForm extends Form
         //prime the suggestionByPersonId if user is multi-person
         if ($authService->hasIdentity() && $authService->getIdentity()->multiPersonUser) {
             $this->setIsMultiPersonUser(true);
+            if (!isset($personProvider)) {
+                /*
+                 * Only throw an exception if we actually have a multi-person user as many apps won't allow them to exist.
+                 */
+                throw new \Exception('We have a multi-person user, but no `multi_person_user_person_provider` was given');
+            }
             $persons = $personProvider->getPersonValueOptions(false, false);
             $this->get('suggestionByPersonId')->setValueOptions($persons);
         }

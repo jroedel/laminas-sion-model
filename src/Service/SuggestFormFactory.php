@@ -29,11 +29,24 @@ class SuggestFormFactory implements FactoryInterface
             $entityHaystack[] = $entity->name;
         }
         
+        $config = $container->get('Config');
+        if (!isset($config['sion_model'])) {
+            throw new \Exception('Unable to fetch `sion_model` configuration key');
+        }
+        
         $form = new SuggestForm($entityHaystack);
-        //@todo both of these must be configurable!!! FIXME
-        $auth = $container->get('zfcuser_auth_service');
-//         $personProvider = $container->get(PatresTable::class);
-        $form->prepareForSuggestion($auth,$personProvider);
+        
+        if (!isset($config['sion_model']['default_authentication_service'])) {
+            throw new \Exception('No default authentication service found');
+        }
+        $auth = $container->get($config['sion_model']['default_authentication_service']);
+        
+        if (isset($config['sion_model']['multi_person_user_person_provider'])) {
+            $personProvider = $container->get($config['sion_model']['multi_person_user_person_provider']);
+        } else {
+            $personProvider = null;
+        }
+        $form->prepareForSuggestion($auth, $personProvider);
 
         return $form;
     }
