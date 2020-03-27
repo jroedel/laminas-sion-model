@@ -9,6 +9,7 @@ namespace SionModel;
 use Zend\Mvc\MvcEvent;
 use BjyAuthorize\Service\Authorize;
 use SionModel\Mvc\CspListener;
+use Zend\Mvc\ModuleRouteListener;
 
 class Module
 {
@@ -19,7 +20,8 @@ class Module
     
     public function onBootstrap(MvcEvent $e)
     {
-        $sm = $e->getApplication()->getServiceManager();
+        $app = $e->getApplication();
+        $sm = $app->getServiceManager();
         // Add ACL information to the Navigation view helper
         $authorize = $sm->get(Authorize::class);
         $acl = $authorize->getAcl();
@@ -28,8 +30,21 @@ class Module
         \Zend\View\Helper\Navigation\AbstractHelper::setDefaultAcl($acl);
         \Zend\View\Helper\Navigation\AbstractHelper::setDefaultRole($role);
         
-        $app = $e->getApplication();
+        $eventManager = $app->getEventManager();
         $strategy = $sm->get(CspListener::class);
-        $strategy->attach($app->getEventManager());
+        $strategy->attach($eventManager);
+        
+        $moduleRouteListener = new ModuleRouteListener();
+        $moduleRouteListener->attach($eventManager);
+        
+        //setup logging
+        $eventManager->attach('dispatch.error', function ($event) {
+            $exception = $event->getResult()->exception;
+            if ($exception && $exception instanceof \Exception) {
+                $sm = $event->getApplication()->getServiceManager();
+                $service = $sm->get('ApplicationErrorHandling');
+                $service->logException($exception);
+            }
+        });
     }
 }

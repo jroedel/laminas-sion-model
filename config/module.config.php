@@ -4,6 +4,7 @@ namespace SionModel;
 use Zend\Router\Http\Literal;
 use Zend\Router\Http\Segment;
 use Zend\ServiceManager\Proxy\LazyServiceFactory;
+use Zend\Log\LoggerInterface;
 
 return [
     'view_helpers' => [
@@ -81,6 +82,9 @@ return [
             Mailing\Mailer::class           => Service\MailerFactory::class,
             Db\Model\PredicatesTable::class => Service\PredicatesTableFactory::class,
             Mvc\CspListener::class          => Service\CspListenerFactory::class,
+            Service\ErrorHandling::class    => Service\ErrorHandlingFactory::class,
+            'ExceptionsLogger'              => Service\ExceptionsLoggerFactory::class,
+            LoggerInterface::class          => Service\LoggerFactory::class,
         ],
         'lazy_services' => [
             // Mapping services to their class names is required
@@ -120,6 +124,8 @@ return [
         ],
     ],
     'sion_model' => [
+        'application_log_path'      => 'data/logs/application_{monthString}.log',
+        'exceptions_log_path'       => 'data/logs/exceptions_{monthString}.log',
         'file_directory'            => 'data/files',
         'public_file_directory'     => 'public/files',
         'max_items_to_cache'        => 2,

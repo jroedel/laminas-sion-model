@@ -3,6 +3,8 @@ namespace Project;
 
 return [
     'sion_model' => [
+        'application_log_path' => 'data/logs/application_{monthString}.log',
+        'exceptions_log_path' => 'data/logs/exceptions_{monthString}.log',
         /**
          * An AuthenticationServiceInterface instance to be fetched from service manager
          */
