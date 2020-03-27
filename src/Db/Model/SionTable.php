@@ -598,7 +598,7 @@ class SionTable
         
         if (isset($cacheKey)) {
             $dependencies = $entitySpec->dependsOnEntities;
-            if (!in_array($entity, $dependencies)) {
+            if (!in_array($entity, $dependencies, true)) {
                 $dependencies[] = $entity;
             }
             $this->cacheEntityObjects($cacheKey, $objects, $dependencies); 
@@ -864,7 +864,7 @@ class SionTable
                 throw new \InvalidArgumentException('Each element of unprocessedUrls must contain key \'url\'');
             }
             if (isset($urlRow['label'])
-                && in_array(strtolower($urlRow['label']), $lowerUnacceptedLabels)
+                && in_array(strtolower($urlRow['label']), $lowerUnacceptedLabels, true)
             ) {
                 continue;
             }
@@ -1061,11 +1061,11 @@ class SionTable
         $changes = [];
         foreach ($referenceEntity as $field => $value) {
             $tempNewValue = null;
-            if (!in_array($field, $fieldsToTouch) &&
+            if (!in_array($field, $fieldsToTouch, true) &&
                 (!key_exists($field, $updateCols) || !key_exists($field, $data) || $value == $data[$field])
             ) {
                 continue;
-            } elseif (in_array($field, $fieldsToTouch) && !key_exists($field, $data)) {
+            } elseif (in_array($field, $fieldsToTouch, true) && !key_exists($field, $data)) {
                 $data[$field] = $value;
             }
             if ($data[$field] instanceof \DateTime) { //convert Date objects to strings
