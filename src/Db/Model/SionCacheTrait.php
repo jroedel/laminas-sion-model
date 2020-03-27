@@ -147,7 +147,10 @@ trait SionCacheTrait
         $problemsKey = $this->getClassIdentifier().'-problems';
         $removedItems = [];
         foreach ($this->cacheDependencies as $fullyQualifiedCacheKey => $dependentEntities) {
-            if (in_array($entity, $dependentEntities) || $changesKey === $fullyQualifiedCacheKey || $problemsKey === $fullyQualifiedCacheKey) {
+            if (in_array($entity, $dependentEntities, true) 
+                || $changesKey === $fullyQualifiedCacheKey 
+                || $problemsKey === $fullyQualifiedCacheKey
+            ) {
                 if (is_object($cache)) {
                     $cache->removeItem($fullyQualifiedCacheKey);
                     $removedItems[] = $fullyQualifiedCacheKey;
