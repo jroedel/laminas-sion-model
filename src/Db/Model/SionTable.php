@@ -748,7 +748,9 @@ class SionTable
                 ! is_string($field) || ($sortParameter !== SORT_ASC &&
                 $sortParameter !== SORT_DESC)
             ) {
-                throw new \InvalidArgumentException('The $fieldsAndSortParamer should be in format [\'name\' => SORT_ASC, \'country\' = SORT_DESC]');
+                throw new \InvalidArgumentException(
+                    'The $fieldsAndSortParamer should be in format [\'name\' => SORT_ASC, \'country\' = SORT_DESC]'
+                    );
             }
         }
 
