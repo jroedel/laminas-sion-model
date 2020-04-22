@@ -10,6 +10,7 @@ use Zend\Mvc\MvcEvent;
 use BjyAuthorize\Service\Authorize;
 use SionModel\Mvc\CspListener;
 use Zend\Mvc\ModuleRouteListener;
+use SionModel\Service\ErrorHandling;
 
 class Module
 {
@@ -42,7 +43,7 @@ class Module
             $exception = $event->getResult()->exception;
             if ($exception && $exception instanceof \Exception) {
                 $sm = $event->getApplication()->getServiceManager();
-                $service = $sm->get('ApplicationErrorHandling');
+                $service = $sm->get(ErrorHandling::class);
                 $service->logException($exception);
             }
         });
