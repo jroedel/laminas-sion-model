@@ -1,12 +1,13 @@
 <?php
+
 namespace SionModel\View\Helper;
 
 class InlineScript extends \Zend\View\Helper\InlineScript
 {
     protected $nonce;
-    
+
     /**
-     * 
+     *
      */
     public function __construct($nonce = null)
     {
@@ -15,7 +16,7 @@ class InlineScript extends \Zend\View\Helper\InlineScript
             $this->setAllowArbitraryAttributes(true);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      * @see \Zend\View\Helper\InlineScript::__invoke()
@@ -38,13 +39,13 @@ class InlineScript extends \Zend\View\Helper\InlineScript
         $type = 'text/javascript',
         $attrs = []
     ) {
-        if (isset($this->nonce) && !isset($attrs['nonce'])) {
+        if (isset($this->nonce) && ! isset($attrs['nonce'])) {
             $attrs['nonce'] = $this->nonce;
         }
-        
+
         return parent::captureStart($captureType, $type, $attrs);
     }
-    
+
     /**
      * {@inheritDoc}
      * @see \Zend\View\Helper\HeadScript::captureEnd()
@@ -55,7 +56,7 @@ class InlineScript extends \Zend\View\Helper\InlineScript
         $return = parent::captureEnd();
         return $return;
     }
-    
+
     public function setNonce($nonce)
     {
         $this->nonce = $nonce;
@@ -64,7 +65,7 @@ class InlineScript extends \Zend\View\Helper\InlineScript
         }
         return $this;
     }
-    
+
     public function getNonce()
     {
         return $this->nonce;

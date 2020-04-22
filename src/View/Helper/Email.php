@@ -1,4 +1,5 @@
 <?php
+
 // SionModel/View/Helper/Email.php
 
 namespace SionModel\View\Helper;
@@ -15,13 +16,13 @@ class Email extends AbstractHelper
         $emailValidator = new EmailAddress();
         $email = $trimFilter->filter($email);
         if ($emailValidator->isValid($email)) {
-            $return = '<a href="mailto:'.$this->getView()->escapeHtml($email).'">';
+            $return = '<a href="mailto:' . $this->getView()->escapeHtml($email) . '">';
             if ($onlyGlyph) {
                 $return .= '<span class="glyphicon glyphicon-envelope"></span>';
             } else {
                 $return .= $this->getView()->escapeHtml($email);
             }
-            return $return.'</a>';
+            return $return . '</a>';
         } else {
             return '';
         }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
  *
@@ -25,7 +26,7 @@ class SortArray extends AbstractFilter
      */
     public function filter($value)
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             return $value;
         }
         if (empty($value)) {

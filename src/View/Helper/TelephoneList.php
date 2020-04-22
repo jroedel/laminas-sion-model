@@ -1,4 +1,5 @@
 <?php
+
 // SionModel/View/Helper/TelephoneList.php
 
 namespace SionModel\View\Helper;
@@ -12,18 +13,20 @@ class TelephoneList extends AbstractHelper
     public function __construct()
     {
     }
-    
+
     public function __invoke(array $telephoneList, $hasLabels = false)
     {
-        if (!is_array($telephoneList)) {
+        if (! is_array($telephoneList)) {
             throw new \InvalidArgumentException('Array expected, non-array passed.');
         }
-        $results = array();
+        $results = [];
         if ($hasLabels) {
             foreach ($telephoneList as $value) {
-                if (is_null($value) || !is_array($value) ||
-                    !isset($value['number']) || is_null($value['number']) ||
-                    !$value['number'] || $value['number'] === '') {
+                if (
+                    is_null($value) || ! is_array($value) ||
+                    ! isset($value['number']) || is_null($value['number']) ||
+                    ! $value['number'] || $value['number'] === ''
+                ) {
                     continue;
                 }
                 if (isset($value['label']) && $value['label'] && 0 != strlen($value['label'])) {
@@ -38,7 +41,7 @@ class TelephoneList extends AbstractHelper
             }
         } else {
             foreach ($telephoneList as $value) {
-                if (is_null($value) || !$value || $value === '' || !is_string($value)) {
+                if (is_null($value) || ! $value || $value === '' || ! is_string($value)) {
                     continue;
                 }
                 $results[] = sprintf($this->patternWithoutLabel, $this->view->telephone($value));

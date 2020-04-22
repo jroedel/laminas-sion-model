@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
  *
@@ -26,7 +27,7 @@ class ToDateTime extends AbstractFilter
     public function filter($value)
     {
         static $tz;
-        if (!$tz) {
+        if (! $tz) {
             $tz = new \DateTimeZone('UTC');
         }
         if ($value instanceof \DateTime) {

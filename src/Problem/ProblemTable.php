@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Problem;
 
 use SionModel\Db\Model\SionTable;
@@ -16,7 +17,7 @@ class ProblemTable extends SionTable
     public function getProblems()
     {
 
-        if (!is_null($this->problemsCache)) {
+        if (! is_null($this->problemsCache)) {
             return $this->problemsCache;
         }
 

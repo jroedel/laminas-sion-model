@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\I18n;
 
 class LanguageSupport
@@ -190,7 +191,7 @@ class LanguageSupport
         'zh' => ['en' => "Chinese", 'es' => "Chino", 'de' => "Chinesisch", 'pt' => "Chinês", 'it' => "Cinese", 'fr' => "Chinois"],
         'zu' => ['en' => "Zulu", 'es' => "Zulu", 'de' => "Zulu", 'pt' => "Zulu", 'it' => "Zulu", 'fr' => "Zoulou"],
     ];
-    
+
     /**
      * Fetch value options for a Select form element
      * @param string $inLanguage
@@ -198,7 +199,7 @@ class LanguageSupport
      */
     public function getLanguageNames($inLanguage = 'en')
     {
-        if (!isset($inLanguage) || !in_array($inLanguage, $this->supportedLanguages, true)) {
+        if (! isset($inLanguage) || ! in_array($inLanguage, $this->supportedLanguages, true)) {
             $inLanguage = 'en';
         }
         $result = [];
@@ -207,9 +208,9 @@ class LanguageSupport
         }
         return $result;
     }
-    
+
     /**
-     * Get the name of a language, in the language specified. 
+     * Get the name of a language, in the language specified.
      * If the language requested doesn't exist, null is returned
      * @param string $language
      * @param string $inLanguage
@@ -218,18 +219,18 @@ class LanguageSupport
      */
     public function getLanguageName($language, $inLanguage = 'en')
     {
-        if (!isset($language) || !is_string($language)) {
+        if (! isset($language) || ! is_string($language)) {
             throw new \InvalidArgumentException('Language parameter should be a string');
         }
-        if (!isset($this->languages[$language])) {
+        if (! isset($this->languages[$language])) {
             return null;
         }
-        if (!isset($inLanguage) || !in_array($inLanguage, $this->supportedLanguages, true)) {
+        if (! isset($inLanguage) || ! in_array($inLanguage, $this->supportedLanguages, true)) {
             $inLanguage = 'en';
         }
         return $this->languages[$language][$inLanguage];
     }
-    
+
     /**
      * Return an array of known language codes
      * @return string[]
@@ -238,10 +239,10 @@ class LanguageSupport
     {
         return array_keys($this->languages);
     }
-    
+
     /**
-     * Return an associative array mapping language code to 
-     * another associative array of names keyed by the inLanguage. 
+     * Return an associative array mapping language code to
+     * another associative array of names keyed by the inLanguage.
      * inLanguage refers to the language in which the language's name is in.
      * @return string[][]
      */

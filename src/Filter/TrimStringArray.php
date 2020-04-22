@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
  *
@@ -29,12 +30,12 @@ class TrimStringArray extends AbstractFilter
         if (is_string($value)) {
             $value = [$value];
         }
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             return [];
         }
 
         static $filter;
-        if (!isset($filter)) {
+        if (! isset($filter)) {
             $filter = new FilterChain();
             $filter->attachByName('StripTags')
                 ->attachByName('StripNewlines')

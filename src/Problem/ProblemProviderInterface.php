@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Problem;
 
 /**
@@ -13,7 +14,7 @@ interface ProblemProviderInterface
      * @return \SionModel\Problem\EntityProblem[]
      */
     public function getProblems($minimumSeverity = EntityProblem::SEVERITY_INFO);
-    
+
     /**
      * Fixes any auto-fixable problems with the user's confirmation.
      * When $simulate is true, no changes to the database should be made.

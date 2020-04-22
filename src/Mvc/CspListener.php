@@ -1,4 +1,5 @@
 <?php
+
 /**
  * BjyAuthorize Module (https://github.com/bjyoungblood/BjyAuthorize)
  *
@@ -18,10 +19,10 @@ class CspListener implements ListenerAggregateInterface
     /**
      * @var callable[] An array with callback functions or methods.
      */
-    protected $listeners = array();
-    
+    protected $listeners = [];
+
     protected $nonce;
-    
+
     protected $config;
 
     /**
@@ -41,12 +42,13 @@ class CspListener implements ListenerAggregateInterface
      */
     public function attach(EventManagerInterface $events, $priority = 1)
     {
-        if (isset($this->config['sion_model']['csp_config']) 
+        if (
+            isset($this->config['sion_model']['csp_config'])
             && isset($this->config['sion_model']['csp_config']['inject_headers_event'])
             && isset($this->config['sion_model']['csp_config']['csp_string'])
         ) {
             $eventName = $this->config['sion_model']['csp_config']['inject_headers_event'];
-            $this->listeners[] = $events->attach($eventName, array($this, 'injectHeader'), 5000);
+            $this->listeners[] = $events->attach($eventName, [$this, 'injectHeader'], 5000);
         }
     }
 
@@ -61,9 +63,9 @@ class CspListener implements ListenerAggregateInterface
             }
         }
     }
-    
+
     /**
-     * Callback used 
+     * Callback used
      *
      * @param MvcEvent $event
      *
@@ -74,16 +76,16 @@ class CspListener implements ListenerAggregateInterface
         header_remove('Content-Security-Policy');
         $headerString = $this->config['sion_model']['csp_config']['csp_string'];
         $headerString = str_replace('{:nonce}', $this->nonce, $headerString);
-        header('Content-Security-Policy: '.$headerString);
+        header('Content-Security-Policy: ' . $headerString);
     }
-    
+
     public function setNonce($nonce)
     {
         $this->nonce = $nonce;
         $GLOBALS['inline-nonce'] = $nonce;
         return $this;
     }
-    
+
     public function getNonce()
     {
         return $this->nonce;

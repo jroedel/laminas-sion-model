@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Problem;
 
 use SionModel\Entity\Entity;
@@ -92,7 +93,8 @@ class EntityProblem
         $specsToAdd = [];
         foreach ($problemSpecifications as $problem => $spec) {
             //validate the problem specification
-            if (isset($spec['entity']) && is_string($spec['entity']) &&
+            if (
+                isset($spec['entity']) && is_string($spec['entity']) &&
                 strlen($spec['entity']) <= 50 &&
                 isset($spec['defaultSeverity']) &&
                 array_key_exists($spec['defaultSeverity'], EntityProblem::SEVERITY_TEXT_CLASSES) &&
@@ -114,11 +116,11 @@ class EntityProblem
      */
     public function getIdentifier()
     {
-        $str = $this->getEntity().$this->getEntityId().$this->getProblem();
-        if (!is_null($ignoredOn = $this->getIgnoredOn())) {
+        $str = $this->getEntity() . $this->getEntityId() . $this->getProblem();
+        if (! is_null($ignoredOn = $this->getIgnoredOn())) {
             $str .= serialize($ignoredOn);
         }
-        if (!is_null($resolvedOn = $this->getResolvedOn())) {
+        if (! is_null($resolvedOn = $this->getResolvedOn())) {
             $str .= serialize($resolvedOn);
         }
         return md5($str);
@@ -144,7 +146,7 @@ class EntityProblem
      */
     public function setProblem($problem)
     {
-        if (!isset($this->problemSpecifications[$problem])) {
+        if (! isset($this->problemSpecifications[$problem])) {
             throw new \InvalidArgumentException('Unknown problem reported.');
         }
         $this->problem = $problem;
@@ -170,7 +172,7 @@ class EntityProblem
      */
     public function setData($data)
     {
-        if (!is_null($data) && !is_array($data)) {
+        if (! is_null($data) && ! is_array($data)) {
             throw new \InvalidArgumentException('Data parameter must be an array.');
         }
         $this->data = $data;
@@ -217,9 +219,9 @@ class EntityProblem
      */
     public function isValidProblem()
     {
-        return !is_null($this->entity) &&
-            !is_null($this->problem) &&
-            !is_null($this->data);
+        return ! is_null($this->entity) &&
+            ! is_null($this->problem) &&
+            ! is_null($this->data);
     }
 
     /**
@@ -232,7 +234,7 @@ class EntityProblem
 
     public function getProblemText()
     {
-        if (!$this->isValidProblem()) {
+        if (! $this->isValidProblem()) {
             throw new \Exception('Problem must be valid before retrieving problem text.');
         }
 
@@ -246,8 +248,9 @@ class EntityProblem
     public function getTranslatorTextDomain()
     {
         if (is_null($this->translatorTextDomain)) {
-            if (isset($this->problemSpecifications[$this->problem]['textDomain']) &&
-                !is_null($this->problemSpecifications[$this->problem]['textDomain'])
+            if (
+                isset($this->problemSpecifications[$this->problem]['textDomain']) &&
+                ! is_null($this->problemSpecifications[$this->problem]['textDomain'])
             ) {
                 $this->translatorTextDomain = $this->problemSpecifications[$this->problem]['textDomain'];
             } else {
@@ -362,14 +365,14 @@ class EntityProblem
      */
     public function getEntityId()
     {
-        if (!$this->isValidProblem()) {
+        if (! $this->isValidProblem()) {
             throw new \Exception('Problem must be valid before retrieving entity id.');
         }
-        if (!isset($this->entities[$this->getEntity()])) {
-            throw new \Exception('Invalid entity used: '.$this->getEntity());
+        if (! isset($this->entities[$this->getEntity()])) {
+            throw new \Exception('Invalid entity used: ' . $this->getEntity());
         }
         $fieldName = $this->getEntitySpecification()->entityKeyField;
-        if (!isset($this->getData()[$fieldName])) {
+        if (! isset($this->getData()[$fieldName])) {
             throw new \Exception("Problem data does not include id field: $fieldName");
         }
         return $this->getData()[$fieldName];

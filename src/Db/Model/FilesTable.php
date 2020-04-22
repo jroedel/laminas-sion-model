@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Db\Model;
 
 use Zend\Db\Adapter\AdapterInterface;
@@ -21,7 +22,7 @@ class FilesTable extends SionTable
      */
     public function getFiles()
     {
-        if (!is_null($cache = $this->fetchCachedEntityObjects('files'))) {
+        if (! is_null($cache = $this->fetchCachedEntityObjects('files'))) {
             return $cache;
         }
 
@@ -59,7 +60,7 @@ FROM `files` WHERE 1";
                 'mimeType'              => $this->filterDbString($row['MimeType']),
                 'isPublic'              => $isPublic,
                 'isEncrypted'           => $this->filterDbBool($row['IsEncrypted']),
-                'encryptedEncryptionKey'=> $this->filterDbString($row['EncryptedEncryptionKey']),
+                'encryptedEncryptionKey' => $this->filterDbString($row['EncryptedEncryptionKey']),
                 'createdOn'             => $this->filterDbDate($row['CreatedOn']),
                 'createdBy'             => $this->filterDbId($row['CreatedBy']),
                 'updatedOn'             => $this->filterDbDate($row['UpdatedOn']),
@@ -80,7 +81,7 @@ FROM `files` WHERE 1";
     {
         $entities = $this->getFiles();
 
-        if (!isset($entities[$id]) || !($entity = $entities[$id])) {
+        if (! isset($entities[$id]) || ! ($entity = $entities[$id])) {
             return null;
         }
 
@@ -92,11 +93,11 @@ FROM `files` WHERE 1";
         if ($action !== 'create') {
             return $data;
         }
-        if (!isset($data['originalFileName'])) {
+        if (! isset($data['originalFileName'])) {
             throw new \InvalidArgumentException('originalFileName key required');
         }
-        $filePath = 'tmp/'.$data['originalFileName'];
-        if (!file_exists($filePath)) {
+        $filePath = 'tmp/' . $data['originalFileName'];
+        if (! file_exists($filePath)) {
             throw new \InvalidArgumentException('File not found');
         }
         $data['sha1'] = sha1_file($filePath);
@@ -118,7 +119,7 @@ FROM `files` WHERE 1";
             $newPath = $config['file_directory'];
         }
         if ('/' !== substr($newPath, -1)) {
-            $newPath.= '/';
+            $newPath .= '/';
         }
         $extension = 'jpg';
         $storeFileName = $data['sha1'] . $extension;
@@ -126,7 +127,7 @@ FROM `files` WHERE 1";
         $newPath .= $storeFileName;
 
         //This could lead to multiple file records referring to 1 file. That's OK
-        if (!file_exists($newPath)) {
+        if (! file_exists($newPath)) {
             if (false === move_uploaded_file($data['originalFileName'], $newPath)) {
                 throw new \Exception('Error processing file');
             }

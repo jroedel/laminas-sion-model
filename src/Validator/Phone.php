@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
  *
@@ -21,7 +22,7 @@ class Phone extends Regex
     {
         $pattern = "/^\+[0-9\- \(\)]{7,30}(?: ext\. \d{1,4})?$/";
         $newMessage = 'Please begin with \'+\' and the country code, and use only numbers, '
-            .'dash, space or parenthesis. \' ext. ##\' may be added for extensions.';
+            . 'dash, space or parenthesis. \' ext. ##\' may be added for extensions.';
         $this->messageTemplates[self::INVALID] = $newMessage;
         $this->messageTemplates[self::NOT_MATCH] = $newMessage;
         $this->messageTemplates[self::ERROROUS] = $newMessage;

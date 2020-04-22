@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
  *
@@ -21,7 +22,7 @@ class Instagram extends Regex
     {
         $pattern = "/^[A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,28}(?:[A-Za-z0-9_]))?$/";
         $newMessage = 'Instagram user names should begin with a letter, contain only letters, '
-            .'numbers, \'.\', or \'_\' and be between 1 and 30 characters long.';
+            . 'numbers, \'.\', or \'_\' and be between 1 and 30 characters long.';
         $this->messageTemplates[self::INVALID] = $newMessage;
         $this->messageTemplates[self::NOT_MATCH] = $newMessage;
         $this->messageTemplates[self::ERROROUS] = $newMessage;

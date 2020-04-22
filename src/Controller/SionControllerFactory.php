@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Controller;
 
 use Interop\Container\ContainerInterface;
@@ -15,7 +16,7 @@ class SionControllerFactory implements AbstractFactoryInterface
 
     public function canCreate(ContainerInterface $container, $requestedName)
     {
-        if (!isset($this->entitiesService)) {
+        if (! isset($this->entitiesService)) {
             $parentLocator = $container->getServiceLocator();
             /** @var EntitiesService $entitiesService */
             $this->entitiesService = $parentLocator->get(EntitiesService::class);
@@ -49,7 +50,7 @@ class SionControllerFactory implements AbstractFactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         $parentLocator = $container->getServiceLocator();
-        if (!isset($this->entitiesService)) {
+        if (! isset($this->entitiesService)) {
             /** @var EntitiesService $entitiesService */
             $this->entitiesService = $parentLocator->get(EntitiesService::class);
         }
@@ -60,11 +61,11 @@ class SionControllerFactory implements AbstractFactoryInterface
         $entitySpec = $entitiesSpecs[$entity];
 
         //get sionTable
-        if (!$parentLocator->has($entitySpec->sionModelClass)) {
-            throw new \Exception('Invalid SionModel class set for entity \''.$entity.'\'');
+        if (! $parentLocator->has($entitySpec->sionModelClass)) {
+            throw new \Exception('Invalid SionModel class set for entity \'' . $entity . '\'');
         }
         $sionTable = $parentLocator->get($entitySpec->sionModelClass);
-        
+
         $predicateTable = $parentLocator->get(PredicatesTable::class);
 
         //get createActionForm
@@ -73,7 +74,7 @@ class SionControllerFactory implements AbstractFactoryInterface
         if ($parentLocator->has($entitySpec->createActionForm)) {
             $createActionForm = $parentLocator->get($entitySpec->createActionForm);
         } elseif (class_exists($entitySpec->createActionForm)) {
-            $createActionForm = new $entitySpec->createActionForm;
+            $createActionForm = new $entitySpec->createActionForm();
         }
 
         //get editActionForm

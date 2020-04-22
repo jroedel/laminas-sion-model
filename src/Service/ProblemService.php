@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Service;
 
 use SionModel\Problem\ProblemTable;
@@ -93,7 +94,7 @@ class ProblemService
      */
     public function getCurrentProblems(array $entityKeys = null)
     {
-        if (!is_null($this->sortedProblems)) {
+        if (! is_null($this->sortedProblems)) {
             $problems = $this->sortedProblems;
         } else {
             $problems = [];
@@ -124,10 +125,11 @@ class ProblemService
      */
     protected function getCurrentProviderEntityProblems($providerKey)
     {
-        if (!isset($this->problemProviders[$providerKey])) {
-            throw new \InvalidArgumentException('Requested problem provider \''.$providerKey.'\' not found');
+        if (! isset($this->problemProviders[$providerKey])) {
+            throw new \InvalidArgumentException('Requested problem provider \'' . $providerKey . '\' not found');
         }
-        if (!is_null($this->problemProviders[$providerKey]['problems'])
+        if (
+            ! is_null($this->problemProviders[$providerKey]['problems'])
         ) {
             return $this->problemProviders[$providerKey]['problems'];
         }
@@ -138,15 +140,15 @@ class ProblemService
         //key the array by entity name and MD5 identifiers
         $problems = [];
         foreach ($rawProblems as $problem) {
-            if (!$problem instanceof EntityProblem) {
+            if (! $problem instanceof EntityProblem) {
                 throw new \InvalidArgumentException('All elements returned by a problem provider must be EntityProblem instances.');
             }
-            if (!$problem->isValidProblem()) {
+            if (! $problem->isValidProblem()) {
                 throw new \InvalidArgumentException('All elements returned by a problem provider must be valid EntityProblem instances. Perhaps the problem or data was never set.');
             }
 
             $entity = $problem->getEntity();
-            if (!isset($problems[$entity])) {
+            if (! isset($problems[$entity])) {
                 $problems[$entity] = [];
             }
             $problems[$entity][$problem->getIdentifier()] = $problem;
@@ -163,15 +165,15 @@ class ProblemService
      */
     protected function getProblemProviderService($serviceName)
     {
-        if (!isset($this->problemProviders[$serviceName])) {
-            throw new \InvalidArgumentException('Requested problem provider \''.$serviceName.'\' not found');
+        if (! isset($this->problemProviders[$serviceName])) {
+            throw new \InvalidArgumentException('Requested problem provider \'' . $serviceName . '\' not found');
         }
-        if (!is_null($this->problemProviders[$serviceName]['service'])) {
+        if (! is_null($this->problemProviders[$serviceName]['service'])) {
             return $this->problemProviders[$serviceName]['service'];
         }
         $service = $this->serviceLocator->get($serviceName);
-        if (!$service instanceof ProblemProviderInterface) {
-            throw new \InvalidArgumentException('Requested problem provider \''.$serviceName.'\' not an instance of ProblemProviderInterface');
+        if (! $service instanceof ProblemProviderInterface) {
+            throw new \InvalidArgumentException('Requested problem provider \'' . $serviceName . '\' not an instance of ProblemProviderInterface');
         }
 
         return $this->problemProviders[$serviceName]['service'] = $service;

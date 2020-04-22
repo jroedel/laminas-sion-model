@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
 *
@@ -35,17 +36,17 @@ class SionModelController extends AbstractActionController
         }
         $config = $this->getSionModelConfig();
         $apiKeys = isset($config['api_keys']) && is_array($config['api_keys']) ? $config['api_keys'] : [];
-        if (!in_array($key, $apiKeys)) {
+        if (! in_array($key, $apiKeys)) {
             throw new UnAuthorizedException();
         }
         $cache = $this->getPersistentCache();
-        if (!is_object($cache)) {
+        if (! is_object($cache)) {
             throw new \Exception('Please configure the persistent cache to clear the cache.');
         }
-        if (!$cache instanceof FlushableInterface) {
+        if (! $cache instanceof FlushableInterface) {
             throw new \Exception('Configured persistent cache does not support flushing.');
         }
-        if (!$cache->flush()) {
+        if (! $cache->flush()) {
             $this->getResponse()->setStatusCode(401);
             $message = 'Unsuccessful flush';
         } else {
@@ -108,19 +109,19 @@ class SionModelController extends AbstractActionController
     {
         $config = $this->getSionModelConfig();
         $maxRows = (isset($config['changes_max_rows']) &&
-            (is_numeric($config['changes_max_rows']) || !isset($config['changes_max_rows']))) ?
+            (is_numeric($config['changes_max_rows']) || ! isset($config['changes_max_rows']))) ?
             (int)$config['changes_max_rows'] : 500;
-        if (!isset($config['changes_show_all']) || $config['changes_show_all']) {
+        if (! isset($config['changes_show_all']) || $config['changes_show_all']) {
             /** @var ChangesCollector $collector */
             $collector = $this->services[ChangesCollector::class];
             $results = $collector->getAllChanges();
         } else {
-            if (!isset($this->services[$config['changes_model']])) {
+            if (! isset($this->services[$config['changes_model']])) {
                 throw new \InvalidArgumentException('The \'changes_model\' configuration is incorrect.');
             }
             /** @var SionTable $table */
             $table = $this->services[$config['changes_model']];
-            $getAllChanges = key_exists('changes_show_all', $config) && !is_null($config['changes_show_all']) ?
+            $getAllChanges = key_exists('changes_show_all', $config) && ! is_null($config['changes_show_all']) ?
                 (bool)$config['changes_show_all'] : false;
             $results = $table->getChanges($getAllChanges);
         }

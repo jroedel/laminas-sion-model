@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
  *
@@ -30,12 +31,12 @@ class ToAscii extends AbstractFilter
      */
     public function filter($str, $delimiter = ' ', $replace = [])
     {
-        if (!isset($str) || is_array($str)) {
+        if (! isset($str) || is_array($str)) {
             return $str;
         }
         $str = \ForceUTF8\Encoding::toUTF8($str);
-        
-        if (is_array($replace) && !empty($replace)) {
+
+        if (is_array($replace) && ! empty($replace)) {
             $str = str_replace((array)$replace, ' ', $str);
         }
         $clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);

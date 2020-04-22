@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Db;
 
 class GeoPoint
@@ -14,13 +15,13 @@ class GeoPoint
 
     public function __toString()
     {
-        return (is_numeric($this->latitude) ? $this->latitude: '0').
-        ','.(is_numeric($this->longitude) ? $this->longitude: '0');
+        return (is_numeric($this->latitude) ? $this->latitude : '0') .
+        ',' . (is_numeric($this->longitude) ? $this->longitude : '0');
     }
 
     public function getDatabaseInsertString()
     {
-        return 'POINT('.(is_numeric($this->longitude) ? $this->longitude : '0').
-        ','.(is_numeric($this->latitude) ? $this->latitude: '0').')';
+        return 'POINT(' . (is_numeric($this->longitude) ? $this->longitude : '0') .
+        ',' . (is_numeric($this->latitude) ? $this->latitude : '0') . ')';
     }
 }

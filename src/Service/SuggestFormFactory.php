@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Service;
 
 use Zend\ServiceManager\Factory\FactoryInterface;
@@ -28,19 +29,19 @@ class SuggestFormFactory implements FactoryInterface
         foreach ($entities as $entity) {
             $entityHaystack[] = $entity->name;
         }
-        
+
         $config = $container->get('Config');
-        if (!isset($config['sion_model'])) {
+        if (! isset($config['sion_model'])) {
             throw new \Exception('Unable to fetch `sion_model` configuration key');
         }
-        
+
         $form = new SuggestForm($entityHaystack);
-        
-        if (!isset($config['sion_model']['default_authentication_service'])) {
+
+        if (! isset($config['sion_model']['default_authentication_service'])) {
             throw new \Exception('No default authentication service found');
         }
         $auth = $container->get($config['sion_model']['default_authentication_service']);
-        
+
         if (isset($config['sion_model']['multi_person_user_person_provider'])) {
             $personProvider = $container->get($config['sion_model']['multi_person_user_person_provider']);
         } else {

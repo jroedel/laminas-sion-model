@@ -1,4 +1,5 @@
 <?php
+
 // SionModel/View/Helper/Tooltip.php
 
 namespace SionModel\View\Helper;
@@ -13,10 +14,10 @@ class Tooltip extends AbstractHelper
             return '';
         }
         if (is_null($tooltipText) || $tooltipText == '') {
-            return '<span>'.($escape ? $this->escapeHtml($text) : $text) . '</span>';
+            return '<span>' . ($escape ? $this->escapeHtml($text) : $text) . '</span>';
         }
-        return '<span class="tooltip" data-toggle="tooltip" data-placement="'.$placement.'" title="'.
-            ($escape ? $this->view->escapeHtmlAttr($tooltipText) : $tooltipText).
-            '">'.($escape ? $this->view->escapeHtml($text) : $text) . '</span>';
+        return '<span class="tooltip" data-toggle="tooltip" data-placement="' . $placement . '" title="' .
+            ($escape ? $this->view->escapeHtmlAttr($tooltipText) : $tooltipText) .
+            '">' . ($escape ? $this->view->escapeHtml($text) : $text) . '</span>';
     }
 }
