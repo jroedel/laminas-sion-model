@@ -1,4 +1,5 @@
 <?php
+
 // SionModel/View/Helper/FormatUrlObject.php
 
 namespace SionModel\View\Helper;
@@ -12,7 +13,8 @@ class FormatUrlObject extends AbstractHelper
         if (is_null($url)) {
             return '';
         }
-        if (!key_exists('url', $url) || !key_exists('label', $url) ||
+        if (
+            ! key_exists('url', $url) || ! key_exists('label', $url) ||
             is_null($url['url']) || is_null($url['label'])
         ) {
             throw new \InvalidArgumentException('Please pass a URL object created by SionTable::filterUrl().');

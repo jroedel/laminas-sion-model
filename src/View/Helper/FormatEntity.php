@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\View\Helper;
 
 use Zend\View\Helper\AbstractHelper;
@@ -36,18 +37,18 @@ class FormatEntity extends AbstractHelper
      */
     public function __invoke($entityType, $data, array $options = [])
     {
-        if (!isset($entityType) || !key_exists($entityType, $this->entities)) {
+        if (! isset($entityType) || ! key_exists($entityType, $this->entities)) {
             if ($options['failSilently']) {
                 return '';
             } else {
-                throw new \InvalidArgumentException('Unknown entity type passed: '.$entityType);
+                throw new \InvalidArgumentException('Unknown entity type passed: ' . $entityType);
             }
         }
         $isDeleted = isset($data['isDeleted']) && $data['isDeleted'];
         $entitySpec = $this->entities[$entityType];
 
         //forward request to registered view helper if we have one
-        if (isset($entitySpec->formatViewHelper) && !$isDeleted) {
+        if (isset($entitySpec->formatViewHelper) && ! $isDeleted) {
             $viewHelperName = $entitySpec->formatViewHelper;
             return $this->view->$viewHelperName($entityType, $data, $options);
         }
@@ -66,39 +67,42 @@ class FormatEntity extends AbstractHelper
             $options['displayFlag'] = false;
         }
 
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             if ($options['failSilently']) {
                 return '';
             } else {
                 throw new \InvalidArgumentException('$data should be an array.');
             }
         }
-        if (!$entitySpec->entityKeyField ||
-            !isset($data[$entitySpec->entityKeyField])
+        if (
+            ! $entitySpec->entityKeyField ||
+            ! isset($data[$entitySpec->entityKeyField])
         ) {
             if ($options['failSilently']) {
                 return '';
             } else {
-                throw new \InvalidArgumentException('Id field not set for entity '.$entityType);
+                throw new \InvalidArgumentException('Id field not set for entity ' . $entityType);
             }
         }
-        if (!$entitySpec->nameField ||
-            !isset($data[$entitySpec->nameField])
+        if (
+            ! $entitySpec->nameField ||
+            ! isset($data[$entitySpec->nameField])
         ) {
             if ($options['failSilently']) {
                 return '';
             } else {
-                throw new \InvalidArgumentException('Name field not set for entity '.$entityType);
+                throw new \InvalidArgumentException('Name field not set for entity ' . $entityType);
             }
         }
 
         $finalMarkup = '';
-        if ($options['displayFlag'] &&
+        if (
+            $options['displayFlag'] &&
             $entitySpec->countryField &&
             isset($data[$entitySpec->countryField]) &&
             2 === strlen($data[$entitySpec->countryField])
         ) {
-            $finalMarkup .= $this->view->flag($data[$entitySpec->countryField])."&nbsp;";
+            $finalMarkup .= $this->view->flag($data[$entitySpec->countryField]) . "&nbsp;";
         }
 
         //if our name field is a date, format it as a medium date
@@ -121,19 +125,21 @@ class FormatEntity extends AbstractHelper
             $finalMarkup .= $this->view->escapeHtml($name);
         }
 
-        if ($options['displayEditPencil'] &&
+        if (
+            $options['displayEditPencil'] &&
             $entitySpec->editRouteKeyField &&
             isset($data[$entitySpec->editRouteKeyField])
         ) {
             $editId = $data[$entitySpec->editRouteKeyField];
             $finalMarkup .= $this->view->editPencil($entityType, $editId);
         }
-        if ($options['displayInactiveLabel'] &&
+        if (
+            $options['displayInactiveLabel'] &&
             (isset($data['isActive']) && is_bool($active = $data['isActive']) ||
             isset($data['active']) && is_bool($active = $data['active']))
         ) {
-            if (!$active) {
-                $finalMarkup .= ' <span class="label label-warning">'.$this->view->translate('Inactive').'</span>';
+            if (! $active) {
+                $finalMarkup .= ' <span class="label label-warning">' . $this->view->translate('Inactive') . '</span>';
             }
         }
         return $finalMarkup;
@@ -149,13 +155,13 @@ class FormatEntity extends AbstractHelper
     {
         $entitySpec = $this->entities[$entityType];
         $route = $entitySpec->showRoute;
-        if (!isset($route) || !$this->isActionAllowed('show', $entityType, $data)) {
+        if (! isset($route) || ! $this->isActionAllowed('show', $entityType, $data)) {
             return $linkText;
         }
         if (is_array($entitySpec->showRouteParams)) {
             $params = [];
             foreach ($entitySpec->showRouteParams as $routeParam => $entityField) {
-                if (!isset($data[$entityField])) {
+                if (! isset($data[$entityField])) {
                     //@todo log this
 //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
                 } else {
@@ -166,7 +172,8 @@ class FormatEntity extends AbstractHelper
                 return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);
             }
         }
-        if ($entitySpec->showRouteKey
+        if (
+            $entitySpec->showRouteKey
             && $entitySpec->showRouteKeyField
             && isset($data[$entitySpec->showRouteKeyField])
             && $this->isActionAllowed('show', $entityType, $data)
@@ -178,7 +185,7 @@ class FormatEntity extends AbstractHelper
         if (is_array($entitySpec->defaultRouteParams)) {
             $params = [];
             foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
-                if (!isset($data[$entityField])) {
+                if (! isset($data[$entityField])) {
                     //@todo log this
                     //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
                 } else {
@@ -194,10 +201,10 @@ class FormatEntity extends AbstractHelper
 
     protected function isActionAllowed($action, $entityType, $object)
     {
-        if (!$this->getRoutePermissionCheckingEnabled()) {
+        if (! $this->getRoutePermissionCheckingEnabled()) {
             return true;
         }
-        if (!isset(Entity::$isActionAllowedPermissionProperties[$action])) {
+        if (! isset(Entity::$isActionAllowedPermissionProperties[$action])) {
             throw new \InvalidArgumentException('Invalid action parameter');
         }
         $entitySpec = $this->entities[$entityType];
@@ -212,24 +219,25 @@ class FormatEntity extends AbstractHelper
         } catch (\Exception $e) {
         }
         //if we don't have the isAllowed plugin, just allow
-        if (!is_callable($isAllowedPlugin)) {
+        if (! is_callable($isAllowedPlugin)) {
             return true;
         }
 
         //check the route permissions of BjyAuthorize
         $routeProperty = array_key_exists($action, Entity::$actionRouteProperties) ? Entity::$actionRouteProperties[$action] : null;
-        if (isset($routeProperty) && isset($entitySpec->$routeProperty) &&
-            !$isAllowedPlugin->__invoke('route/'.$entitySpec->$routeProperty)
+        if (
+            isset($routeProperty) && isset($entitySpec->$routeProperty) &&
+            ! $isAllowedPlugin->__invoke('route/' . $entitySpec->$routeProperty)
         ) {
             return false;
         }
 
-        if (!isset($entitySpec->aclResourceIdField)) {
+        if (! isset($entitySpec->aclResourceIdField)) {
             return true;
         }
 
         $permissionProperty = Entity::$isActionAllowedPermissionProperties[$action];
-        if (!isset($entitySpec->$permissionProperty)) {
+        if (! isset($entitySpec->$permissionProperty)) {
             //we don't need the permission, just the resourceId
             return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField]);
         }

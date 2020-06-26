@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Service;
 
 use Interop\Container\ContainerInterface;

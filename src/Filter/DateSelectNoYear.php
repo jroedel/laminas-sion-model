@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
  *
@@ -28,10 +29,10 @@ class DateSelectNoYear extends AbstractFilter
     {
         static $tz;
         static $validator;
-        if (!$validator) {
+        if (! $validator) {
             $validator = new Regex("/\\d{4}-\\d{2}-\\d{2}/");
         }
-        if (!$tz) {
+        if (! $tz) {
             $tz = new \DateTimeZone('UTC');
         }
         if ($value instanceof \DateTime) {

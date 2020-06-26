@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Zend Framework (http://framework.zend.com/)
  *
@@ -22,7 +23,7 @@ class Slack extends Regex
     {
         $pattern = self::SLACK_REGEX;
         $newMessage = 'Slack user names should begin with a letter or number, '
-            .'and contain only letters, numbers, \'.\', \'-\', or \'_\'.';
+            . 'and contain only letters, numbers, \'.\', \'-\', or \'_\'.';
         $this->messageTemplates[self::INVALID] = $newMessage;
         $this->messageTemplates[self::NOT_MATCH] = $newMessage;
         $this->messageTemplates[self::ERROROUS] = $newMessage;

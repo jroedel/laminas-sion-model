@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel;
 
 use Zend\Router\Http\Literal;
@@ -333,7 +334,7 @@ return [
                     'mimeType'              => 'MimeType',
                     'isPublic'              => 'IsPublic',
                     'isEncrypted'           => 'IsEncrypted',
-                    'encryptedEncryptionKey'=> 'EncryptedEncryptionKey',
+                    'encryptedEncryptionKey' => 'EncryptedEncryptionKey',
                     'createdOn'             => 'CreatedOn',
                     'createdBy'             => 'CreatedBy',
                     'updatedOn'             => 'UpdatedOn',
@@ -377,7 +378,7 @@ return [
 //                 'create_action_valid_data_handler'       => 'createEvent',
                 'create_action_redirect_route'          => 'files/file',
                 'create_action_redirect_route_key'      => 'file_id',
-                'create_action_redirect_route_key_field'=> 'fileId',
+                'create_action_redirect_route_key_field' => 'fileId',
 //                 'create_action_template'                 => 'project/events/create',
 //                 'touch_default_field'                => 'fileId',
 //                 'touch_field_route_key'                  => 'event_id',

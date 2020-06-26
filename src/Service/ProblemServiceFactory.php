@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SionModel Module
  *
@@ -25,7 +26,7 @@ class ProblemServiceFactory implements FactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         $config = $container->get('SionModel\Config');
-        if (!isset($config['problem_specifications']) || empty($config['problem_specifications'])) {
+        if (! isset($config['problem_specifications']) || empty($config['problem_specifications'])) {
             throw new \Exception('Please set specify potential problems in app config under key [\'sion_model\'][\'problem_specifications\'].');
         }
 

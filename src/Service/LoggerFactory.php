@@ -1,4 +1,5 @@
 <?php
+
 /**
  * BjyAuthorize Module (https://github.com/bjyoungblood/BjyAuthorize)
  *

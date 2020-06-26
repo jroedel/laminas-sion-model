@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Controller;
 
 use Interop\Container\ContainerInterface;
@@ -67,6 +68,6 @@ class LazyControllerFactory implements AbstractFactoryInterface
             }
         }
 
-        return new $requestedName;
+        return new $requestedName();
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 // SionModel/View/Helper/Email.php
 
 namespace SionModel\View\Helper;
@@ -20,11 +21,11 @@ class HelpBlock extends AbstractHelper
      */
     public function __invoke($element, $options = [])
     {
-        if (!$element instanceof ElementInterface) {
+        if (! $element instanceof ElementInterface) {
             return '';
         }
         $text = $element->getOption('help-block');
-        if (!isset($text) || !is_string($text)) {
+        if (! isset($text) || ! is_string($text)) {
             return '';
         }
 
@@ -47,7 +48,7 @@ class HelpBlock extends AbstractHelper
      */
     public function getPattern()
     {
-        if (!isset($this->pattern)) {
+        if (! isset($this->pattern)) {
             throw new \Exception('Something went wrong, no pattern available');
         }
         return $this->pattern;

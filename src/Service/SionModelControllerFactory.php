@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Service;
 
 use Zend\ServiceManager\Factory\FactoryInterface;
@@ -30,9 +31,9 @@ class SionModelControllerFactory implements FactoryInterface
                 $services[$value] = $container->get($value);
             }
         }
-        
+
         $controller = new SionModelController($services);
-        
+
         return $controller;
     }
 }

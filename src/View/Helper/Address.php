@@ -1,4 +1,5 @@
 <?php
+
 // SionModel/View/Helper/Email.php
 
 namespace SionModel\View\Helper;
@@ -24,10 +25,10 @@ class Address extends AbstractHelper
     {
         $finalMarkup = '';
         if (isset($data['street1'])) {
-            $finalMarkup .= $this->view->escapeHtml($data['street1']).'<br>';
+            $finalMarkup .= $this->view->escapeHtml($data['street1']) . '<br>';
         }
         if (isset($data['street2'])) {
-            $finalMarkup .= $this->view->escapeHtml($data['street2']).'<br>';
+            $finalMarkup .= $this->view->escapeHtml($data['street2']) . '<br>';
         }
 
         if (isset($data['country']) && isset($this->placeLineCountryFormats[$data['country']])) {
@@ -37,12 +38,12 @@ class Address extends AbstractHelper
         }
         $placeLine = str_replace(':zip', isset($data['zip']) ? $data['zip'] : '', $placePattern);
         $placeLine = trim(str_replace(':cityState', isset($data['cityState']) ? $data['cityState'] : null, $placeLine));
-        $finalMarkup .= $this->view->escapeHtml($placeLine).'<br>';
+        $finalMarkup .= $this->view->escapeHtml($placeLine) . '<br>';
         if (isset($data['country'])) {
-            $finalMarkup .= $this->view->countryName($data['country']).'</p>';
+            $finalMarkup .= $this->view->countryName($data['country']) . '</p>';
         }
         if (strlen($finalMarkup) > 0) {
-            $finalMarkup = '<p>'.$finalMarkup.'</p>';
+            $finalMarkup = '<p>' . $finalMarkup . '</p>';
         }
         return $finalMarkup;
     }

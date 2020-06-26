@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Entity;
 
 use SionModel\Filter\MixedCase;
@@ -433,10 +434,10 @@ class Entity
 
     public function __construct($name, $entitySpecification)
     {
-        if (!isset($name)) {
+        if (! isset($name)) {
             throw new \InvalidArgumentException('Name is a required parameter.');
         }
-        if (!is_array($entitySpecification)) {
+        if (! is_array($entitySpecification)) {
             throw new \InvalidArgumentException('Entity specification must be an array.');
         }
         $this->name = $name;
@@ -468,6 +469,6 @@ class Entity
     public function isEnabledForUpdateAndCreate()
     {
         return isset($this->tableName) && isset($this->tableKey)
-            && isset($this->updateColumns) && is_array($this->updateColumns) &&!empty($this->updateColumns);
+            && isset($this->updateColumns) && is_array($this->updateColumns) && ! empty($this->updateColumns);
     }
 }

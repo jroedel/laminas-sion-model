@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Db\Model;
 
 use Zend\Db\Sql\Select;
@@ -9,19 +10,19 @@ use Zend\Db\Sql\Predicate\In;
 
 class PredicatesTable extends SionTable
 {
-    const COMMENT_KIND_COMMENT = 'comment'; //only comment
-    const COMMENT_KIND_RATING = 'rating'; //only rating
-    const COMMENT_KIND_REVIEW = 'review'; //comment+rating
-    const COMMENT_KINDS = [
+    public const COMMENT_KIND_COMMENT = 'comment'; //only comment
+    public const COMMENT_KIND_RATING = 'rating'; //only rating
+    public const COMMENT_KIND_REVIEW = 'review'; //comment+rating
+    public const COMMENT_KINDS = [
         self::COMMENT_KIND_COMMENT => 'Comment',
         self::COMMENT_KIND_RATING => 'Rating',
         self::COMMENT_KIND_REVIEW => 'Review'
     ];
-    
-    const COMMENT_STATUS_IN_REVIEW = 'in-review';
-    const COMMENT_STATUS_PUBLISHED = 'published';
-    const COMMENT_STATUS_DENIED = 'denied';
-    
+
+    public const COMMENT_STATUS_IN_REVIEW = 'in-review';
+    public const COMMENT_STATUS_PUBLISHED = 'published';
+    public const COMMENT_STATUS_DENIED = 'denied';
+
     /**
      * Query params are [predicateKind|objectEntityKind,objectId(array|string)]
      *
@@ -33,67 +34,68 @@ class PredicatesTable extends SionTable
         $gateway = $this->getTableGateway('comments');
         $select = $this->getCommentSelectPrototype();
         $where = new Where();
-        $combination = (isset($options['orCombination']) && $options['orCombination']) 
-            ? PredicateSet::OP_OR 
+        $combination = (isset($options['orCombination']) && $options['orCombination'])
+            ? PredicateSet::OP_OR
             : PredicateSet::OP_AND;
         $fieldMap = $this->getEntitySpecification('comment')->updateColumns;
-        
+
         if (isset($query['objectEntityId'])) {
-            if (!isset($query['predicateKind'])) {
+            if (! isset($query['predicateKind'])) {
                 throw new \Exception('When asking for comments refering to a specific entity, '
-                    .'please specify the predicateKind');
+                    . 'please specify the predicateKind');
             }
             $joinPredicate = new PredicateSet();
             $joinPredicate->addPredicates([
                 new Operator(
-                    'relationships.SubjectEntityId', 
-                    Operator::OPERATOR_EQUAL_TO, 
-                    'comments.CommentId', 
-                    Operator::TYPE_IDENTIFIER, 
+                    'relationships.SubjectEntityId',
+                    Operator::OPERATOR_EQUAL_TO,
+                    'comments.CommentId',
+                    Operator::TYPE_IDENTIFIER,
                     Operator::TYPE_IDENTIFIER
-                    ),
+                ),
                 new Operator('relationships.PredicateKind', Operator::OPERATOR_EQUAL_TO, $query['predicateKind'])
                 ]);
             $objectEntityIdPredicate = null;
             if (is_array($query['objectEntityId'])) {
                 if (empty($query['objectEntityId'])) {
-                } elseif(1 === count($query['objectEntityId'])) {
+                } elseif (1 === count($query['objectEntityId'])) {
                     $query['objectEntityId'] = $query['objectEntityId'][0];
                 } else {
                     $objectEntityIdPredicate = new In('relationships.ObjectEntityId', $query['objectEntityId']);
                 }
             }
-            if (!is_array($query['objectEntityId'])) {
+            if (! is_array($query['objectEntityId'])) {
                 $objectEntityIdPredicate = new Operator(
-                    'relationships.ObjectEntityId', 
-                    Operator::OPERATOR_EQUAL_TO, 
+                    'relationships.ObjectEntityId',
+                    Operator::OPERATOR_EQUAL_TO,
                     $query['objectEntityId']
-                    );
+                );
             }
             if (isset($objectEntityIdPredicate)) {
                 $joinPredicate->addPredicate($objectEntityIdPredicate);
             }
         }
         if (isset($joinPredicate)) {
-            $select->join('relationships',
+            $select->join(
+                'relationships',
                 $joinPredicate,
                 [],
                 Select::JOIN_INNER
-                );
+            );
         }
-        
+
         if (isset($query['status'])) {
             $statusClause = new Operator(
                 $fieldMap['status'],
                 Operator::OPERATOR_EQUAL_TO,
                 $query['status']
-                );
+            );
             $where->addPredicate($statusClause, $combination);
         }
-    
+
         $select->where($where);
         $results = $gateway->selectWith($select);
-        
+
         $entities = [];
         foreach ($results as $row) {
             $processedRow = $this->processCommentRow($row);
@@ -101,11 +103,11 @@ class PredicatesTable extends SionTable
         }
         return $entities;
     }
-    
+
     public function getComment($id)
     {
         static $gateway;
-        if (!isset($gateway)) {
+        if (! isset($gateway)) {
             $gateway = $this->getTableGateway('comments');
         }
         $select = $this->getCommentSelectPrototype();
@@ -113,14 +115,14 @@ class PredicatesTable extends SionTable
         /** @var ResultSet $result */
         $result = $gateway->selectWith($select);
         $results = $result->toArray();
-        
-        if (!isset($results[0])) {
+
+        if (! isset($results[0])) {
             return null;
         }
         $object = $this->processCommentRow($results[0]);
         return $object;
     }
-    
+
     /**
      * Update the categories of all related books at the same time
      * @param array $data
@@ -131,11 +133,11 @@ class PredicatesTable extends SionTable
     {
         static $commentPredicates;
         if (self::ENTITY_ACTION_CREATE === $action && isset($data['entity']) && isset($data['entityId'])) {
-            if (!isset($commentPredicates)) {
+            if (! isset($commentPredicates)) {
                 $commentPredicates = $this->getCommentPredicates();
             }
             $entity = $data['entity'];
-            if (!isset($commentPredicates[$entity])) {
+            if (! isset($commentPredicates[$entity])) {
                 throw new \Exception("No comment predicate for entity `$entity`");
             }
             $newRelationshipData = [
@@ -146,7 +148,7 @@ class PredicatesTable extends SionTable
             $this->createEntity('relationship', $newRelationshipData);
         }
     }
-    
+
     /**
      * Get a standardized select object to retrieve records from the database
      * @return \Zend\Db\Sql\Select
@@ -154,20 +156,20 @@ class PredicatesTable extends SionTable
     protected function getCommentSelectPrototype()
     {
         static $select;
-        if (!isset($select)) {
+        if (! isset($select)) {
             $select = new Select('comments');
             $select->columns(['CommentId', 'Rating', 'CommentKind', 'Comment', 'Status',
                 'ReviewedBy', 'ReviewedOn', 'CreatedOn', 'CreatedBy']);
             $select->order(['CreatedOn']);
         }
-        
+
         return clone $select;
     }
-    
+
     protected function processCommentRow($row)
     {
         static $usernames;
-        if (!isset($usernames)) {
+        if (! isset($usernames)) {
             $usernames = $this->getUserTable()->getUsernames();
         }
         $reviewedBy = $this->filterDbId($row['ReviewedBy']);
@@ -182,13 +184,13 @@ class PredicatesTable extends SionTable
             'reviewedBy'        => $reviewedBy,
             'createdOn'         => $this->filterDbDate($row['CreatedOn']),
             'createdBy'         => $createdBy,
-            
+
             'reviewedByUsername' => isset($usernames[$reviewedBy]) ? $usernames[$reviewedBy] : null,
             'createdByUsername' => isset($usernames[$createdBy]) ? $usernames[$createdBy] : null,
         ];
         return $data;
     }
-    
+
     /**
      * Return an associative array keyed on the the entity type mapped to the predicate key
      * @return string[]
@@ -204,7 +206,7 @@ class PredicatesTable extends SionTable
         }
         return $objects;
     }
-    
+
     public function getPredicates()
     {
         $cacheKey = 'predicates';
@@ -214,7 +216,7 @@ class PredicatesTable extends SionTable
         $gateway = $this->getTableGateway('predicates');
         $select = $this->getPredicateSelectPrototype();
         $results = $gateway->selectWith($select);
-        
+
         $objects = [];
         foreach ($results as $row) {
             $id = $row['PredicateKind'];
@@ -226,11 +228,11 @@ class PredicatesTable extends SionTable
                 'description'           => $row['DescriptionEn'],
             ];
         }
-        
+
         $this->cacheEntityObjects($cacheKey, $objects);
         return $objects;
     }
-    
+
     /**
      * Get a standardized select object to retrieve records from the database
      * @return \Zend\Db\Sql\Select
@@ -238,18 +240,18 @@ class PredicatesTable extends SionTable
     protected function getPredicateSelectPrototype()
     {
         static $select;
-        if (!isset($select)) {
+        if (! isset($select)) {
             $select = new Select('predicates');
-            $select->columns(['PredicateKind', 'SubjectEntityKind', 'ObjectEntityKind', 
+            $select->columns(['PredicateKind', 'SubjectEntityKind', 'ObjectEntityKind',
                 'PredicateText', 'DescriptionEn']);
             $select->order(['PredicateKind']);
         }
-        
+
         return clone $select;
     }
-    
-    
-    
+
+
+
     protected function processRelationshipRow($row)
     {
         $data = [
@@ -269,7 +271,7 @@ class PredicatesTable extends SionTable
         ];
         return $data;
     }
-    
+
     /**
      * Get a standardized select object to retrieve records from the database
      * @return \Zend\Db\Sql\Select
@@ -277,15 +279,15 @@ class PredicatesTable extends SionTable
     protected function getRelationshipSelectPrototype()
     {
         static $select;
-        if (!isset($select)) {
+        if (! isset($select)) {
             $select = new Select('predicates');
-            $select->columns(['RelationshipId', 'SubjectEntityId', 'ObjectEntityId', 'PredicateKind', 
-                'Priority', 'PublicNotes', 'AdminNotes', 'PublicNotesUpdatedOn', 'PublicNotesUpdatedBy', 
+            $select->columns(['RelationshipId', 'SubjectEntityId', 'ObjectEntityId', 'PredicateKind',
+                'Priority', 'PublicNotes', 'AdminNotes', 'PublicNotesUpdatedOn', 'PublicNotesUpdatedBy',
                 'AdminNotesUpdatedOn', 'AdminNotesUpdatedBy', 'UpdatedOn', 'UpdatedBy']);
             //@todo join in the predicate table and add in all the significant columns
             $select->order(['PredicateKind', 'Priority', 'UpdatedOn']);
         }
-        
+
         return clone $select;
     }
 }

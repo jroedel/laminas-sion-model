@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Form;
 
 use Zend\Form\Form;
@@ -13,66 +14,66 @@ class ModerateGenericForm extends Form implements InputFilterProviderInterface
 //      $this->setAttribute('method', 'GET');
         //@todo get rid of this style attr, not allowed by CSP
         $this->setAttribute('style', 'display: inline;');
-        $this->add(array(
+        $this->add([
             'name' => 'suggestionId',
             'type' => 'Hidden',
-        ));
-        $this->add(array(
+        ]);
+        $this->add([
             'name' => 'suggestionResponse',
             'type' => 'Textarea',
-            'options' => array(
+            'options' => [
                 'label' => 'Notes to the reviewer of your suggestion',
                 'required' => false,
-            ),
-            'attributes' => array(
+            ],
+            'attributes' => [
                 'required' => false,
                 'rows' => 10,
-            ),
-        ));
-        $this->add(array(
+            ],
+        ]);
+        $this->add([
             'name' => 'security',
             'type' => 'csrf',
-            'options' => array(
-                'csrf_options' => array(
+            'options' => [
+                'csrf_options' => [
                      'timeout' => 900,
-                ),
-            ),
-        ));
-        $this->add(array(
+                ],
+            ],
+        ]);
+        $this->add([
             'name' => 'accept',
             'type' => 'Submit',
-            'attributes' => array(
+            'attributes' => [
                 'value' => 'Accept',
                 'class' => 'btn-success'
-            ),
-        ));
-        $this->add(array(
+            ],
+        ]);
+        $this->add([
             'name' => 'deny',
             'type' => 'Submit',
-            'attributes' => array(
+            'attributes' => [
                 'value' => 'Deny',
                 'class' => 'btn-danger'
-            ),
-        ));
+            ],
+        ]);
     }
 
     public function getInputFilterSpecification()
     {
-        return array(
-            'suggestionResponse' => array(
+        return [
+            'suggestionResponse' => [
                 'required' => false,
-                'filters' => array(
-                    array('name' => 'StripTags'),
-                    array('name' => 'ToNull'),
-                ),
-            ),
-            'suggestionId' => array(
+                'filters' => [
+                    ['name' => 'StripTags'],
+                    ['name' => 'ToNull'],
+                ],
+            ],
+            'suggestionId' => [
                 'required' => false,
-                'filters' => array(
-                    array('name' => 'ToInt'),
-                    array('name' => 'ToNull'),
-                ),
-            ),
-        );
+                'filters' => [
+                    ['name' => 'ToInt'],
+                    ['name' => 'ToNull'],
+                ],
+            ],
+        ];
     }
 }

@@ -9,30 +9,30 @@ use Zend\Filter\PregReplace;
 use Zend\EventManager\EventManagerInterface;
 use Zend\Mvc\MvcEvent;
 
-trait SionCacheTrait 
+trait SionCacheTrait
 {
-    
+
     /**
      * @var StorageInterface $cache
      */
     protected $persistentCache;
-    
+
     /**
      * @var mixed[] $memoryCache
      */
     protected $memoryCache = [];
-    
+
     /**
      * List of keys that should be persisted onFinish
      * @var array $newPersistentCacheItems
      */
     protected $newPersistentCacheItems = [];
-    
+
     /**
      * @var int $maxItemsToCache
      */
     protected $maxItemsToCache = 2;
-    
+
     /**
      * For each cache key, the list of entities they depend on.
      * For example:
@@ -45,18 +45,18 @@ trait SionCacheTrait
      * @var array $cacheDependencies
      */
     protected $cacheDependencies = [];
-    
+
     /**
      * A string representing the FQN of this class for salting cache keys
      * @var string $classIdentifier
      */
     protected $classIdentifier;
-    
+
     public function wireOnFinishTrigger(EventManagerInterface $em, $priority = 100)
     {
         $em->attach(MvcEvent::EVENT_FINISH, [$this, 'onFinishWriteCache'], $priority);
     }
-    
+
     /**
      * Cache some entities. A simple proxy of the cache's setItem method with dependency support.
      *
@@ -68,25 +68,25 @@ trait SionCacheTrait
      */
     public function cacheEntityObjects($cacheKey, &$objects, array $entityDependencies = [])
     {
-        if (!isset($this->persistentCache)) {
+        if (! isset($this->persistentCache)) {
             throw new \Exception('The cache must be configured to cache entites.');
         }
-        $fullyQualifiedCacheKey = $this->getClassIdentifier().'-'.$cacheKey;
+        $fullyQualifiedCacheKey = $this->getClassIdentifier() . '-' . $cacheKey;
         $this->memoryCache[$fullyQualifiedCacheKey] = $objects;
-        if (!in_array($fullyQualifiedCacheKey, $this->newPersistentCacheItems, true)) {
+        if (! in_array($fullyQualifiedCacheKey, $this->newPersistentCacheItems, true)) {
             $this->newPersistentCacheItems[] = $fullyQualifiedCacheKey;
         }
         //we suppose that the dependencies for a given cacheKey will not change
-        if (!isset($this->cacheDependencies[$fullyQualifiedCacheKey])) {
+        if (! isset($this->cacheDependencies[$fullyQualifiedCacheKey])) {
             $this->cacheDependencies[$fullyQualifiedCacheKey] = $entityDependencies;
             //don't wait till the end of the call, because sometimes we get short circuited
             if (is_object($this->persistentCache)) {
-                $this->persistentCache->setItem($this->getClassIdentifier().'-cachedependencies', $this->cacheDependencies);
+                $this->persistentCache->setItem($this->getClassIdentifier() . '-cachedependencies', $this->cacheDependencies);
             }
         }
         return true;
     }
-    
+
     /**
      * Retrieve a cache item. A simple proxy of the cache's getItem method.
      * First we check the memoryCache, if it's not there, we look in the
@@ -101,10 +101,10 @@ trait SionCacheTrait
      */
     public function &fetchCachedEntityObjects($key, &$success = null, $casToken = null)
     {
-        if (!isset($this->persistentCache)) {
+        if (! isset($this->persistentCache)) {
             throw new \Exception('Please set a cache before fetching cached entities.');
         }
-        $fullyQualifiedCacheKey = $this->getClassIdentifier().'-'.$key;
+        $fullyQualifiedCacheKey = $this->getClassIdentifier() . '-' . $key;
         if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
             return $this->memoryCache[$fullyQualifiedCacheKey];
         }
@@ -116,7 +116,7 @@ trait SionCacheTrait
         $null = null;
         return $null;
     }
-    
+
     /**
      * Very similar to fetchCachedEntityObjects, but only returns data if
      * a memory cached version is already available. This can be useful if
@@ -127,14 +127,14 @@ trait SionCacheTrait
      */
     public function &fetchMemoryCachedEntityObjects($key)
     {
-        $fullyQualifiedCacheKey = $this->getClassIdentifier().'-'.$key;
+        $fullyQualifiedCacheKey = $this->getClassIdentifier() . '-' . $key;
         if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
             return $this->memoryCache[$fullyQualifiedCacheKey];
         }
         $null = null;
         return $null;
     }
-    
+
     /**
      * Examine the $this->cacheDependencies array to see if any depends on the entity passed.
      * @param string $entity
@@ -143,12 +143,13 @@ trait SionCacheTrait
     public function removeDependentCacheItems($entity)
     {
         $cache = $this->getPersistentCache();
-        $changesKey = $this->getClassIdentifier().'-changes';
-        $problemsKey = $this->getClassIdentifier().'-problems';
+        $changesKey = $this->getClassIdentifier() . '-changes';
+        $problemsKey = $this->getClassIdentifier() . '-problems';
         $removedItems = [];
         foreach ($this->cacheDependencies as $fullyQualifiedCacheKey => $dependentEntities) {
-            if (in_array($entity, $dependentEntities, true) 
-                || $changesKey === $fullyQualifiedCacheKey 
+            if (
+                in_array($entity, $dependentEntities, true)
+                || $changesKey === $fullyQualifiedCacheKey
                 || $problemsKey === $fullyQualifiedCacheKey
             ) {
                 if (is_object($cache)) {
@@ -166,10 +167,10 @@ trait SionCacheTrait
                 'removedItems' => $removedItems,
             ]);
         }
-        
+
         return true;
     }
-    
+
     /**
      * Get the maxItemsToCache value
      * @return int
@@ -178,7 +179,7 @@ trait SionCacheTrait
     {
         return $this->maxItemsToCache;
     }
-    
+
     /**
      *
      * @param int $maxItemsToCache
@@ -189,7 +190,7 @@ trait SionCacheTrait
         $this->maxItemsToCache = $maxItemsToCache;
         return $this;
     }
-    
+
     /**
      * Get the cache value
      * @return StorageInterface
@@ -198,7 +199,7 @@ trait SionCacheTrait
     {
         return $this->persistentCache;
     }
-    
+
     /**
      *
      * @param StorageInterface $cache
@@ -207,21 +208,21 @@ trait SionCacheTrait
     public function setPersistentCache($cache)
     {
         $this->persistentCache = $cache;
-        
+
         $hasCacheDependencies = false;
-        $cacheDependencies = $this->persistentCache->getItem($this->getClassIdentifier().'-cachedependencies', $hasCacheDependencies);
+        $cacheDependencies = $this->persistentCache->getItem($this->getClassIdentifier() . '-cachedependencies', $hasCacheDependencies);
         if ($hasCacheDependencies) {
             $this->cacheDependencies = $cacheDependencies;
         }
-        
+
         return $this;
     }
-    
+
     /**
      * Get a string to identify this SionTable amongst others. Based on a transformed class name.
      * @return string
      */
-     public function getClassIdentifier()
+    public function getClassIdentifier()
     {
         if (isset($this->classIdentifier)) {
             return $this->classIdentifier;
@@ -231,7 +232,7 @@ trait SionCacheTrait
         ->attach(new PregReplace(['pattern' => '/\\\\/', 'replacement' => '']));
         return $this->classIdentifier = $filter->filter(get_class($this));
     }
-    
+
     /**
      * At the end of the page load, cache any uncached items up to max_number_of_items_to_cache.
      * This is because serializing big objects can be very memory expensive.
@@ -251,28 +252,28 @@ trait SionCacheTrait
                         $start = microtime(true);
                         $startMemory = memory_get_peak_usage(false);
                         $this->persistentCache->setItem(
-                            $fullyQualifiedCacheKey, 
+                            $fullyQualifiedCacheKey,
                             $this->memoryCache[$fullyQualifiedCacheKey]
-                            );
-                        $memorySpike = (memory_get_peak_usage(false)-$startMemory)/1024/1024;
+                        );
+                        $memorySpike = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
                         $timeElapsedSecs = microtime(true) - $start;
                         if (isset($this->logger)) {
                             $this->logger->debug("Successfully wrote cache.", [
                                 'cacheKey' => $fullyQualifiedCacheKey,
                                 'elapsedTime' => $timeElapsedSecs,
-                                'memorySpike' => $memorySpike." MiB",
+                                'memorySpike' => $memorySpike . " MiB",
                             ]);
                         }
                     } catch (\Exception $e) {
                         //This probably means we've used up all the memory. Free some and continue gracefully
                         unset($this->memoryCache);
-                        $memorySpike = (memory_get_peak_usage(false)-$startMemory)/1024/1024;
+                        $memorySpike = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
                         $timeElapsedSecs = microtime(true) - $start;
                         if (isset($this->logger)) {
                             $this->logger->err("Error writing cache.", [
                                 'cacheKey' => $fullyQualifiedCacheKey,
                                 'elapsedTime' => $timeElapsedSecs,
-                                'memorySpike' => $memorySpike." MiB",
+                                'memorySpike' => $memorySpike . " MiB",
                                 'exception' => $e->getMessage(),
                             ]);
                         }

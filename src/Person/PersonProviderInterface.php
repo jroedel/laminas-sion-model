@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Person;
 
 /**

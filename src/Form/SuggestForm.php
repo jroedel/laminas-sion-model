@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Form;
 
 use Zend\InputFilter\InputFilterProviderInterface;
@@ -10,14 +11,14 @@ class SuggestForm extends SionForm implements InputFilterProviderInterface
      * @var array
      */
     protected $entityHaystack = [];
-    
+
     public function __construct(array $entityHaystack)
     {
         // we want to ignore the name passed
         parent::__construct('suggest');
         $this->setAttribute('data-loading-text', 'Please wait...');
         $this->setEntityHaystack($entityHaystack);
-        
+
         $this->add([
             'name' => 'entity',
             'type' => 'Hidden',
@@ -46,7 +47,7 @@ class SuggestForm extends SionForm implements InputFilterProviderInterface
             ],
         ]);
     }
-    
+
     /**
      * Set the haystack of acceptable values for the entity field
      * @return array
@@ -55,7 +56,7 @@ class SuggestForm extends SionForm implements InputFilterProviderInterface
     {
         return $this->entityHaystack;
     }
-    
+
     /**
      * Set the haystack of acceptable values for the entity field
      * @todo update the input filter if it's already been set

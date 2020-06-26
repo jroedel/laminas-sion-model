@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Filter;
 
 use Zend\Filter\AbstractFilter;
@@ -9,14 +10,14 @@ class ToGeoPoint extends AbstractFilter
 {
     public function filter($value)
     {
-        if (!isset($value) || !is_string($value) || '' === $value) {
+        if (! isset($value) || ! is_string($value) || '' === $value) {
             return null;
         }
         static $validator;
-        if (!isset($validator)) {
+        if (! isset($validator)) {
             $validator = new GpsPoint();
         }
-        if (!$validator->isValid($value)) {
+        if (! $validator->isValid($value)) {
             return null;
         }
         $re = '/[0-9\.-]+/u';
@@ -25,7 +26,7 @@ class ToGeoPoint extends AbstractFilter
         preg_match_all($re, $value, $matches, PREG_SET_ORDER, 0);
 
         // Print the entire match result
-        if (!isset($matches)) {
+        if (! isset($matches)) {
             return null;
         }
 

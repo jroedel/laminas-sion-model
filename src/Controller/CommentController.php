@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Controller;
 
 use SionModel\Db\Model\PredicatesTable;
@@ -6,7 +7,7 @@ use SionModel\Db\Model\PredicatesTable;
 class CommentController extends SionController
 {
     /**
-     * 
+     *
      * {@inheritDoc}
      * @see \SionModel\Controller\SionController::createEntityPostFormValidation()
      */
@@ -19,7 +20,7 @@ class CommentController extends SionController
         $data['entityId'] = $this->params()->fromRoute('entity_id');
         return parent::createEntityPostFormValidation($data, $form);
     }
-    
+
     public function redirectAfterCreate($newId, $data = [], $form = null)
     {
         if (isset($data['redirect'])) {

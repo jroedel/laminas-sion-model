@@ -1,4 +1,5 @@
 <?php
+
 // SionModel/I18n/View/Helper/DayFormat.php
 
 namespace SionModel\I18n\View\Helper;
@@ -12,7 +13,7 @@ class DayFormat extends AbstractHelper
 
     public function __construct()
     {
-        $this->englishStrings = array(
+        $this->englishStrings = [
             1 => 'January %s',
             2 => 'February %s',
             3 => 'March %s',
@@ -25,8 +26,8 @@ class DayFormat extends AbstractHelper
             10 => 'October %s',
             11 => 'November %s',
             12 => 'December %s',
-        );
-        $this->cardinalEndings = array(
+        ];
+        $this->cardinalEndings = [
             0 => 'th',
             1 => 'st',
             2 => 'nd',
@@ -59,7 +60,7 @@ class DayFormat extends AbstractHelper
             29 => 'th',
             30 => 'th',
             31 => 'st',
-        );
+        ];
     }
 
     /**
@@ -68,7 +69,7 @@ class DayFormat extends AbstractHelper
      */
     public function __invoke($date)
     {
-        if (!is_object($date)) {
+        if (! is_object($date)) {
             throw new \Exception('Invalid date.');
         }
         $month = (int)$date->format('m');

@@ -1,4 +1,5 @@
 <?php
+
 // SionModel/View/Helper/Jshrink.php
 
 namespace SionModel\View\Helper;

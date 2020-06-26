@@ -1,4 +1,5 @@
 <?php
+
 namespace SionModel\Form;
 
 use Zend\Form\Form;
@@ -86,7 +87,7 @@ class SionForm extends Form
     /**
      * Primes the form for a suggestion. If user is a multi-person-user,
      * it fetches records for the value options of suggestionByPersonId.
-     * 
+     *
      * @param AuthenticationServiceInterface $authService
      * @param PersonProviderInterface $personProvider
      */
@@ -98,7 +99,7 @@ class SionForm extends Form
         if (false !== ($lastUnderscore = strrpos($name, '_'))) {
             $name = substr($name, $lastUnderscore + 1);
         }
-        $this->setName('suggest_'.$name);
+        $this->setName('suggest_' . $name);
         $this->add([
             'name' => 'suggestionNotes',
             'type' => Textarea::class,
@@ -173,11 +174,14 @@ class SionForm extends Form
         //prime the suggestionByPersonId if user is multi-person
         if ($authService->hasIdentity() && $authService->getIdentity()->multiPersonUser) {
             $this->setIsMultiPersonUser(true);
-            if (!isset($personProvider)) {
+            if (! isset($personProvider)) {
                 /*
-                 * Only throw an exception if we actually have a multi-person user as many apps won't allow them to exist.
+                 * Only throw an exception if we actually have a multi-person user as
+                 * many apps won't allow them to exist.
                  */
-                throw new \Exception('We have a multi-person user, but no `multi_person_user_person_provider` was given');
+                throw new \Exception(
+                    'We have a multi-person user, but no `multi_person_user_person_provider` was given'
+                    );
             }
             $persons = $personProvider->getPersonValueOptions(false, false);
             $this->get('suggestionByPersonId')->setValueOptions($persons);
@@ -190,7 +194,7 @@ class SionForm extends Form
         if (false !== ($lastUnderscore = strrpos($name, '_'))) {
             $name = substr($name, $lastUnderscore + 1);
         }
-        $this->setName('moderate_'.$name);
+        $this->setName('moderate_' . $name);
         $this->get('submit')->setAttribute('value', 'Accept');
         $this->get('submit')->setAttribute('class', 'btn-success');
         //set the help block to show the old values
@@ -199,13 +203,13 @@ class SionForm extends Form
                 if (($element = $this->get($field)) instanceof Select) {
                     $lookup = $element->getValueOptions();
                     if (key_exists($value, $lookup)) {
-                        $helpBlock = "The old value was: ".$lookup[$value].
-                           ' ('.$value.')';
+                        $helpBlock = "The old value was: " . $lookup[$value] .
+                           ' (' . $value . ')';
                     } else {
-                        $helpBlock = "The old value was: ".$value;
+                        $helpBlock = "The old value was: " . $value;
                     }
                 } else {
-                    $helpBlock = "The old value was: ".$value;
+                    $helpBlock = "The old value was: " . $value;
                 }
                 $this->get($field)
                    ->setOption('help-block', $helpBlock)
