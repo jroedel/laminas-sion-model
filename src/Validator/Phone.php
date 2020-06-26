@@ -13,13 +13,14 @@ use Zend\Validator\Regex;
 
 class Phone extends Regex
 {
+    public const PHONE_NUMBER_REGEX = "/^\+[0-9\- \(\)]{7,30}(?: ext\. \d{1,4})?$/";
     /**
      * Sets validator options
      *
      */
     public function __construct()
     {
-        $pattern = "/^\+[0-9\- \(\)]{7,30}(?: ext\. \d{1,4})?$/";
+        $pattern = self::PHONE_NUMBER_REGEX;
         $newMessage = 'Please begin with \'+\' and the country code, and use only numbers, '
             .'dash, space or parenthesis. \' ext. ##\' may be added for extensions.';
         $this->messageTemplates[self::INVALID] = $newMessage;

@@ -13,13 +13,14 @@ use Zend\Validator\Regex;
 
 class Twitter extends Regex
 {
+    public const TWITTER_REGEX = "/^[A-Za-z0-9_]{1,15}$/";
     /**
      * Sets validator options
      *
      */
     public function __construct()
     {
-        $pattern = "/^[A-Za-z0-9_]{1,15}$/";
+        $pattern = self::TWITTER_REGEX;
         $newMessage = 'Twitter user names should contain only letters, numbers, or \'_\' '
             .'and be between 1 and 15 characters long.';
         $this->messageTemplates[self::INVALID] = $newMessage;

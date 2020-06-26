@@ -13,13 +13,14 @@ use Zend\Validator\Regex;
 
 class Slack extends Regex
 {
+    public const SLACK_REGEX = "/^[a-z0-9][a-z0-9._-]*$/";
     /**
      * Sets validator options
      *
      */
     public function __construct()
     {
-        $pattern = "/^[a-z0-9][a-z0-9._-]*$/";
+        $pattern = self::SLACK_REGEX;
         $newMessage = 'Slack user names should begin with a letter or number, '
             .'and contain only letters, numbers, \'.\', \'-\', or \'_\'.';
         $this->messageTemplates[self::INVALID] = $newMessage;

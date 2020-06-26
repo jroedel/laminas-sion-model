@@ -13,13 +13,14 @@ use Zend\Validator\Regex;
 
 class Skype extends Regex
 {
+    public const SKYPE_USER_REGEX = "/[a-zA-Z][a-zA-Z0-9\.,\-_]{5,31}/";
     /**
      * Sets validator options
      *
      */
     public function __construct()
     {
-        $pattern = "/[a-zA-Z][a-zA-Z0-9\.,\-_]{5,31}/";
+        $pattern = self::SKYPE_USER_REGEX;
         $newMessage = 'Skype user names should begin with a letter, contain only letters, '
             .'numbers, \',\', \'.\', \'-\', or \'_\' and be between 6 and 32 characters long.';
         $this->messageTemplates[self::INVALID] = $newMessage;
