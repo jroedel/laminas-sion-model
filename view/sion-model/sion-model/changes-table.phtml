@@ -48,7 +48,9 @@ foreach ($this->changes as $row):
 	<tr>
     	<td><span <?php if ($geoText):?>data-toggle="tooltip" data-placement="bottom" data-container="body"
     	title="<?php echo $this->escapeHtmlAttr($geoText);
-    	endif;?>"><?php echo $this->escapeHtml($row['updatedBy']['username'])?></span>
+    	endif;?>"><?php if (is_array($row['updatedBy'])) {
+    	    echo $this->escapeHtml($row['updatedBy']['username']);
+    	}?></span>
     	</td><?php
     	if ($showEntity):?>
 		<td><?php

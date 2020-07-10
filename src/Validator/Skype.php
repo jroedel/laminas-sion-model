@@ -14,7 +14,7 @@ use Zend\Validator\Regex;
 
 class Skype extends Regex
 {
-    public const SKYPE_USER_REGEX = "/[a-zA-Z][a-zA-Z0-9\.,\-_]{5,31}/";
+    public const SKYPE_USER_REGEX = "/^[a-zA-Z][a-zA-Z0-9\.,\-_]{5,31}$/";
     /**
      * Sets validator options
      *
