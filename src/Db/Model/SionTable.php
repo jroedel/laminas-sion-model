@@ -213,21 +213,25 @@ class SionTable
      * @var LoggerInterface $logger
      */
     protected $logger;
+    
+    protected $maxChangeTableValueStringLength = 1000;
+    
+    protected $maxChangeTableValueStringLengthReplacementText = '<content truncated>';
     /**
      * Represents the action of updating an entity
      * @var string
      */
-    const ENTITY_ACTION_UPDATE = 'entity-action-update';
+    public const ENTITY_ACTION_UPDATE = 'entity-action-update';
     /**
      * Represents the action of creating an entity
      * @var string
      */
-    const ENTITY_ACTION_CREATE = 'entity-action-create';
+    public const ENTITY_ACTION_CREATE = 'entity-action-create';
     /**
      * Represents the action of suggesting an edit to an entity
      * @var string
      */
-    const ENTITY_ACTION_SUGGEST = 'entity-action-suggest';
+    public const ENTITY_ACTION_SUGGEST = 'entity-action-suggest';
 
     /**
      *
@@ -271,6 +275,20 @@ class SionTable
 
         if (isset($config['privacy_hash_salt'])) {
             $this->privacyHashSalt = $config['privacy_hash_salt'];
+        }
+        
+        if (isset($config['max_change_table_value_ttring_length']) 
+            && is_int($config['max_change_table_value_string_length'])
+        ) {
+            $this->maxChangeTableValueStringLength = $config['max_change_table_value_string_length'];
+        }
+        //can be either string or null
+        if (array_key_exists('max_change_table_value_string_length_replacement_text', $config)
+            && (is_string($config['max_change_table_value_string_length_replacement_text']) 
+                || ! isset($config['max_change_table_value_string_length_replacement_text']))
+        ) {
+            $this->maxChangeTableValueStringLengthReplacementText = 
+                $config['max_change_table_value_string_length_replacement_text'];
         }
 
         if ($serviceLocator->has(LoggerInterface::class)) {
@@ -1437,11 +1455,8 @@ class SionTable
         }
         $i = 0;
         $date = new \DateTime(null, new \DateTimeZone('utc'));
-        $maxTextColumnLength = 2 ** 16;
         foreach ($data as $row) {
-            if (
-                isset($row['entity']) && isset($row['field']) && isset($row['id'])
-            ) {
+            if (isset($row['entity']) && isset($row['field']) && isset($row['id'])) {
                 if (isset($row['oldValue']) && $row['oldValue'] instanceof \DateTime) {
                     $row['oldValue'] = $this->formatDbDate($row['oldValue']);
                 }
@@ -1458,16 +1473,23 @@ class SionTable
                 if (
                     isset($row['oldValue'])
                     && is_string($row['oldValue'])
-                    && strlen($row['oldValue']) > $maxTextColumnLength
+                    && strlen($row['oldValue']) > $this->maxChangeTableValueStringLength
                 ) {
-                    unset($row['oldValue']);
+                    if (isset($this->maxChangeTableValueStringLengthReplacementText)) {
+                        $row['oldValue'] = $this->maxChangeTableValueStringLengthReplacementText;
+                    } else {
+                        unset($row['oldValue']);
+                    }
                 }
-                if (
-                    isset($row['newValue'])
+                if (isset($row['newValue'])
                     && is_string($row['newValue'])
-                    && strlen($row['newValue']) > $maxTextColumnLength
+                    && strlen($row['newValue']) > $this->maxChangeTableValueStringLength
                 ) {
-                    unset($row['newValue']);
+                    if (isset($this->maxChangeTableValueStringLengthReplacementText)) {
+                        $row['newValue'] = $this->maxChangeTableValueStringLengthReplacementText;
+                    } else {
+                        unset($row['newValue']);
+                    }
                 }
                 $params = [
                     'ChangedEntity'    => $row['entity'],

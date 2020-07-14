@@ -27,6 +27,12 @@ class SionForm extends Form
     protected $phoneLabelInputFilterSpec;
 
     protected $isMultiPersonUser = false;
+    
+    /**
+     * Db adapter used for validators, optional
+     * @var \Zend\Db\Adapter\AdapterInterface $adapter
+     */
+    protected $adapter;
 
     public function __construct($name)
     {
@@ -289,6 +295,20 @@ class SionForm extends Form
     public function setIsMultiPersonUser($isMultiPersonUser)
     {
         $this->isMultiPersonUser = $isMultiPersonUser;
+        return $this;
+    }
+    
+    public function getAdapter()
+    {
+        if (! isset($this->adapter)) {
+            throw new \Exception('A db adapter was requested (maybe for validation), but none was injected');
+        }
+        return $this->adapter;
+    }
+    
+    public function setAdapter(\Zend\Db\Adapter\AdapterInterface $adapter)
+    {
+        $this->adapter = $adapter;
         return $this;
     }
 }
