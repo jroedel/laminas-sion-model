@@ -99,7 +99,8 @@ class SionController extends AbstractActionController
      * @param string $entity
      * @throws \Exception
      */
-    public function __construct($entity,
+    public function __construct(
+        $entity,
         EntitiesService $entitiesService,
         SionTable $sionTable,
         PredicatesTable $predicateTable,
