@@ -102,7 +102,8 @@ class SionController extends AbstractActionController
      * @param string $entity
      * @throws \Exception
      */
-    public function __construct($entity,
+    public function __construct(
+        $entity,
         EntitiesService $entitiesService,
         SionTable $sionTable,
         PredicatesTable $predicateTable,
@@ -408,8 +409,60 @@ class SionController extends AbstractActionController
 
         //check if user has the redirect route set
         if (isset($entitySpec->createActionRedirectRoute)) {
-            if (
-                ! isset($entitySpec->createActionRedirectRouteKeyField) ||
+            $entityObject = $this->getEntityObject($newId);
+            if (is_array($entitySpec->createActionRedirectRouteParams)) {
+                $params = [];
+                foreach ($entitySpec->createActionRedirectRouteParams as $routeParam => $entityField) {
+                    if (! is_string($routeParam)) {
+                        throw new \Exception(
+                            "Invalid create_action_redirect_route_params configuration for `$entity`"
+                            );
+                    }
+                    if (! is_string($entityField)) {
+                        throw new \Exception(
+                            "Invalid create_action_redirect_route_params configuration for `$entity`"
+                            );
+                    }
+                    if (! isset($entityObject[$entityField])) {
+                        throw new \Exception(
+                            "Error while redirecting after a successful create. Missing param `$entityField`"
+                            );
+                    } else {
+                        $params[$routeParam] = $entityObject[$entityField];
+                    }
+                }
+                if (count($params) === count($entitySpec->createActionRedirectRouteParams)) {
+                    return $this->redirect()->toRoute($entitySpec->createActionRedirectRoute, $params);
+                } else {
+                    //it should be impossible to be here
+                    throw new \Exception('Unknown error');
+                }
+            }
+            if (is_array($entitySpec->defaultRouteParams)) {
+                $params = [];
+                foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
+                    if (! is_string($routeParam)) {
+                        throw new \Exception("Invalid default_route_params configuration for `$entity`");
+                    }
+                    if (! is_string($entityField)) {
+                        throw new \Exception("Invalid default_route_params configuration for `$entity`");
+                    }
+                    if (! isset($entityObject[$entityField])) {
+                        throw new \Exception(
+                            "Error while redirecting after a successful create. Missing param `$entityField`"
+                            );
+                    } else {
+                        $params[$routeParam] = $entityObject[$entityField];
+                    }
+                }
+                if (count($params) === count($entitySpec->defaultRouteParams)) {
+                    return $this->redirect()->toRoute($entitySpec->createActionRedirectRoute, $params);
+                } else {
+                    //it should be impossible to be here
+                    throw new \Exception('Unknown error');
+                }
+            }
+            if (! isset($entitySpec->createActionRedirectRouteKeyField) ||
                 $entitySpec->createActionRedirectRouteKeyField === $entitySpec->entityKeyField ||
                 ! isset($entitySpec->createActionRedirectRouteKey)
             ) {
@@ -418,26 +471,24 @@ class SionController extends AbstractActionController
                     isset($entitySpec->createActionRedirectRouteKey) ?
                     [$entitySpec->createActionRedirectRouteKey => $newId] : []
                 );
-            } else {
-                $entityObj = $table->getObject($entity, $newId);
-                if (! isset($entityObj[$entitySpec->createActionRedirectRouteKeyField])) {
-                    throw new \Exception(
-                        'create_action_redirect_route_key_field is misconfigured for entity \''
-                        .$entity
-                        .'\''
-                        );
-                }
-                return $this->redirect()->toRoute(
-                    $entitySpec->createActionRedirectRoute,
-                    [
-                        $entitySpec->createActionRedirectRouteKey
-                            => $entityObj[$entitySpec->createActionRedirectRouteKeyField]
-                    ]
-                );
             }
-        } else {
-            return $this->redirect()->toRoute($this->getDefaultRedirectRoute());
+            $entityObj = $table->getObject($entity, $newId);
+            if (! isset($entityObj[$entitySpec->createActionRedirectRouteKeyField])) {
+                throw new \Exception(
+                    'create_action_redirect_route_key_field is misconfigured for entity \''
+                    .$entity
+                    .'\''
+                    );
+            }
+            return $this->redirect()->toRoute(
+                $entitySpec->createActionRedirectRoute,
+                [
+                    $entitySpec->createActionRedirectRouteKey
+                        => $entityObj[$entitySpec->createActionRedirectRouteKeyField]
+                ]
+            );
         }
+        return $this->redirect()->toRoute($this->getDefaultRedirectRoute());
     }
 
     /**
