@@ -31,9 +31,9 @@ use Matriphe\ISO639\ISO639;
 use Zend\Crypt\Hash;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
-use Zend\Log\LoggerInterface;
 use Zend\Db\Sql\Predicate\IsNull;
 use SionModel\I18n\LanguageSupport;
+use Zend\Log\LoggerAwareTrait;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -71,6 +71,7 @@ use SionModel\I18n\LanguageSupport;
 class SionTable
 {
     use SionCacheTrait;
+    use LoggerAwareTrait;
 
     public const SUGGESTION_ERROR = 'Error';
     public const SUGGESTION_INREVIEW = 'In review';
@@ -208,11 +209,6 @@ class SionTable
      * @var string $privacyHashSalt
      */
     protected $privacyHashSalt = '78z^PjApc';
-
-    /**
-     * @var LoggerInterface $logger
-     */
-    protected $logger;
     
     protected $maxChangeTableValueStringLength = 1000;
     
@@ -291,9 +287,9 @@ class SionTable
                 $config['max_change_table_value_string_length_replacement_text'];
         }
 
-        if ($serviceLocator->has(LoggerInterface::class)) {
-            $logger = $serviceLocator->get(LoggerInterface::class);
-            $this->logger = $logger;
+        if ($serviceLocator->has('SionModel\Logger')) {
+            $logger = $serviceLocator->get('SionModel\Logger');
+            $this->setLogger($logger);
         }
 
         //if we have it, use it; careful because UserTable is itself a SionTable
@@ -1150,6 +1146,7 @@ class SionTable
             ) {
                 $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
             }
+            //@todo shouldn't we try to catch an error and log it?
             $result = $tableGateway->update($updateVals, [$tableKey => $id]);
             if ($reportChanges) {
                 $this->reportChange($changes);
@@ -2171,24 +2168,6 @@ class SionTable
     public function setActingUserId($actingUserId)
     {
         $this->actingUserId = $actingUserId;
-        return $this;
-    }
-
-    /**
-     * @return LoggerInterface
-     */
-    public function getLogger()
-    {
-        return $this->logger;
-    }
-
-    /**
-     * @param LoggerInterface $logger
-     * @return self
-     */
-    public function setLogger(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
         return $this;
     }
 

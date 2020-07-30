@@ -112,7 +112,7 @@ class PredicatesTable extends SionTable
         }
         $select = $this->getCommentSelectPrototype();
         $select->where(['CommentId' => $id]);
-        /** @var ResultSet $result */
+        /** @var \Zend\Db\ResultSet\ResultSetInterface $result */
         $result = $gateway->selectWith($select);
         $results = $result->toArray();
 

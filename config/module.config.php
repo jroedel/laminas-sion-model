@@ -85,7 +85,7 @@ return [
             Mvc\CspListener::class          => Service\CspListenerFactory::class,
             Service\ErrorHandling::class    => Service\ErrorHandlingFactory::class,
             'ExceptionsLogger'              => Service\ExceptionsLoggerFactory::class,
-            LoggerInterface::class          => Service\LoggerFactory::class,
+            'SionModel\Logger'              => Service\LoggerFactory::class,
         ],
         'lazy_services' => [
             // Mapping services to their class names is required

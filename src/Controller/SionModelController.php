@@ -119,7 +119,7 @@ class SionModelController extends AbstractActionController
             if (! isset($this->services[$config['changes_model']])) {
                 throw new \InvalidArgumentException('The \'changes_model\' configuration is incorrect.');
             }
-            /** @var SionTable $table */
+            /** @var \SionModel\Db\Model\SionTable $table */
             $table = $this->services[$config['changes_model']];
             $getAllChanges = key_exists('changes_show_all', $config) && ! is_null($config['changes_show_all']) ?
                 (bool)$config['changes_show_all'] : false;

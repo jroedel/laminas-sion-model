@@ -26,9 +26,12 @@ use Zend\Form\FormInterface;
 use SionModel\Db\Model\PredicatesTable;
 use SionModel\Form\CommentForm;
 use Zend\Stdlib\ResponseInterface;
+use Zend\Log\LoggerAwareTrait;
 
 class SionController extends AbstractActionController
 {
+    use LoggerAwareTrait;
+    
     /**
      * @var Entity[] $entitySpecifications
      */
@@ -868,7 +871,7 @@ class SionController extends AbstractActionController
 
         /**
          * isAllowed plugin
-         * @var PluginInterface $isAllowedPlugin
+         * @var \Zend\Mvc\Controller\Plugin\PluginInterface $isAllowedPlugin
          */
         $isAllowedPlugin = null;
         try {

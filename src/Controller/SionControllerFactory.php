@@ -69,7 +69,7 @@ class SionControllerFactory implements AbstractFactoryInterface
         $predicateTable = $parentLocator->get(PredicatesTable::class);
 
         //get createActionForm
-        /** @var SionForm $createActionForm **/
+        /** @var \SionModel\Form\SionForm $createActionForm **/
         $createActionForm = null;
         if ($parentLocator->has($entitySpec->createActionForm)) {
             $createActionForm = $parentLocator->get($entitySpec->createActionForm);
@@ -78,7 +78,7 @@ class SionControllerFactory implements AbstractFactoryInterface
         }
 
         //get editActionForm
-        /** @var SionForm $editActionForm **/
+        /** @var \SionModel\Form\SionForm $editActionForm **/
         $editActionForm = null;
         if ($parentLocator->has($entitySpec->editActionForm)) {
             $editActionForm = $parentLocator->get($entitySpec->editActionForm);
@@ -99,8 +99,8 @@ class SionControllerFactory implements AbstractFactoryInterface
             }
             $services[$service] = $obj;
         }
-
-        return new $requestedName(
+        
+        $controller = new $requestedName(
             $entity,
             $this->entitiesService,
             $sionTable,
@@ -109,6 +109,13 @@ class SionControllerFactory implements AbstractFactoryInterface
             $editActionForm,
             $config,
             $services
-        );
+            );
+        
+        if (method_exists($controller, 'setLogger')) {
+            $logger = $container->get('SionModel\Logger');
+            $controller->setLogger($logger);
+        }
+
+        return $controller;
     }
 }
