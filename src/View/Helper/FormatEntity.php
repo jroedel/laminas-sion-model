@@ -125,16 +125,29 @@ class FormatEntity extends AbstractHelper
             $finalMarkup .= $this->view->escapeHtml($name);
         }
 
-        if (
-            $options['displayEditPencil'] &&
-            $entitySpec->editRouteKeyField &&
-            isset($data[$entitySpec->editRouteKeyField])
-        ) {
-            $editId = $data[$entitySpec->editRouteKeyField];
-            $finalMarkup .= $this->view->editPencil($entityType, $editId);
+        if ($options['displayEditPencil'] && isset($entitySpec->editRoute)) {
+            if ($entitySpec->editRouteParams) {
+                $editRoute = $entitySpec->editRoute;
+                $editParams = [];
+                foreach ($entitySpec->editRouteParams as $routeParam => $entityField) {
+                    if (! isset($data[$entityField])) {
+                        //@todo log this
+                        //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
+                    } else {
+                        $editParams[$routeParam] = $data[$entityField];
+                    }
+                }
+                if (count($editParams) === count($entitySpec->editRouteParams)) {
+                    $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
+                }
+            } elseif ($entitySpec->editRouteKeyField &&
+                isset($data[$entitySpec->editRouteKeyField])
+            ) {
+                $editId = $data[$entitySpec->editRouteKeyField];
+                $finalMarkup .= $this->view->editPencil($entityType, $editId);
+            }
         }
-        if (
-            $options['displayInactiveLabel'] &&
+        if ($options['displayInactiveLabel'] &&
             (isset($data['isActive']) && is_bool($active = $data['isActive']) ||
             isset($data['active']) && is_bool($active = $data['active']))
         ) {

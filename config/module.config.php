@@ -20,6 +20,7 @@ return [
             'routeName'             => Service\RouteNameFactory::class,
         ],
         'invokables' => [
+            'editPencilNew'         => View\Helper\EditPencilNew::class,
             'formRow'               => Form\View\Helper\SionFormRow::class,
             'dayFormat'             => I18n\View\Helper\DayFormat::class,
             'debugEncoding'         => View\Helper\DebugEncoding::class,

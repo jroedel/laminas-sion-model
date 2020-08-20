@@ -69,6 +69,14 @@ class SionController extends AbstractActionController
         'touch'     => 'touchRouteKey',
         'touchJson' => 'touchJsonRouteKey',
     ];
+    
+    protected $actionRouteParams = [
+        'show'      => 'showRouteParams',
+        'edit'      => 'editRouteParams',
+        'delete'    => 'deleteRouteParams',
+        'touch'     => 'touchRouteParams',
+        'touchJson' => 'touchJsonRouteParams',
+    ];
 
     /**
      * The entity objects that have been requested (normally just one in a page load)
@@ -962,6 +970,28 @@ class SionController extends AbstractActionController
         $entity = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
         $actionRouteKey = null;
+        //first try to find the key field among the route params fields
+        if (isset($this->actionRouteParams[$action]) && isset($entitySpec->entityKeyField)) {
+            $actionRouteParams = $this->actionRouteParams[$action];
+            if (isset($entitySpec->$actionRouteParams)) {
+                $routeParams = $entitySpec->$actionRouteParams;
+                foreach ($routeParams as $routeParam => $entityKey) {
+                    if ($entityKey === $entitySpec->entityKeyField) {
+                        $id = $this->params()->fromRoute($routeParam, $default);
+                        break;
+                    }
+                }
+                if (isset($id)) {
+                    if (is_numeric($id)) {
+                        $this->actionEntityIds[$action] = (int)$id;
+                    } else {
+                        $this->actionEntityIds[$action] = $id;
+                    }
+                    return $this->actionEntityIds[$action];
+                }
+            }
+        } 
+        //then try action route keys
         if (isset($this->actionRouteKeys[$action])) {
             $actionRouteKey = $this->actionRouteKeys[$action];
             if (isset($entitySpec->$actionRouteKey)) {
@@ -976,6 +1006,7 @@ class SionController extends AbstractActionController
         } else {
             $actionRouteKey = 'defaultRouteKey';
         }
+        //finally use default route key
         if (isset($entitySpec->defaultRouteKey)) {
             $id = $this->params()->fromRoute($entitySpec->defaultRouteKey, $default);
             if (is_numeric($id)) {

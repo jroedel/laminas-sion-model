@@ -313,6 +313,7 @@ class SionTable
 
     /**
      * Get all records from the mailings table
+     * @deprecated
      * @return mixed[][]
      */
     public function getMailings()
@@ -1004,7 +1005,10 @@ class SionTable
             ! method_exists('SionTable', $entitySpec->databaseBoundDataPreprocessor) //make sure noone's being sneaky)
         ) {
             $preprocessor = $entitySpec->databaseBoundDataPreprocessor;
-            $data = $this->$preprocessor($data, $entityData, self::ENTITY_ACTION_UPDATE);
+            $preprocessedData = $this->$preprocessor($data, $entityData, self::ENTITY_ACTION_UPDATE);
+            if (is_array($preprocessedData)) {
+                $data = $preprocessedData;
+            }
         }
         $this->updateHelper($id, $data, $entity, $tableKey, $tableGateway, $updateCols, $entityData, $manyToOneUpdateColumns, $reportChanges, $fieldsToTouch);
 
@@ -1174,7 +1178,10 @@ class SionTable
          * @see Entity
          */
         if (null !== $preprocessor = $entitySpec->databaseBoundDataPreprocessor) {
-            $data = $this->$preprocessor($data, [], self::ENTITY_ACTION_CREATE);
+            $preprocessedData = $this->$preprocessor($data, [], self::ENTITY_ACTION_CREATE);
+            if (is_array($preprocessedData)) {
+                $data = $preprocessedData;
+            }
         }
 
         $return = $this->createHelper($data, $requiredCols, $updateCols, $entity, $tableGateway, $manyToOneUpdateColumns, $reportChanges);
