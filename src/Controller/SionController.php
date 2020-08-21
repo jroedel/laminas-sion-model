@@ -61,21 +61,36 @@ class SionController extends AbstractActionController
      * @var PredicatesTable $predicateTable
      */
     protected $predicateTable;
-
-    protected $actionRouteKeys = [
-        'show'      => 'showRouteKey',
-        'edit'      => 'editRouteKey',
-        'delete'    => 'deleteRouteKey',
-        'touch'     => 'touchRouteKey',
-        'touchJson' => 'touchJsonRouteKey',
+    
+    public const ACTION_SHOW = 'show';
+    public const ACTION_EDIT = 'edit';
+    public const ACTION_DELETE = 'delete';
+    public const ACTION_TOUCH = 'touch';
+    public const ACTION_TOUCH_JSON = 'touchJson';
+    /**
+     * Maps an action to the Entity property which gives the route parameter name for finding the entityId
+     * @deprecated
+     * @var array ENTITY_ACTION_ROUTE_KEY_PROPERTIES
+     */
+    protected const ENTITY_ACTION_ROUTE_KEY_PROPERTIES = [
+        self::ACTION_SHOW       => 'showRouteKey',
+        self::ACTION_EDIT       => 'editRouteKey',
+        self::ACTION_DELETE     => 'deleteRouteKey',
+        self::ACTION_TOUCH      => 'touchRouteKey',
+        self::ACTION_TOUCH_JSON => 'touchJsonRouteKey',
     ];
     
-    protected $actionRouteParams = [
-        'show'      => 'showRouteParams',
-        'edit'      => 'editRouteParams',
-        'delete'    => 'deleteRouteParams',
-        'touch'     => 'touchRouteParams',
-        'touchJson' => 'touchJsonRouteParams',
+    /**
+     * Maps an action to the Entity property which gives the route params array. 
+     * The route params array declares which route paramaters maps to which entity fields
+     * @var array
+     */
+    protected const ENTITY_ACTION_ROUTE_PARAMS_PROPERTIES = [
+        self::ACTION_SHOW       => 'showRouteParams',
+        self::ACTION_EDIT       => 'editRouteParams',
+        self::ACTION_DELETE     => 'deleteRouteParams',
+        self::ACTION_TOUCH      => 'touchRouteParams',
+        self::ACTION_TOUCH_JSON => 'touchJsonRouteParams',
     ];
 
     /**
@@ -859,6 +874,8 @@ class SionController extends AbstractActionController
                 ->addMessage('The entity you\'re trying to delete doesn\'t exists.');
             return $this->redirectAfterDelete(false);
         }
+        
+        //@todo See if we can discern the name of the entity to show it to the user.
 
         $form = new DeleteEntityForm();
         if ($request->isPost()) {
@@ -904,6 +921,8 @@ class SionController extends AbstractActionController
         $entitySpec = $this->getEntitySpecification();
         if (isset($entitySpec->deleteActionRedirectRoute)) {
             return $this->redirect()->toRoute($entitySpec->deleteActionRedirectRoute);
+        } elseif (isset($entitySpec->indexRoute)) {
+            return $this->redirect()->toRoute($entitySpec->indexRoute);
         } else {
             if (null === ($defaultRedirectRoute = $this->getDefaultRedirectRoute())) {
                 throw new \Exception(
@@ -955,8 +974,14 @@ class SionController extends AbstractActionController
     }
 
     /**
-     * Get the value of the entityId route parameter given the action. If no parameter is
-     * set in the Request, $default is returned
+     * The goal here is to find out the entityId of what user is looking at.
+     * There are a couple different places we have to look to discover this:
+     * 1. We check the routeParams property of the Entity corresponding to the current action.
+     *    If the consumer has set that property, we see if one of those parameters is the entityKeyField
+     * 2. Then we check the routeKey property corresponding to the action.
+     * 3. Then we check we check the defaultRouteParams property and see if one is the entityKeyField
+     * 4. Finally we check the defaultRouteKey property
+     * If no parameter is set in the Request, $default is returned
      * @param string $action
      * @param mixed $default
      * @throws \Exception
@@ -968,11 +993,12 @@ class SionController extends AbstractActionController
             return $this->actionEntityIds[$action];
         }
         $entity = $this->getEntity();
+        /** @var Entity $entitySpec */
         $entitySpec = $this->getEntitySpecification();
         $actionRouteKey = null;
         //first try to find the key field among the route params fields
-        if (isset($this->actionRouteParams[$action]) && isset($entitySpec->entityKeyField)) {
-            $actionRouteParams = $this->actionRouteParams[$action];
+        if (isset(self::ENTITY_ACTION_ROUTE_PARAMS_PROPERTIES[$action]) && isset($entitySpec->entityKeyField)) {
+            $actionRouteParams = self::ENTITY_ACTION_ROUTE_PARAMS_PROPERTIES[$action];
             if (isset($entitySpec->$actionRouteParams)) {
                 $routeParams = $entitySpec->$actionRouteParams;
                 foreach ($routeParams as $routeParam => $entityKey) {
@@ -992,8 +1018,8 @@ class SionController extends AbstractActionController
             }
         } 
         //then try action route keys
-        if (isset($this->actionRouteKeys[$action])) {
-            $actionRouteKey = $this->actionRouteKeys[$action];
+        if (isset(self::ENTITY_ACTION_ROUTE_KEY_PROPERTIES[$action])) {
+            $actionRouteKey = self::ENTITY_ACTION_ROUTE_KEY_PROPERTIES[$action];
             if (isset($entitySpec->$actionRouteKey)) {
                 $id = $this->params()->fromRoute($entitySpec->$actionRouteKey, $default);
                 if (is_numeric($id)) {
@@ -1003,8 +1029,24 @@ class SionController extends AbstractActionController
                 }
                 return $this->actionEntityIds[$action];
             }
-        } else {
-            $actionRouteKey = 'defaultRouteKey';
+        }
+        //then try default params
+        if (isset($entitySpec->defaultRouteParams) && isset($entitySpec->entityKeyField)) {
+            $routeParams = $entitySpec->defaultRouteParams;
+            foreach ($routeParams as $routeParam => $entityKey) {
+                if ($entityKey === $entitySpec->entityKeyField) {
+                    $id = $this->params()->fromRoute($routeParam, $default);
+                    break;
+                }
+            }
+            if (isset($id)) {
+                if (is_numeric($id)) {
+                    $this->actionEntityIds[$action] = (int)$id;
+                } else {
+                    $this->actionEntityIds[$action] = $id;
+                }
+                return $this->actionEntityIds[$action];
+            }
         }
         //finally use default route key
         if (isset($entitySpec->defaultRouteKey)) {
@@ -1017,7 +1059,7 @@ class SionController extends AbstractActionController
             return $this->actionEntityIds[$action];
         }
         throw new \Exception(
-            "Please configure the $actionRouteKey for the $entity entity to use the $action action."
+            "Please configure the $actionRouteParams for the $entity entity to use the $action action."
             );
     }
 

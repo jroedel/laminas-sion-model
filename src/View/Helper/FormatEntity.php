@@ -126,13 +126,13 @@ class FormatEntity extends AbstractHelper
         }
 
         if ($options['displayEditPencil'] && isset($entitySpec->editRoute)) {
+            $editRoute = $entitySpec->editRoute;
             if ($entitySpec->editRouteParams) {
-                $editRoute = $entitySpec->editRoute;
                 $editParams = [];
                 foreach ($entitySpec->editRouteParams as $routeParam => $entityField) {
                     if (! isset($data[$entityField])) {
                         //@todo log this
-                        //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
+//                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
                     } else {
                         $editParams[$routeParam] = $data[$entityField];
                     }
@@ -145,6 +145,19 @@ class FormatEntity extends AbstractHelper
             ) {
                 $editId = $data[$entitySpec->editRouteKeyField];
                 $finalMarkup .= $this->view->editPencil($entityType, $editId);
+            } elseif ($entitySpec->defaultRouteParams) {
+                $editParams = [];
+                foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
+                    if (! isset($data[$entityField])) {
+                        //@todo log this
+                        //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
+                    } else {
+                        $editParams[$routeParam] = $data[$entityField];
+                    }
+                }
+                if (count($editParams) === count($entitySpec->defaultRouteParams)) {
+                    $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
+                }
             }
         }
         if ($options['displayInactiveLabel'] &&
