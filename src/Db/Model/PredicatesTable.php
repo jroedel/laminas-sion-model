@@ -250,8 +250,6 @@ class PredicatesTable extends SionTable
         return clone $select;
     }
 
-
-
     protected function processRelationshipRow($row)
     {
         $data = [
