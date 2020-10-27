@@ -17,7 +17,6 @@ use JUser\Model\UserTable;
 use Zend\Stdlib\StringUtils;
 use SionModel\Problem\EntityProblem;
 use Zend\Db\ResultSet\ResultSet;
-use Zend\Cache\Storage\StorageInterface;
 use Zend\Db\Sql\Select;
 use Zend\Db\Sql\Expression;
 use SionModel\Db\GeoPoint;
@@ -138,40 +137,6 @@ class SionTable
      * @var UserTable $userTable
      */
     protected $userTable;
-
-    /**
-    * @var StorageInterface $cache
-    */
-    protected $persistentCache;
-
-    /**
-    * @var mixed[] $memoryCache
-    */
-    protected $memoryCache = [];
-
-    /**
-     * List of keys that should be persisted onFinish
-     * @var array $newPersistentCacheItems
-     */
-    protected $newPersistentCacheItems = [];
-
-    /**
-     * @var int $maxItemsToCache
-     */
-    protected $maxItemsToCache = 2;
-
-    /**
-     * For each cache key, the list of entities they depend on.
-     * For example:
-     * [
-     *      'events' => ['event', 'dates',  'emails', 'persons'],
-     *      'unlinked-events => ['event'],
-     * ]
-     * That is to say, each time an entity of that type is created or updated,
-     * the cache will be invalidated.
-     * @var array $cacheDependencies
-     */
-    protected $cacheDependencies = [];
 
     /**
      * Class to get language information
@@ -535,6 +500,9 @@ class SionTable
         }
         if (isset($options['offset'])) {
             $select->offset($options['offset']);
+        }
+        if (isset($options['having'])) {
+            $select->having($options['having']);
         }
         //@todo map field to column name, think about this well
         if (isset($options['order'])) {
