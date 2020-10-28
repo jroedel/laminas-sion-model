@@ -2,16 +2,18 @@
 
 namespace SionModel;
 
+use SionModel\Controller\LazyControllerFactory;
+use SionModel\Form\Element\Phone;
 use Zend\Router\Http\Literal;
 use Zend\Router\Http\Segment;
 use Zend\ServiceManager\Proxy\LazyServiceFactory;
-use Zend\Log\LoggerInterface;
+use Zend\View\Helper\InlineScript;
 
 return [
     'view_helpers' => [
         'factories' => [
             'inlineScript'          => Service\InlineScriptFactory::class,
-            \Zend\View\Helper\InlineScript::class => Service\InlineScriptFactory::class,
+            InlineScript::class => Service\InlineScriptFactory::class,
             'address'               => Service\AddressFactory::class,
             'editPencil'            => Service\EditPencilFactory::class,
             'formatEntity'          => Service\FormatEntityFactory::class,
@@ -46,7 +48,7 @@ return [
     ],
     'form_elements' => [
         'invokables' => [
-            'Phone' => \SionModel\Form\Element\Phone::class,
+            'Phone' => Phone::class,
         ],
     ],
     'view_manager' => [
@@ -64,7 +66,7 @@ return [
         ],
         'abstract_factories' => [
             Controller\SionControllerFactory::class,
-            \SionModel\Controller\LazyControllerFactory::class,
+            LazyControllerFactory::class,
         ],
     ],
     'service_manager' => [
@@ -229,7 +231,7 @@ return [
                     'status',
                 ],
                 'name_field' => 'mailingName',
-                'name_field_is_translateable' => false,
+                'name_field_is_translatable' => false,
                 //                 'moderate_route' => 'courses/course/moderate',
                 //                 'moderate_route_entity_key' => 'course_id',
                 'text_columns' => [
@@ -283,7 +285,7 @@ return [
                     'sha1',
                 ],
                 'name_field'                            => 'originalFileName',
-                'name_field_is_translateable'           => false,
+                'name_field_is_translatable'           => false,
 //                 'country_field'                          => 'country',
                 'text_columns'                          => [],
                 'many_to_one_update_columns'            => [
@@ -339,7 +341,7 @@ return [
                     'createdOn'             => 'CreatedOn',
                     'createdBy'             => 'CreatedBy',
                     'updatedOn'             => 'UpdatedOn',
-                    'createdBy'             => 'UpdatedBy',
+                    'updatedBy'             => 'UpdatedBy',
                 ],
             ],
             'file-entity' => [
@@ -355,7 +357,7 @@ return [
                     'title'
                 ],
                 'name_field'                            => 'fileName',
-                'name_field_is_translateable'           => false,
+                'name_field_is_translatable'           => false,
 //                 'country_field'                          => 'country',
                 'text_columns'                          => [],
                 'many_to_one_update_columns'            => [
@@ -408,7 +410,7 @@ return [
                     'createdOn'     => 'CreatedOn',
                     'createdBy'     => 'CreatedBy',
                     'updatedOn'     => 'UpdatedOn',
-                    'createdBy'     => 'UpdatedBy',
+                    'updatedBy'     => 'UpdatedBy',
                 ],
             ],
             'comment' => [
@@ -429,7 +431,7 @@ return [
                     'status',
                 ],
                 'name_field'                            => 'comment',
-                'name_field_is_translateable'           => false,
+                'name_field_is_translatable'           => false,
                 //                 'country_field'                          => 'country',
                 'text_columns'                          => [],
                 'many_to_one_update_columns'            => [
@@ -500,7 +502,7 @@ return [
                     'text',
                 ],
                 'name_field'                            => 'text',
-                'name_field_is_translateable'           => true,
+                'name_field_is_translatable'           => true,
 //                 'country_field'                          => 'country',
                 'text_columns'                          => [],
                 'many_to_one_update_columns'            => [
@@ -566,7 +568,7 @@ return [
                     'predicateKind'
                 ],
                 'name_field'                            => 'comment',
-                'name_field_is_translateable'           => false,
+                'name_field_is_translatable'           => false,
 //                 'country_field'                          => 'country',
                 'text_columns'                          => [],
                 'many_to_one_update_columns'            => [

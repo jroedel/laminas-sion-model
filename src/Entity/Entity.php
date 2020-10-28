@@ -2,6 +2,7 @@
 
 namespace SionModel\Entity;
 
+use InvalidArgumentException;
 use SionModel\Filter\MixedCase;
 
 class Entity
@@ -92,9 +93,9 @@ class Entity
     public $nameField;
     /**
      * Should the name be translated upon display?
-     * @var bool $nameFieldIsTranslateable
+     * @var bool $nameFieldIsTranslatable
      */
-    public $nameFieldIsTranslateable = false;
+    public $nameFieldIsTranslatable = false;
     /**
      * Used in FormatEntity to display a flag before the name field.
      * @var string $countryField
@@ -435,10 +436,10 @@ class Entity
     public function __construct($name, $entitySpecification)
     {
         if (! isset($name)) {
-            throw new \InvalidArgumentException('Name is a required parameter.');
+            throw new InvalidArgumentException('Name is a required parameter.');
         }
         if (! is_array($entitySpecification)) {
-            throw new \InvalidArgumentException('Entity specification must be an array.');
+            throw new InvalidArgumentException('Entity specification must be an array.');
         }
         $this->name = $name;
         $camelCaseFilter = new MixedCase('_');

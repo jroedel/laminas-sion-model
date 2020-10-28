@@ -2,6 +2,7 @@
 
 namespace SionModel\View\Helper;
 
+use InvalidArgumentException;
 use Zend\View\Helper\AbstractHelper;
 use SionModel\Service\EntitiesService;
 use SionModel\Entity\Entity;
@@ -33,7 +34,7 @@ class FormatEntity extends AbstractHelper
      * @param mixed[] $data
      * @param array $options
      * Available options: displayAsLink(bool), displayEditPencil(bool), displayFlag(bool)
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function __invoke($entityType, $data, array $options = [])
     {
@@ -41,7 +42,7 @@ class FormatEntity extends AbstractHelper
             if ($options['failSilently']) {
                 return '';
             } else {
-                throw new \InvalidArgumentException('Unknown entity type passed: ' . $entityType);
+                throw new InvalidArgumentException('Unknown entity type passed: ' . $entityType);
             }
         }
         $isDeleted = isset($data['isDeleted']) && $data['isDeleted'];
@@ -71,7 +72,7 @@ class FormatEntity extends AbstractHelper
             if ($options['failSilently']) {
                 return '';
             } else {
-                throw new \InvalidArgumentException('$data should be an array.');
+                throw new InvalidArgumentException('$data should be an array.');
             }
         }
         if (
@@ -81,7 +82,7 @@ class FormatEntity extends AbstractHelper
             if ($options['failSilently']) {
                 return '';
             } else {
-                throw new \InvalidArgumentException('Id field not set for entity ' . $entityType);
+                throw new InvalidArgumentException('Id field not set for entity ' . $entityType);
             }
         }
         if (
@@ -91,7 +92,7 @@ class FormatEntity extends AbstractHelper
             if ($options['failSilently']) {
                 return '';
             } else {
-                throw new \InvalidArgumentException('Name field not set for entity ' . $entityType);
+                throw new InvalidArgumentException('Name field not set for entity ' . $entityType);
             }
         }
 
@@ -114,7 +115,7 @@ class FormatEntity extends AbstractHelper
             );
         } else {
             $name = $data[$entitySpec->nameField];
-            if ($entitySpec->nameFieldIsTranslateable) {
+            if ($entitySpec->nameFieldIsTranslatable) {
                 $name = $this->view->translate($name);
             }
         }
@@ -231,7 +232,7 @@ class FormatEntity extends AbstractHelper
             return true;
         }
         if (! isset(Entity::$isActionAllowedPermissionProperties[$action])) {
-            throw new \InvalidArgumentException('Invalid action parameter');
+            throw new InvalidArgumentException('Invalid action parameter');
         }
         $entitySpec = $this->entities[$entityType];
 

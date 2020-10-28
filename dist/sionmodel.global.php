@@ -1,5 +1,8 @@
 <?php
+
 namespace Project;
+
+use Zend\Mvc\MvcEvent;
 
 return [
     'sion_model' => [
@@ -19,16 +22,17 @@ return [
         //config for Content Security Policy
         'csp_config' => [
             //https://csp-evaluator.withgoogle.com
-            'csp_string' => "script-src 'strict-dynamic' 'nonce-{:nonce}' 'unsafe-inline' https:; object-src 'none'; base-uri 'none'; report-uri https://csp.example.com;",
+            'csp_string' => "script-src 'strict-dynamic' 'nonce-{:nonce}' 'unsafe-inline' https:; object-src 'none'; "
+                . "base-uri 'none'; report-uri https://csp.example.com;",
             //if this header isn't set, no Content-Security-Policy header will be set
-            'inject_headers_event' => \Zend\Mvc\MvcEvent::EVENT_FINISH,
+            'inject_headers_event' => MvcEvent::EVENT_FINISH,
         ],
         /**
          * Database table name of where to store change records
          */
         'changes_table' => 'project_changes',
         /**
-         * This is the service name of a SionTable instance to call the getChanges() method if changes_show_all isn't set
+         * This is the service name of a SionTable instance to call the getChanges() method if changes_show_all not set
          */
         'changes_model' => 'Project\Model\ProjectTable',
         /**
@@ -89,7 +93,7 @@ return [
                     'title'
                 ],
                 'name_field'                                => 'title',
-                'name_field_is_translateable'               => false,
+                'name_field_is_translatable'               => false,
                 'country_field'                             => 'country',
 //                 'text_columns'                              => [],
 //                 'many_to_one_update_columns'                => [
