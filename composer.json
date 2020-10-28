@@ -1,5 +1,5 @@
 {
-    "name": "jroedel/zf2-sion-model",
+    "name": "jroedel/zf3-sion-model",
     "description": "Some support database, filter and form classes for Sion projects.",
     "type": "library",
     "require": {
@@ -11,7 +11,8 @@
         "tijsverkoyen/css-to-inline-styles": "^2.2",
         "neilime/zf2-twb-bundle": "^3.0",
     	"acelaya/zf2-acmailer": "5.*",
-        "matriphe/iso-639": "^1.2"
+        "matriphe/iso-639": "^1.2",
+        "ext-intl": "*"
     },
     "license": "MIT",
     "minimum-stability": "stable",
