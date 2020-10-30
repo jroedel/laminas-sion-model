@@ -514,6 +514,8 @@ class SionTable
 //                     ;
 //                 }
 //             } else {
+                //first clear any ordering already setup in the select
+                $select->reset('order');
                 $select->order($options['order']);
 //             }
         }
