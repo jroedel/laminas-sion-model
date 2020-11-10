@@ -47,4 +47,32 @@ class Address extends AbstractHelper
         }
         return $finalMarkup;
     }
+
+    public function formatNonHtmlAddress($street1, $street2, $cityState, $zip, $country)
+    {
+        $finalMarkup = '';
+        if (isset($street1)) {
+            $finalMarkup .= $street1 . PHP_EOL;
+        }
+        if (isset($street2)) {
+            $finalMarkup .= $street2 . PHP_EOL;
+        }
+
+        if (isset($country) && isset($this->placeLineCountryFormats[$country])) {
+            $placePattern = $this->placeLineCountryFormats[$country];
+        } else {
+            $placePattern = $this->defaultPlaceLineFormat;
+        }
+        $placeLine = str_replace(':zip', isset($zip) ? $zip : '', $placePattern);
+        $placeLine = trim(str_replace(':cityState', isset($cityState) ? $cityState : null, $placeLine));
+        $finalMarkup .= $placeLine;
+        if (strlen($finalMarkup) == 0) {
+            return null;
+        }
+        if (isset($country)) {
+//            $finalMarkup .= $this->view->countryName($country);
+            $finalMarkup .= PHP_EOL . $country;
+        }
+        return $finalMarkup;
+    }
 }
