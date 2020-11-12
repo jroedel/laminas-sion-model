@@ -2,6 +2,7 @@
 
 return [
     'Burundi/Congo' => 'Burundi/Congo',
+    'Confirm' => 'Confirmar',
     'Database edits' => 'Ediciones de la base de datos',
     'Delegación del Paraguay' => 'Delegación del Paraguay',
     'Entity' => 'Entidad',
@@ -19,6 +20,8 @@ return [
     'Región del Padre' => 'Región del Padre',
     'Schweizer Provinz' => 'Provincia Suiza',
     'Sión Guadalupe' => 'Sión Guadalupe',
+    'Sion of Joseph' => 'Sión de José',
+    'Sion Patris Africae - Burundi/Congo' => 'Sion Patris Africae - Burundi/Congo',
     'Sion Provinz' => 'Provincia de Sión',
     'Total problems' => 'Problemas en total',
     'View Changes' => 'Revisar cambios',

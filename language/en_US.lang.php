@@ -2,6 +2,7 @@
 
 return [
     'Burundi/Congo' => 'Burundi/Congo',
+    'Confirm' => 'Confirm',
     'Database edits' => 'Database edits',
     'Delegación del Paraguay' => 'Delegation of Paraguay',
     'Entity' => 'Entity',
@@ -20,6 +21,8 @@ return [
     'Schweizer Provinz' => 'Swiss Province',
     'Simulated auto-fix' => 'Simulated auto-fix',
     'Sión Guadalupe' => 'Sion Guadalupe',
+    'Sion of Joseph' => 'Sion of Joseph',
+    'Sion Patris Africae - Burundi/Congo' => 'Sion Patris Africae - Burundi/Congo',
     'Sion Provinz' => 'Sion Province',
     'This is a simulation of some data problems that could be automatically. Do you wish to proceed?' => 'This is a simulation of some data problems that could be automatically. Do you wish to proceed?',
     'Total problems' => 'Total problems',
