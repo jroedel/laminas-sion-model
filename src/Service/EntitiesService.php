@@ -10,11 +10,11 @@ class EntitiesService
      * Keyed array of Entity's
      * @var Entity[] $entities
      */
-    protected $entities = [];
+    protected array $entities = [];
 
-    protected $entityControllers = [];
+    protected array $entityControllers = [];
 
-    public function __construct($entitySpecifications)
+    public function __construct(array $entitySpecifications)
     {
         foreach ($entitySpecifications as $entity => $spec) {
             $this->entities[$entity] = new Entity($entity, $spec);
@@ -29,12 +29,18 @@ class EntitiesService
         }
     }
 
-    public function getEntityControllers()
+    /**
+     * @return array
+     */
+    public function getEntityControllers(): array
     {
         return $this->entityControllers;
     }
 
-    public function getEntities()
+    /**
+     * @return Entity[]
+     */
+    public function getEntities(): array
     {
         return $this->entities;
     }
