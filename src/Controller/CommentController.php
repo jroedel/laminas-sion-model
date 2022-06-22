@@ -30,3 +30,4 @@ class CommentController extends SionController
         return parent::redirectAfterCreate($newId, $data, $form);
     }
 }
+
