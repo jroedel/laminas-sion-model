@@ -1,7 +1,7 @@
 <?php
 namespace SionModel\Validator;
 
-use Zend\Validator\ValidatorChain;
+use Laminas\Validator\ValidatorChain;
 
 class ValidatorOrChain extends ValidatorChain
 {

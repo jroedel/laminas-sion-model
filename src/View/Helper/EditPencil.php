@@ -2,7 +2,7 @@
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
+use Laminas\View\Helper\AbstractHelper;
 use SionModel\Entity\Entity;
 use SionModel\Service\EntitiesService;
 

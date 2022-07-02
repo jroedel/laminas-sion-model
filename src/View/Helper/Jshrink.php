@@ -4,7 +4,7 @@
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
+use Laminas\View\Helper\AbstractHelper;
 use JShrink\Minifier;
 
 class Jshrink extends AbstractHelper

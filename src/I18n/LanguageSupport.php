@@ -1,11 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\I18n;
 
+use function array_keys;
+use function in_array;
+
+/**
+ * @todo Integrate Matriphe\ISO639
+ */
 class LanguageSupport
 {
-    protected $supportedLanguages = ['en', 'es', 'de', 'pt', 'it', 'fr'];
-    protected $languages = [
+    public const SUPPORTED_LANGUAGES = ['en', 'es', 'de', 'pt', 'it', 'fr'];
+    public const LANGUAGE_NAMES      = [
         'aa' => ['en' => "Afar", 'es' => "Afar", 'de' => "Afar", 'pt' => "Afar", 'it' => "Afar", 'fr' => "Afar"],
         'ab' => ['en' => "Abkhazian", 'es' => "Abjaziano", 'de' => "Abchasisch", 'pt' => "Abcázio", 'it' => "Abkhazian", 'fr' => "Abkhaze"],
         'af' => ['en' => "Afrikaans", 'es' => "Afrikaans", 'de' => "Afrikaans", 'pt' => "Africâner", 'it' => "Afrikaans", 'fr' => "Afrikaans"],
@@ -194,16 +202,16 @@ class LanguageSupport
 
     /**
      * Fetch value options for a Select form element
-     * @param string $inLanguage
+     *
      * @return string[]
      */
-    public function getLanguageNames($inLanguage = 'en')
+    public static function getLanguageNames(string $inLanguage = 'en'): array
     {
-        if (! isset($inLanguage) || ! in_array($inLanguage, $this->supportedLanguages, true)) {
+        if (! isset($inLanguage) || ! in_array($inLanguage, self::SUPPORTED_LANGUAGES, true)) {
             $inLanguage = 'en';
         }
         $result = [];
-        foreach ($this->languages as $language => $names) {
+        foreach (self::LANGUAGE_NAMES as $language => $names) {
             $result[$language] = $names[$inLanguage];
         }
         return $result;
@@ -212,42 +220,39 @@ class LanguageSupport
     /**
      * Get the name of a language, in the language specified.
      * If the language requested doesn't exist, null is returned
-     * @param string $language
-     * @param string $inLanguage
-     * @throws \InvalidArgumentException
+     *
      * @return NULL|string
      */
-    public function getLanguageName($language, $inLanguage = 'en')
+    public static function getLanguageName(string $language, string $inLanguage = 'en'): ?string
     {
-        if (! isset($language) || ! is_string($language)) {
-            throw new \InvalidArgumentException('Language parameter should be a string');
-        }
-        if (! isset($this->languages[$language])) {
+        if (! isset(self::LANGUAGE_NAMES[$language])) {
             return null;
         }
-        if (! isset($inLanguage) || ! in_array($inLanguage, $this->supportedLanguages, true)) {
+        if (! isset($inLanguage) || ! in_array($inLanguage, self::SUPPORTED_LANGUAGES, true)) {
             $inLanguage = 'en';
         }
-        return $this->languages[$language][$inLanguage];
+        return self::LANGUAGE_NAMES[$language][$inLanguage] ?? null;
     }
 
     /**
      * Return an array of known language codes
+     *
      * @return string[]
      */
-    public function getValidLanguages()
+    public static function getValidLanguages(): array
     {
-        return array_keys($this->languages);
+        return array_keys(self::LANGUAGE_NAMES);
     }
 
     /**
      * Return an associative array mapping language code to
      * another associative array of names keyed by the inLanguage.
      * inLanguage refers to the language in which the language's name is in.
+     *
      * @return string[][]
      */
-    public function getLanguageNamesData()
+    public static function getLanguageNamesData(): array
     {
-        return $this->languages;
+        return self::LANGUAGE_NAMES;
     }
 }

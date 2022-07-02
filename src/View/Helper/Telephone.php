@@ -1,24 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 // SionModel/View/Helper/Telephone.php
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
-use Zend\Filter\StringTrim;
-use Zend\Filter\FilterChain;
-use Zend\Filter\PregReplace;
+use Laminas\Filter\FilterChain;
+use Laminas\Filter\FilterInterface;
+use Laminas\Filter\PregReplace;
+use Laminas\Filter\StringTrim;
+use Laminas\View\Helper\AbstractHelper;
+use libphonenumber\geocoding\PhoneNumberOfflineGeocoder;
+use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;
+use libphonenumber\PhoneNumberUtil;
+
+use function is_object;
 
 class Telephone extends AbstractHelper
 {
-    /**
-     *
-     * @var StringTrim
-     */
-    protected $filter;
-    protected $phoneUtil;
-    protected $geocoder;
+    protected FilterInterface $filter;
+    protected PhoneNumberUtil $phoneUtil;
+    protected PhoneNumberOfflineGeocoder $geocoder;
 
     public function __construct()
     {
@@ -28,50 +32,50 @@ class Telephone extends AbstractHelper
                         'pattern'     => '/[^-+0-9]+/',
                         'replacement' => '-',
                     ]));
-        $this->phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
-        $this->geocoder = \libphonenumber\geocoding\PhoneNumberOfflineGeocoder::getInstance();
+        $this->phoneUtil = PhoneNumberUtil::getInstance();
+        $this->geocoder  = PhoneNumberOfflineGeocoder::getInstance();
     }
 
-    public function __invoke($telephone, $whatsApp = false, $displayWarning = false)
+    public function __invoke(string $telephone, bool $whatsApp = false, bool $displayWarning = false): string
     {
-        if (is_null($telephone) || '' == $telephone) {
-            return '';
-        }
         $filteredTelephone = $this->filter->filter($telephone);
-        $numberProto = null;
-        if ('' == $filteredTelephone) {
+        $numberProto       = null;
+        if ('' === $filteredTelephone) {
             return '';
         }
         try {
             $numberProto = $this->phoneUtil->parse($telephone, "DE");
             //@todo add in the current user's locale
-            if (! is_null($numberProto)) {
-                $telephone = $this->phoneUtil->format($numberProto, \libphonenumber\PhoneNumberFormat::INTERNATIONAL);
-                $tooltip = $this->geocoder->getDescriptionForNumber($numberProto, "en_US");
+            if (isset($numberProto)) {
+                $telephone         = $this->phoneUtil->format($numberProto, PhoneNumberFormat::INTERNATIONAL);
+                $tooltip           = $this->geocoder->getDescriptionForNumber($numberProto, "en_US");
                 $filteredTelephone = $this->phoneUtil->format($numberProto, PhoneNumberFormat::E164);
-                $telUrl = $this->phoneUtil->format($numberProto, PhoneNumberFormat::RFC3966);
+                $telUrl            = $this->phoneUtil->format($numberProto, PhoneNumberFormat::RFC3966);
             }
-        } catch (\libphonenumber\NumberParseException $e) {
+        } catch (NumberParseException $e) {
             $tooltip = null;
         }
-        $return = '<a href="';
-        if (isset($telUrl) && ! is_null($telUrl)) { //if we have it, use the lib-formatted URL
-            $return .= $telUrl;
-        } else {
-            $return .= 'tel:' . $this->getView()->escapeHtml($filteredTelephone);
-        }
-        $return .= '" ' . ($tooltip ? ('data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="' . $tooltip . '"') : "") .
-           '>' . $this->getView()->escapeHtml($telephone) . '</a>';
+        $return  = '<a href="';
+        $return .= $telUrl ?? 'tel:' . $this->getView()->escapeHtml($filteredTelephone);
+        $return .= '" '
+            . ($tooltip
+                ? 'data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="'
+                    . $tooltip
+                    . '"'
+                : "")
+            . '>' . $this->getView()->escapeHtml($telephone) . '</a>';
         if ($whatsApp) {
-            $return .= ' <i class="fa fa-whatsapp" aria-hidden="true" ' .
-            'data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="' .
-                $this->view->translate('WhatsApp number') . '"></i>';
+            $return .= ' <i class="fa fa-whatsapp" aria-hidden="true" '
+                . 'data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="'
+                . $this->view->translate('WhatsApp number')
+                . '"></i>';
         }
 
         if ((! is_object($numberProto) || ! $this->phoneUtil->isValidNumber($numberProto)) && $displayWarning) {
-            $return .= ' <i class="fa fa-exclamation-triangle" aria-hidden="true" ' .
-            'data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="' .
-                $this->view->translate('Unrecognized phone number') . '"></i>';
+            $return .= ' <i class="fa fa-exclamation-triangle" aria-hidden="true" '
+                . 'data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="'
+                . $this->view->translate('Unrecognized phone number')
+                . '"></i>';
         }
         return $return;
     }

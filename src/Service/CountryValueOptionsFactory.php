@@ -1,28 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
 use JTranslate\Model\CountriesInfo;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use Locale;
+use Psr\Container\ContainerInterface;
 
-/**
- * Factory responsible of priming the PatresTable service
- *
- * @author Jeff Ro <jeff.roedel.isp@gmail.com>
- */
+use function asort;
+
 class CountryValueOptionsFactory implements FactoryInterface
 {
-    /**
-     * Create an object
-     *
-     * @inheritdoc
-     */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         /** @var CountriesInfo $countries */
-        $countries = $container->get(CountriesInfo::class);
-        $countryNames = $countries->getTranslatedCountryNames(\Locale::getPrimaryLanguage(\Locale::getDefault()));
+        $countries    = $container->get(CountriesInfo::class);
+        $countryNames = $countries->getTranslatedCountryNames(Locale::getPrimaryLanguage(Locale::getDefault()));
         asort($countryNames);
 
         return $countryNames;

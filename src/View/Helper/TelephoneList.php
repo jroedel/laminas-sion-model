@@ -1,35 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 // SionModel/View/Helper/TelephoneList.php
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
+use Laminas\View\Helper\AbstractHelper;
+
+use function implode;
+use function is_array;
+use function is_string;
+use function sprintf;
+use function strlen;
 
 class TelephoneList extends AbstractHelper
 {
-    protected $patternWithLabel = '<span>%s (%s)</span>';
-    protected $patternWithoutLabel = '<span>%s</span>';
-    public function __construct()
-    {
-    }
+    protected string $patternWithLabel    = '<span>%s (%s)</span>';
+    protected string $patternWithoutLabel = '<span>%s</span>';
 
-    public function __invoke(array $telephoneList, $hasLabels = false)
+    public function __invoke(array $telephoneList, bool $hasLabels = false)
     {
-        if (! is_array($telephoneList)) {
-            throw new \InvalidArgumentException('Array expected, non-array passed.');
-        }
         $results = [];
         if ($hasLabels) {
             foreach ($telephoneList as $value) {
-                if (
-                    is_null($value) || ! is_array($value) ||
-                    ! isset($value['number']) || is_null($value['number']) ||
-                    ! $value['number'] || $value['number'] === ''
-                ) {
+                if (! isset($value) || ! is_array($value) || ! isset($value['number']) || ! $value['number']) {
                     continue;
                 }
-                if (isset($value['label']) && $value['label'] && 0 != strlen($value['label'])) {
+                if (isset($value['label']) && $value['label'] && 0 !== strlen($value['label'])) {
                     $results[] = sprintf(
                         $this->patternWithLabel,
                         $this->view->telephone($value['number']),
@@ -41,7 +39,7 @@ class TelephoneList extends AbstractHelper
             }
         } else {
             foreach ($telephoneList as $value) {
-                if (is_null($value) || ! $value || $value === '' || ! is_string($value)) {
+                if (! isset($value) || ! $value || ! is_string($value)) {
                     continue;
                 }
                 $results[] = sprintf($this->patternWithoutLabel, $this->view->telephone($value));

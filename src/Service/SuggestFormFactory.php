@@ -2,8 +2,8 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Form\SuggestForm;
 
 /**
@@ -18,7 +18,7 @@ class SuggestFormFactory implements FactoryInterface
      *
      * @inheritdoc
      */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         /**
          * @var EntitiesService $entitiesService

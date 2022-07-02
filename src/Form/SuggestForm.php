@@ -1,13 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\Form;
 
-use Zend\InputFilter\InputFilterProviderInterface;
+use Laminas\InputFilter\InputFilterProviderInterface;
 
 class SuggestForm extends SionForm implements InputFilterProviderInterface
 {
     /**
      * These are the possible values for the haystack
+     *
      * @var array
      */
     protected $entityHaystack = [];
@@ -28,21 +31,21 @@ class SuggestForm extends SionForm implements InputFilterProviderInterface
             'type' => 'Hidden',
         ]);
         $this->add([
-            'name' => 'submit',
-            'type' => 'Submit',
+            'name'       => 'submit',
+            'type'       => 'Submit',
             'attributes' => [
                 'value' => 'Submit',
-                'id' => 'submit',
+                'id'    => 'submit',
                 'class' => 'btn-primary',
             ],
         ]);
         $this->add([
-            'name' => 'cancel',
-            'type' => 'Button',
+            'name'       => 'cancel',
+            'type'       => 'Button',
             'attributes' => [
-                'value' => 'Cancel',
-                'id' => 'submit',
-                'data-dismiss' => 'modal'
+                'value'        => 'Cancel',
+                'id'           => 'submit',
+                'data-dismiss' => 'modal',
 //              'class' => 'btn-danger'
             ],
         ]);
@@ -50,59 +53,46 @@ class SuggestForm extends SionForm implements InputFilterProviderInterface
 
     /**
      * Set the haystack of acceptable values for the entity field
-     * @return array
      */
-    public function getEntityHaystack()
+    public function getEntityHaystack(): array
     {
         return $this->entityHaystack;
     }
 
-    /**
-     * Set the haystack of acceptable values for the entity field
-     * @todo update the input filter if it's already been set
-     *
-     * @param array $entityHaystack
-     * @return \SionModel\Form\SuggestForm
-     */
-    public function setEntityHaystack(array $entityHaystack)
+    public function setEntityHaystack(array $entityHaystack): static
     {
         $this->entityHaystack = $entityHaystack;
+        $this->filterSpec     = []; //invalidate spec
         return $this;
     }
 
-    public function setInputFilterSpecification($spec)
-    {
-        $this->filterSpec = $spec;
-    }
-
-    public function getInputFilterSpecification()
+    public function getInputFilterSpecification(): array
     {
         if ($this->filterSpec) {
             return $this->filterSpec;
         }
-        $this->filterSpec = [
-            'entity' => [
-                'required' => false,
+        return $this->filterSpec = [
+            'entity'   => [
+                'required'   => false,
                 'validators' => [
                     [
-                        'name' => 'InArray',
+                        'name'    => 'InArray',
                         'options' => [
                             'haystack' => $this->entityHaystack,
                         ],
                     ],
                 ],
-                'filters' => [
+                'filters'    => [
                     ['name' => 'ToNull'],
                 ],
             ],
             'entityId' => [
                 'required' => false,
-                'filters' => [
+                'filters'  => [
                     ['name' => 'ToInt'],
                     ['name' => 'ToNull'],
                 ],
             ],
         ];
-        return $this->filterSpec;
     }
 }

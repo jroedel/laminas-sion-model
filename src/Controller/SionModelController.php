@@ -1,50 +1,59 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Zend Framework (http://framework.zend.com/)
-*
-* @link      http://github.com/zendframework/ZendSkeletonModule for the canonical source repository
-* @copyright Copyright (c) 2005-2014 Zend Technologies USA Inc. (http://www.zend.com)
-* @license   http://framework.zend.com/license/new-bsd New BSD License
-*/
+ *
+ * @link      http://github.com/zendframework/ZendSkeletonModule for the canonical source repository
+ */
 
 namespace SionModel\Controller;
 
-use Zend\View\Model\ViewModel;
-use Zend\Mvc\Controller\AbstractActionController;
-use Zend\Cache\Storage\FlushableInterface;
-use Zend\View\Model\JsonModel;
 use BjyAuthorize\Exception\UnAuthorizedException;
+use Exception;
+use InvalidArgumentException;
+use Laminas\Cache\Storage\FlushableInterface;
+use Laminas\Cache\Storage\StorageInterface;
+use Laminas\Mvc\Controller\AbstractActionController;
+use Laminas\Stdlib\ResponseInterface;
+use Laminas\View\Model\JsonModel;
+use Laminas\View\Model\ModelInterface;
+use Laminas\View\Model\ViewModel;
+use SionModel\Db\Model\SionTable;
 use SionModel\Form\ConfirmForm;
-use SionModel\Service\ProblemService;
 use SionModel\Service\ChangesCollector;
+use SionModel\Service\ProblemService;
+
+use function array_key_exists;
+use function in_array;
+use function is_array;
+use function is_numeric;
+use function is_object;
 
 class SionModelController extends AbstractActionController
 {
-    protected $services = [];
-
-    public function __construct($services)
+    public function __construct(protected array $services = [])
     {
-        $this->services = $services;
     }
 
-    public function clearPersistentCacheAction()
+    public function clearPersistentCacheAction(): JsonModel
     {
-        $key = $this->params()->fromQuery('key', null);
-        if (is_null($key)) {
+        $key = $this->params()->fromQuery('key');
+        if (! isset($key)) {
             throw new UnAuthorizedException();
         }
-        $config = $this->getSionModelConfig();
+        $config  = $this->getSionModelConfig();
         $apiKeys = isset($config['api_keys']) && is_array($config['api_keys']) ? $config['api_keys'] : [];
         if (! in_array($key, $apiKeys)) {
             throw new UnAuthorizedException();
         }
         $cache = $this->getPersistentCache();
         if (! is_object($cache)) {
-            throw new \Exception('Please configure the persistent cache to clear the cache.');
+            throw new Exception('Please configure the persistent cache to clear the cache.');
         }
         if (! $cache instanceof FlushableInterface) {
-            throw new \Exception('Configured persistent cache does not support flushing.');
+            throw new Exception('Configured persistent cache does not support flushing.');
         }
         if (! $cache->flush()) {
             $this->getResponse()->setStatusCode(401);
@@ -55,11 +64,7 @@ class SionModelController extends AbstractActionController
         return new JsonModel(['message' => $message]);
     }
 
-    /**
-     *
-     * @return \Zend\View\Model\ViewModel
-     */
-    public function dataProblemsAction()
+    public function dataProblemsAction(): ModelInterface|ResponseInterface|array
     {
         /** @var ProblemService $table */
         $table = $this->services[ProblemService::class];
@@ -74,14 +79,14 @@ class SionModelController extends AbstractActionController
     /**
      * Autofix data problems. User must accept the changes to be applied.
      */
-    public function autoFixDataProblemsAction()
+    public function autoFixDataProblemsAction(): ModelInterface|ResponseInterface|array
     {
         $simulate = true;
 
         /** @var ProblemService $table */
         $table = $this->services[ProblemService::class];
 
-        $form = new ConfirmForm();
+        $form    = new ConfirmForm();
         $request = $this->getRequest();
         if ($request->isPost()) {
             $data = $request->getPost()->toArray();
@@ -93,51 +98,52 @@ class SionModelController extends AbstractActionController
         $problems = $table->autoFixProblems($simulate);
 
         $view = new ViewModel([
-            'problems' => $problems,
+            'problems'     => $problems,
             'isSimulation' => $simulate,
-            'form' => $form,
+            'form'         => $form,
         ]);
         $view->setTemplate('sion-model/sion-model/data-problems');
         return $view;
     }
 
     /**
-     *
-     * @return \Zend\View\Model\ViewModel
+     * @todo The logic here doesn't add up
      */
-    public function viewChangesAction()
+    public function viewChangesAction(): ModelInterface|ResponseInterface|array
     {
-        $config = $this->getSionModelConfig();
-        $maxRows = (isset($config['changes_max_rows']) &&
-            (is_numeric($config['changes_max_rows']) || ! isset($config['changes_max_rows']))) ?
-            (int)$config['changes_max_rows'] : 500;
+        $config  = $this->getSionModelConfig();
+        $maxRows = isset($config['changes_max_rows']) && (is_numeric($config['changes_max_rows']))
+            ? (int) $config['changes_max_rows']
+            : 500;
         if (! isset($config['changes_show_all']) || $config['changes_show_all']) {
             /** @var ChangesCollector $collector */
             $collector = $this->services[ChangesCollector::class];
-            $results = $collector->getAllChanges();
+            $results   = $collector->getAllChanges();
         } else {
             if (! isset($this->services[$config['changes_model']])) {
-                throw new \InvalidArgumentException('The \'changes_model\' configuration is incorrect.');
+                throw new InvalidArgumentException('The \'changes_model\' configuration is incorrect.');
             }
-            /** @var \SionModel\Db\Model\SionTable $table */
-            $table = $this->services[$config['changes_model']];
-            $getAllChanges = key_exists('changes_show_all', $config) && ! is_null($config['changes_show_all']) ?
-                (bool)$config['changes_show_all'] : false;
-            $results = $table->getChanges($getAllChanges);
+            /** @var SionTable $table */
+            $table         = $this->services[$config['changes_model']];
+            $getAllChanges = array_key_exists('changes_show_all', $config) && $config['changes_show_all'];
+            $results       = $table->getChanges($getAllChanges ? 0 : 250);
         }
         return new ViewModel([
-            'changes'       => $results,
-            'maxRows'       => $maxRows,
-            'showEntity'    => true,
+            'changes'    => $results,
+            'maxRows'    => $maxRows,
+            'showEntity' => true,
         ]);
     }
 
-    public function phpInfoAction()
+    /**
+     * @psalm-return array<empty, empty>
+     */
+    public function phpInfoAction(): ModelInterface|ResponseInterface|array
     {
         return [];
     }
 
-    protected function getSionModelConfig()
+    protected function getSionModelConfig(): array
     {
         if (isset($this->services['SionModel\Config'])) {
             return $this->services['SionModel\Config'];
@@ -145,7 +151,7 @@ class SionModelController extends AbstractActionController
         return [];
     }
 
-    protected function getPersistentCache()
+    protected function getPersistentCache(): StorageInterface|null
     {
         if (isset($this->services['SionModel\PersistentCache'])) {
             return $this->services['SionModel\PersistentCache'];

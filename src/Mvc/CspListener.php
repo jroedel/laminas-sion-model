@@ -9,10 +9,10 @@
 
 namespace SionModel\Mvc;
 
-use Zend\EventManager\EventManagerInterface;
-use Zend\EventManager\ListenerAggregateInterface;
-use Zend\Mvc\MvcEvent;
-use Zend\Math\Rand;
+use Laminas\EventManager\EventManagerInterface;
+use Laminas\EventManager\ListenerAggregateInterface;
+use Laminas\Mvc\MvcEvent;
+use Laminas\Math\Rand;
 
 class CspListener implements ListenerAggregateInterface
 {
@@ -79,7 +79,7 @@ class CspListener implements ListenerAggregateInterface
         header('Content-Security-Policy: ' . $headerString);
     }
 
-    public function setNonce($nonce)
+    public function setNonce($nonce): static
     {
         $this->nonce = $nonce;
         $GLOBALS['inline-nonce'] = $nonce;

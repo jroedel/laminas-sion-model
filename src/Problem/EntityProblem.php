@@ -1,78 +1,64 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\Problem;
 
+use DateTime;
+use Exception;
+use InvalidArgumentException;
 use SionModel\Entity\Entity;
+
+use function array_key_exists;
+use function array_merge;
+use function is_string;
+use function md5;
+use function serialize;
+use function strlen;
 
 class EntityProblem
 {
-    const SEVERITY_ERROR = 'danger';
-    const SEVERITY_WARNING = 'warning';
-    const SEVERITY_INFO = 'info';
+    public const SEVERITY_ERROR   = 'danger';
+    public const SEVERITY_WARNING = 'warning';
+    public const SEVERITY_INFO    = 'info';
 
-    const SEVERITY_TEXT_CLASSES = [
-        self::SEVERITY_ERROR => 'text-danger',
+    public const SEVERITY_TEXT_CLASSES = [
+        self::SEVERITY_ERROR   => 'text-danger',
         self::SEVERITY_WARNING => 'text-warning',
-        self::SEVERITY_INFO => 'text-info',
+        self::SEVERITY_INFO    => 'text-info',
     ];
 
-    const TEXT_DOMAIN_DEFAULT = 'SionModel';
+    public const TEXT_DOMAIN_DEFAULT = 'SionModel';
 
     /**
      * Associative array of Entity's, keyed by the Entity name
+     *
      * @var Entity[] $entities
      */
-    protected $entities = [];
+    protected array $entities = [];
 
-    protected $problemSpecifications = [];
+    protected array $problemSpecifications = [];
 
-    /**
-     * @var string
-     */
-    protected $entity;
+    protected string $entity;
 
-    /**
-     * @var mixed $data
-     */
-    protected $data;
+    protected array $data;
 
-    protected $problemFieldName;
+    protected string $problemFieldName;
 
-    /**
-     * @var string $problem
-     */
+    /** @var string $problem */
     protected $problem;
 
-    protected $severity;
+    protected string $severity;
 
-    /**
-     * @var string $translatorTextDomain
-     */
-    protected $translatorTextDomain;
+    protected string $translatorTextDomain;
 
-    /**
-     *
-     * @var \DateTime
-     */
-    protected $ignoredOn;
+    protected ?DateTime $ignoredOn;
 
-    /**
-     *
-     * @var int
-     */
-    protected $ignoredBy;
+    protected ?int $ignoredBy;
 
-    /**
-     *
-     * @var \DateTime
-     */
-    protected $resolvedOn;
+    protected ?DateTime $resolvedOn;
 
-    /**
-     *
-     * @var int
-     */
-    protected $resolvedBy;
+    protected ?int $resolvedBy;
 
     /**
      * Construct a new entity problem prototype. New entity problems are meant
@@ -80,15 +66,16 @@ class EntityProblem
      * be prefilled with 'problem_specifications' values.
      *
      * @param Entity[] $entities Associative array of Entity's, keyed by the Entity name
-     * @param mixed[][] $problemSpecifications
+     * @param array[] $problemSpecifications
+     * @throws Exception
      */
-    public function __construct($entities, $problemSpecifications)
+    public function __construct(array $entities, array $problemSpecifications)
     {
         $this->entities = $entities;
         $this->addProblemSpecifications($problemSpecifications);
     }
 
-    protected function addProblemSpecifications($problemSpecifications)
+    protected function addProblemSpecifications(array $problemSpecifications): void
     {
         $specsToAdd = [];
         foreach ($problemSpecifications as $problem => $spec) {
@@ -97,12 +84,14 @@ class EntityProblem
                 isset($spec['entity']) && is_string($spec['entity']) &&
                 strlen($spec['entity']) <= 50 &&
                 isset($spec['defaultSeverity']) &&
-                array_key_exists($spec['defaultSeverity'], EntityProblem::SEVERITY_TEXT_CLASSES) &&
+                array_key_exists($spec['defaultSeverity'], self::SEVERITY_TEXT_CLASSES) &&
                 isset($spec['text']) && is_string($spec['text'])
             ) {
                 $specsToAdd[$problem] = $spec;
             } else {
-                throw new \Exception("Invalid problem specification '$problem'. Specify entity, defaultSeverity, and text.");
+                throw new Exception(
+                    "Invalid problem specification '$problem'. Specify entity, defaultSeverity, and text."
+                );
             }
         }
         $this->problemSpecifications = array_merge($this->problemSpecifications, $specsToAdd);
@@ -114,99 +103,73 @@ class EntityProblem
      * This can be used to match up current problems with one's
      * stored in the database.
      */
-    public function getIdentifier()
+    public function getIdentifier(): string
     {
-        $str = $this->getEntity() . $this->getEntityId() . $this->getProblem();
-        if (! is_null($ignoredOn = $this->getIgnoredOn())) {
+        $str       = $this->getEntity() . $this->getEntityId() . $this->getProblem();
+        $ignoredOn = $this->getIgnoredOn();
+        if (isset($ignoredOn)) {
             $str .= serialize($ignoredOn);
         }
-        if (! is_null($resolvedOn = $this->getResolvedOn())) {
+        $resolvedOn = $this->getResolvedOn();
+        if (isset($resolvedOn)) {
             $str .= serialize($resolvedOn);
         }
         return md5($str);
     }
 
-    /**
-     *
-     * @param mixed[] $array
-     */
-    public function exchangeArray($array)
+    public function exchangeArray(array $array): void
     {
     }
 
-    public function getProblem()
+    public function getProblem(): string
     {
         return $this->problem;
     }
 
     /**
-     *
-     * @param string $problem
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
-    public function setProblem($problem)
+    public function setProblem(string $problem): static
     {
         if (! isset($this->problemSpecifications[$problem])) {
-            throw new \InvalidArgumentException('Unknown problem reported.');
+            throw new InvalidArgumentException('Unknown problem reported.');
         }
         $this->problem = $problem;
-        $this->entity = $this->problemSpecifications[$problem]['entity'];
-        if (is_null($this->severity)) {
+        $this->entity  = $this->problemSpecifications[$problem]['entity'];
+        if (! isset($this->severity)) {
             $this->severity = $this->problemSpecifications[$problem]['defaultSeverity'];
         }
         return $this;
     }
 
-    /**
-     * @return array
-     */
-    public function getData()
+    public function getData(): array
     {
         return $this->data;
     }
 
-    /**
-     *
-     * @param array $data
-     * @return self
-     */
-    public function setData($data)
+    public function setData(array $data): static
     {
-        if (! is_null($data) && ! is_array($data)) {
-            throw new \InvalidArgumentException('Data parameter must be an array.');
-        }
         $this->data = $data;
         return $this;
     }
 
-    /**
-     * @return array
-     */
-    public function getSeverity()
+    public function getSeverity(): string
     {
         return $this->severity;
     }
 
-    /**
-     *
-     * @param array $severity
-     * @return self
-     */
-    public function setSeverity($severity)
+    public function setSeverity(string $severity): static
     {
         $this->severity = $severity;
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getEntity()
+    public function getEntity(): string
     {
         return $this->entity;
     }
 
-    public function getEntitySpecification()
+    public function getEntitySpecification(): Entity
     {
         return $this->entities[$this->getEntity()];
     }
@@ -217,17 +180,12 @@ class EntityProblem
      * 2. Problem isn't null AND
      * 3. Data isn't null
      */
-    public function isValidProblem()
+    public function isValidProblem(): bool
     {
-        return ! is_null($this->entity) &&
-            ! is_null($this->problem) &&
-            ! is_null($this->data);
+        return isset($this->entity) && isset($this->problem) && isset($this->data);
     }
 
-    /**
-     * @return string
-     */
-    public function getProblemFieldName()
+    public function getProblemFieldName(): string
     {
         return $this->problemFieldName;
     }
@@ -235,23 +193,19 @@ class EntityProblem
     public function getProblemText()
     {
         if (! $this->isValidProblem()) {
-            throw new \Exception('Problem must be valid before retrieving problem text.');
+            throw new Exception('Problem must be valid before retrieving problem text.');
         }
 
         return $this->problemSpecifications[$this->problem]['text'];
     }
 
     /**
-    * Get the translatorTextDomain value
-    * @return string
-    */
-    public function getTranslatorTextDomain()
+     * Get the translatorTextDomain value
+     */
+    public function getTranslatorTextDomain(): string
     {
-        if (is_null($this->translatorTextDomain)) {
-            if (
-                isset($this->problemSpecifications[$this->problem]['textDomain']) &&
-                ! is_null($this->problemSpecifications[$this->problem]['textDomain'])
-            ) {
+        if (! isset($this->translatorTextDomain)) {
+            if (isset($this->problemSpecifications[$this->problem]['textDomain'])) {
                 $this->translatorTextDomain = $this->problemSpecifications[$this->problem]['textDomain'];
             } else {
                 $this->translatorTextDomain = self::TEXT_DOMAIN_DEFAULT;
@@ -260,22 +214,13 @@ class EntityProblem
         return $this->translatorTextDomain;
     }
 
-    /**
-    *
-    * @param string $translatorTextDomain
-    * @return self
-    */
-    public function setTranslatorTextDomain($translatorTextDomain)
+    public function setTranslatorTextDomain(string $translatorTextDomain): static
     {
         $this->translatorTextDomain = $translatorTextDomain;
         return $this;
     }
 
-    /**
-     *
-     * @return string
-     */
-    public function getProblemTextClass()
+    public function getProblemTextClass(): string
     {
         static $textClasses = self::SEVERITY_TEXT_CLASSES;
         if (isset($textClasses[$this->severity])) {
@@ -285,7 +230,7 @@ class EntityProblem
     }
 
     /**
-     * @return \DateTime
+     * @return DateTime
      */
     public function getIgnoredOn()
     {
@@ -293,8 +238,7 @@ class EntityProblem
     }
 
     /**
-     *
-     * @param \DateTime $ignoredOn
+     * @param DateTime $ignoredOn
      * @return self
      */
     public function setIgnoredOn($ignoredOn)
@@ -312,7 +256,6 @@ class EntityProblem
     }
 
     /**
-     *
      * @param int $ignoredBy
      * @return self
      */
@@ -323,7 +266,7 @@ class EntityProblem
     }
 
     /**
-     * @return \DateTime
+     * @return DateTime
      */
     public function getResolvedOn()
     {
@@ -331,8 +274,7 @@ class EntityProblem
     }
 
     /**
-     *
-     * @param \DateTime $resolvedOn
+     * @param DateTime $resolvedOn
      * @return self
      */
     public function setResolvedOn($resolvedOn)
@@ -350,7 +292,6 @@ class EntityProblem
     }
 
     /**
-     *
      * @param int $resolvedBy
      * @return self
      */
@@ -366,14 +307,14 @@ class EntityProblem
     public function getEntityId()
     {
         if (! $this->isValidProblem()) {
-            throw new \Exception('Problem must be valid before retrieving entity id.');
+            throw new Exception('Problem must be valid before retrieving entity id.');
         }
         if (! isset($this->entities[$this->getEntity()])) {
-            throw new \Exception('Invalid entity used: ' . $this->getEntity());
+            throw new Exception('Invalid entity used: ' . $this->getEntity());
         }
         $fieldName = $this->getEntitySpecification()->entityKeyField;
         if (! isset($this->getData()[$fieldName])) {
-            throw new \Exception("Problem data does not include id field: $fieldName");
+            throw new Exception("Problem data does not include id field: $fieldName");
         }
         return $this->getData()[$fieldName];
     }

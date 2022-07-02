@@ -2,7 +2,7 @@
 
 namespace SionModel\Filter;
 
-use Zend\Filter\AbstractFilter;
+use Laminas\Filter\AbstractFilter;
 
 /**
  * A filter which guarantees an output of 1 or 0. This is helpful for validating checkboxes

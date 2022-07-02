@@ -1,13 +1,13 @@
 <?php
 namespace SionModel\Mailing;
 
-use Zend\I18n\Translator\TranslatorInterface;
-use Zend\I18n\Translator\TranslatorAwareInterface;
+use Laminas\I18n\Translator\TranslatorInterface;
+use Laminas\I18n\Translator\TranslatorAwareInterface;
 use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
-use Zend\Math\Rand;
+use Laminas\Math\Rand;
 use voku\Html2Text\Html2Text;
-use Zend\Mail\Message;
-use Zend\Mail\AddressList;
+use Laminas\Mail\Message;
+use Laminas\Mail\AddressList;
 use SionModel\Db\Model\SionTable;
 
 class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
@@ -57,14 +57,14 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
 
     public function reportMailing(
         Message $message,
-        $attempt = 1,
-        $maxAttempts = 3,
+        int $attempt = 1,
+        int $maxAttempts = 3,
         $exception = null,
         $locale = null,
-        $template = null,
+        string|null $template = null,
         $trackingToken = null,
-        $tags = null
-    ) {
+        string|null $tags = null
+    ): void {
         static $timeZone;
         if (!isset($timeZone)) {
             $timeZone = new \DateTimeZone('UTC');
@@ -96,7 +96,7 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
         $table->createEntity('mailing', $report);
     }
 
-    protected static function AddressListToString(AddressList $list)
+    protected static function AddressListToString(AddressList $list): string
     {
         $addresses = [];
         foreach ($list as $address) {
@@ -108,18 +108,20 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
     /**
      * @todo this
      */
-    public function processQueue()
+    public function processQueue(): void
     {
     }
 
     /**
      * Inlines CSS rules in an HTML document
+     *
      * @todo Add a little caching so we don't have to read the same
      *      CSS file several times in the same PHP instance
+     *
      * @param string $body
      * @param string $cssPath
      */
-    public static function inlineEmailStyles($body, $cssPath = Mailer::CSS_PATH_DEFAULT)
+    public static function inlineEmailStyles($body, $cssPath = Mailer::CSS_PATH_DEFAULT): string
     {
         // create instance
         $cssToInlineStyles = new CssToInlineStyles();
@@ -133,7 +135,7 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
         );
     }
 
-    protected static function getNewTrackingToken()
+    protected static function getNewTrackingToken(): string
     {
         $token = Rand::getString(self::TOKEN_LENGTH, null, true);
         return $token;

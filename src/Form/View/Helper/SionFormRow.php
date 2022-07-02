@@ -2,7 +2,7 @@
 
 namespace SionModel\Form\View\Helper;
 
-use Zend\Form\ElementInterface;
+use Laminas\Form\ElementInterface;
 use TwbBundle\Form\View\Helper\TwbBundleFormRow;
 
 class SionFormRow extends TwbBundleFormRow

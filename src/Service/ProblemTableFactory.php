@@ -1,38 +1,25 @@
 <?php
 
-/**
- * SionModel Module
- *
- */
+declare(strict_types=1);
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Laminas\Db\Adapter\Adapter;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use LmcUser\Service\User;
+use Psr\Container\ContainerInterface;
 use SionModel\Problem\ProblemTable;
 
-/**
- * Factory responsible of priming the PatresTable service
- *
- * @author Jeff Ro <jeff.roedel.isp@gmail.com>
- */
 class ProblemTableFactory implements FactoryInterface
 {
-    /**
-     * Create an object
-     *
-     * @inheritdoc
-     */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $dbAdapter = $container->get('Zend\Db\Adapter\Adapter');
+        $dbAdapter = $container->get(Adapter::class);
 
         /** @var  User $userService **/
-        $userService = $container->get('zfcuser_user_service');
-        $user = $userService->getAuthService()->getIdentity();
-        $userId = $user ? $user->id : null;
-//      $userTable = $serviceLocator->get('JUser\Model\UserTable');
-        $table = new ProblemTable($dbAdapter, $container, $userId);
-        return $table;
+        $userService = $container->get('lmcuser_user_service');
+        $user        = $userService->getAuthService()->getIdentity();
+        $userId      = $user ? (int) $user->id : null;
+        return new ProblemTable($dbAdapter, $container, $userId);
     }
 }

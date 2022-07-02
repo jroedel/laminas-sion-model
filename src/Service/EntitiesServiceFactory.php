@@ -1,34 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * SionModel Module
- *
  */
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Exception;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 
-/**
- * Factory responsible of constructing the central collection of Entity's
- *
- * @author Jeff Ro <jeff.roedel.isp@gmail.com>
- */
 class EntitiesServiceFactory implements FactoryInterface
 {
-    /**
-     * Create an object
-     *
-     * @inheritdoc
-     */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $config = $container->get('SionModel\Config');
-        if (! isset($config['entities']) || empty($config['entities'])) {
-            throw new \Exception('Please set specify entities in app config under key [\'sion_model\'][\'entities\'].');
+        if (empty($config['entities'])) {
+            throw new Exception('Please set specify entities in app config under key [\'sion_model\'][\'entities\'].');
         }
-        $entityService = new EntitiesService($config['entities']);
-        return $entityService;
+        return new EntitiesService($config['entities']);
     }
 }

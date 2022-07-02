@@ -17,11 +17,11 @@ $title = isset($this->panelTitle) ? $this->panelTitle : 'Changes';
 	<?php if (!empty($this->changes)) {
 	    echo $this->partial('sion-model/sion-model/changes-table', [
     	    'changes' => $this->changes,
-    	    'maxRows' => isset($this->maxRows) ? $this->maxRows : null,
+    	    'maxRows' => $this->maxRows ?? null,
     	    'showEntity' => false,
     	]);
 	} else {
-	   echo '<p>'.$this->translate('No changes recorded.').'</p>';
+	   echo '<p>', $this->translate('No changes recorded.'), '</p>';
 	}?>
 </div>
 </div> <!-- panel -->

@@ -2,7 +2,7 @@
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
+use Laminas\View\Helper\AbstractHelper;
 use SionModel\Entity\Entity;
 use SionModel\Form\TouchForm;
 
@@ -29,7 +29,7 @@ class TouchButton extends AbstractHelper
         if (! isset($entity) || ! isset($id) || ! (is_string($id) || is_numeric($id))) {
             throw new \InvalidArgumentException("Invalid parameters passed to touchButton");
         }
-        if (! key_exists($entity, $this->entities)) {
+        if (! array_key_exists($entity, $this->entities)) {
             throw new \InvalidArgumentException("No configuration found for entity $entity");
         }
         $entitySpec = $this->entities[$entity];

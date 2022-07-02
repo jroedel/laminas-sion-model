@@ -2,18 +2,13 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
-use Zend\Cache\StorageFactory;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
+use Laminas\Cache\StorageFactory;
 
 class PersistentCacheFactory implements FactoryInterface
 {
-    /**
-     * Create an object
-     *
-     * @inheritdoc
-     */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $config = $container->get('SionModel\Config');
 

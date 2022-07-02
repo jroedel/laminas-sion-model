@@ -1,14 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\Service;
+
+use Psr\Container\ContainerInterface;
+use SionModel\Db\Model\SionTable;
+
+use function call_user_func_array;
+use function krsort;
 
 class ChangesCollector
 {
-    protected $container;
-
-    public function __construct($container)
+    public function __construct(protected ContainerInterface $container)
     {
-        $this->container = $container;
     }
 
     public function getAllChanges()
@@ -16,9 +21,9 @@ class ChangesCollector
         $container = $this->container;
         /** @var EntitiesService $entitiesService */
         $entitiesService = $container->get(EntitiesService::class);
-        $entiesSpecs = $entitiesService->getEntities();
+        $entiesSpecs     = $entitiesService->getEntities();
 
-        /** @var \SionModel\Db\Model\SionTable[] $sionModelsToQuery */
+        /** @var SionTable[] $sionModelsToQuery */
         $sionModelsToQuery = [];
         foreach ($entiesSpecs as $entitySpec) {
             if (

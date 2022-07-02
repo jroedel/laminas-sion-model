@@ -2,32 +2,21 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\View\Helper\FormatEntity;
 
-/**
- * Factory responsible of constructing the FormatEntity view helper
- *
- * @author Jeff Ro <jeff.roedel.isp@gmail.com>
- */
 class FormatEntityFactory implements FactoryInterface
 {
-    /**
-     * Create an object
-     *
-     * @inheritdoc
-     */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $entityService = $container->get(EntitiesService::class);
 
         $config = $container->get('SionModel\Config');
 
-        $routePermissionCheckingEnabled = isset($config['route_permission_checking_enabled']) ?
-            (bool)$config['route_permission_checking_enabled'] : false;
+        $routePermissionCheckingEnabled = isset($config['route_permission_checking_enabled'])
+            && $config['route_permission_checking_enabled'];
 
-        $viewHelper = new FormatEntity($entityService, $routePermissionCheckingEnabled);
-        return $viewHelper;
+        return new FormatEntity($entityService, $routePermissionCheckingEnabled);
     }
 }

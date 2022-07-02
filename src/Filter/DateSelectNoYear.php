@@ -10,13 +10,13 @@
 
 namespace SionModel\Filter;
 
-use Zend\Filter\AbstractFilter;
-use Zend\Validator\Regex;
+use Laminas\Filter\AbstractFilter;
+use Laminas\Validator\Regex;
 
 class DateSelectNoYear extends AbstractFilter
 {
     /**
-     * Defined by Zend\Filter\FilterInterface
+     * Defined by Laminas\Filter\FilterInterface
      *
      * Returns (int) $value
      *

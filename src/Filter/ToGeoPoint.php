@@ -2,8 +2,8 @@
 
 namespace SionModel\Filter;
 
-use Zend\Filter\AbstractFilter;
-use Zend\Validator\GpsPoint;
+use Laminas\Filter\AbstractFilter;
+use Laminas\Validator\GpsPoint;
 use SionModel\Db\GeoPoint;
 
 class ToGeoPoint extends AbstractFilter

@@ -2,7 +2,7 @@
 
 namespace Project;
 
-use Zend\Mvc\MvcEvent;
+use Laminas\Mvc\MvcEvent;
 
 return [
     'sion_model' => [
@@ -11,7 +11,7 @@ return [
         /**
          * An AuthenticationServiceInterface instance to be fetched from service manager
          */
-        'default_authentication_service' => 'zfcuser_auth_service',
+        'default_authentication_service' => 'lmcuser_auth_service',
         /**
          * This PersonProvider will be used by the SuggestFormFactory if we have a multi-person user
          */

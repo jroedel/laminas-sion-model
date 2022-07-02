@@ -10,13 +10,13 @@
 
 namespace SionModel\Filter;
 
-use Zend\Filter\AbstractFilter;
-use Zend\Filter\FilterChain;
+use Laminas\Filter\AbstractFilter;
+use Laminas\Filter\FilterChain;
 
 class TrimStringArray extends AbstractFilter
 {
     /**
-     * Defined by Zend\Filter\FilterInterface
+     * Defined by Laminas\Filter\FilterInterface
      *
      * Returns $value
      *

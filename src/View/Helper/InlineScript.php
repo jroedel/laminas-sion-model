@@ -2,7 +2,7 @@
 
 namespace SionModel\View\Helper;
 
-class InlineScript extends \Zend\View\Helper\InlineScript
+class InlineScript extends \Laminas\View\Helper\InlineScript
 {
     protected $nonce;
 
@@ -19,7 +19,7 @@ class InlineScript extends \Zend\View\Helper\InlineScript
 
     /**
      * {@inheritDoc}
-     * @see \Zend\View\Helper\InlineScript::__invoke()
+     * @see \Laminas\View\Helper\InlineScript::__invoke()
      */
     public function __invoke(
         $mode = self::FILE,
@@ -32,10 +32,10 @@ class InlineScript extends \Zend\View\Helper\InlineScript
     }
     /**
      * {@inheritDoc}
-     * @see \Zend\View\Helper\HeadScript::captureStart()
+     * @see \Laminas\View\Helper\HeadScript::captureStart()
      */
     public function captureStart(
-        $captureType = \Zend\View\Helper\Placeholder\Container\AbstractContainer::APPEND,
+        $captureType = \Laminas\View\Helper\Placeholder\Container\AbstractContainer::APPEND,
         $type = 'text/javascript',
         $attrs = []
     ) {
@@ -48,7 +48,7 @@ class InlineScript extends \Zend\View\Helper\InlineScript
 
     /**
      * {@inheritDoc}
-     * @see \Zend\View\Helper\HeadScript::captureEnd()
+     * @see \Laminas\View\Helper\HeadScript::captureEnd()
      */
     public function captureEnd()
     {
@@ -57,7 +57,7 @@ class InlineScript extends \Zend\View\Helper\InlineScript
         return $return;
     }
 
-    public function setNonce($nonce)
+    public function setNonce($nonce): static
     {
         $this->nonce = $nonce;
         if (isset($nonce)) {

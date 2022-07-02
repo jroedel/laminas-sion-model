@@ -2,7 +2,8 @@
 
 namespace SionModel\Form;
 
-use Zend\InputFilter\InputFilterProviderInterface;
+use Laminas\Filter\ToNull;
+use Laminas\InputFilter\InputFilterProviderInterface;
 
 class CommentForm extends SionForm implements InputFilterProviderInterface
 {
@@ -39,16 +40,19 @@ class CommentForm extends SionForm implements InputFilterProviderInterface
         ]);
     }
 
-    public function getInputFilterSpecification()
+    public function getInputFilterSpecification(): array
     {
-        return [
+        if ($this->filterSpec) {
+            return $this->filterSpec;
+        }
+        return $this->filterSpec = [
             'text' => [
                 'required' => false,
                 'filters' => [
                     ['name' => 'StripTags'],
                     ['name' => 'ToNull',
                         'options' => [
-                            'type' => \Zend\Filter\ToNull::TYPE_STRING,
+                            'type' => ToNull::TYPE_STRING,
                         ],
                     ],
                 ],

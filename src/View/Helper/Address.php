@@ -4,7 +4,7 @@
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
+use Laminas\View\Helper\AbstractHelper;
 
 class Address extends AbstractHelper
 {
@@ -48,7 +48,7 @@ class Address extends AbstractHelper
         return $finalMarkup;
     }
 
-    public function formatNonHtmlAddress($street1, $street2, $cityState, $zip, $country)
+    public function formatNonHtmlAddress($street1, $street2, $cityState, $zip, string $country): string|null
     {
         $finalMarkup = '';
         if (isset($street1)) {

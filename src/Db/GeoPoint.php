@@ -19,7 +19,7 @@ class GeoPoint
         ',' . (is_numeric($this->longitude) ? $this->longitude : '0');
     }
 
-    public function getDatabaseInsertString()
+    public function getDatabaseInsertString(): string
     {
         return 'POINT(' . (is_numeric($this->longitude) ? $this->longitude : '0') .
         ',' . (is_numeric($this->latitude) ? $this->latitude : '0') . ')';

@@ -52,9 +52,9 @@ $title = $this->title;
     foreach ($textLanguageKeys as $language => $key) {
         $divId = $language.'TextLanguage'.$id;
         if ($language == $selectedLanguage) {
-            echo '<div class="collapse in" id="'.$divId.'" aria-expanded="true">';
+            echo '<div class="collapse in" id="', $divId, '" aria-expanded="true">';
         } else {
-            echo '<div class="collapse" id="'.$divId.'" aria-expanded="false">';
+            echo '<div class="collapse" id="', $divId, '" aria-expanded="false">';
         }
         echo $this->markdown($entity[$key]);
         echo '</div>';

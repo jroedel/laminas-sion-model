@@ -2,12 +2,12 @@
 
 namespace SionModel\Db\Model;
 
-use Zend\Cache\Storage\StorageInterface;
-use Zend\Filter\FilterChain;
-use Zend\Filter\StringToLower;
-use Zend\Filter\PregReplace;
-use Zend\EventManager\EventManagerInterface;
-use Zend\Mvc\MvcEvent;
+use Laminas\Cache\Storage\StorageInterface;
+use Laminas\Filter\FilterChain;
+use Laminas\Filter\StringToLower;
+use Laminas\Filter\PregReplace;
+use Laminas\EventManager\EventManagerInterface;
+use Laminas\Mvc\MvcEvent;
 
 trait SionCacheTrait
 {
@@ -52,7 +52,7 @@ trait SionCacheTrait
      */
     protected $classIdentifier;
 
-    public function wireOnFinishTrigger(EventManagerInterface $em, $priority = 100)
+    public function wireOnFinishTrigger(EventManagerInterface $em, $priority = 100): void
     {
         $em->attach(MvcEvent::EVENT_FINISH, [$this, 'onFinishWriteCache'], $priority);
     }
@@ -236,6 +236,8 @@ trait SionCacheTrait
     /**
      * At the end of the page load, cache any uncached items up to max_number_of_items_to_cache.
      * This is because serializing big objects can be very memory expensive.
+     *
+     * @return void
      */
     public function onFinishWriteCache()
     {
@@ -243,7 +245,7 @@ trait SionCacheTrait
         $count = 0;
         if (is_object($this->persistentCache)) {
             foreach ($this->newPersistentCacheItems as $fullyQualifiedCacheKey) {
-                if (key_exists($fullyQualifiedCacheKey, $this->memoryCache)) {
+                if (array_key_exists($fullyQualifiedCacheKey, $this->memoryCache)) {
                     if (isset($this->logger)) {
                         $this->logger->debug("Writing cache.", ['cacheKey' => $fullyQualifiedCacheKey]);
                     }

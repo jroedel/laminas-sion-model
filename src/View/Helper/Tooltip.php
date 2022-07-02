@@ -1,23 +1,23 @@
 <?php
 
-// SionModel/View/Helper/Tooltip.php
+declare(strict_types=1);
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
+use Laminas\View\Helper\AbstractHelper;
 
 class Tooltip extends AbstractHelper
 {
-    public function __invoke($text, $tooltipText, $escape = true, $placement = 'bottom')
+    public function __invoke(string $text, ?string $tooltipText, bool $escape = true, string $placement = 'bottom')
     {
-        if (is_null($text) || $text == '') {
+        if ($text === '') {
             return '';
         }
-        if (is_null($tooltipText) || $tooltipText == '') {
-            return '<span>' . ($escape ? $this->escapeHtml($text) : $text) . '</span>';
+        if (! isset($tooltipText) || $tooltipText === '') {
+            return '<span>' . ($escape ? $this->view->escapeHtml($text) : $text) . '</span>';
         }
-        return '<span class="tooltip" data-toggle="tooltip" data-placement="' . $placement . '" title="' .
-            ($escape ? $this->view->escapeHtmlAttr($tooltipText) : $tooltipText) .
-            '">' . ($escape ? $this->view->escapeHtml($text) : $text) . '</span>';
+        return '<span class="tooltip" data-toggle="tooltip" data-placement="' . $placement . '" title="'
+            . ($escape ? $this->view->escapeHtmlAttr($tooltipText) : $tooltipText)
+            . '">' . ($escape ? $this->view->escapeHtml($text) : $text) . '</span>';
     }
 }

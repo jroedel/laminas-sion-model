@@ -1,22 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\View\Helper;
 
+use DateTime;
+use Exception;
+use IntlDateFormatter;
 use InvalidArgumentException;
-use Zend\View\Helper\AbstractHelper;
-use SionModel\Service\EntitiesService;
+use Laminas\View\Helper\AbstractHelper;
+use Laminas\View\Helper\HelperInterface;
 use SionModel\Entity\Entity;
+use SionModel\Service\EntitiesService;
+
+use function array_key_exists;
+use function count;
+use function is_array;
+use function is_bool;
+use function is_callable;
+use function sprintf;
+use function strlen;
 
 class FormatEntity extends AbstractHelper
 {
-    /**
-     * @var Entity[] $entities
-     */
+    /** @var Entity[] $entities */
     protected $entities = [];
 
-    /**
-     * @var bool $routePermissionCheckingEnabled
-     */
+    /** @var bool $routePermissionCheckingEnabled */
     protected $routePermissionCheckingEnabled = false;
 
     /**
@@ -29,7 +39,6 @@ class FormatEntity extends AbstractHelper
     }
 
     /**
-     *
      * @param string $entityType
      * @param mixed[] $data
      * @param array $options
@@ -38,14 +47,14 @@ class FormatEntity extends AbstractHelper
      */
     public function __invoke($entityType, $data, array $options = [])
     {
-        if (! isset($entityType) || ! key_exists($entityType, $this->entities)) {
+        if (! isset($entityType) || ! array_key_exists($entityType, $this->entities)) {
             if ($options['failSilently']) {
                 return '';
             } else {
                 throw new InvalidArgumentException('Unknown entity type passed: ' . $entityType);
             }
         }
-        $isDeleted = isset($data['isDeleted']) && $data['isDeleted'];
+        $isDeleted  = isset($data['isDeleted']) && $data['isDeleted'];
         $entitySpec = $this->entities[$entityType];
 
         //forward request to registered view helper if we have one
@@ -56,16 +65,17 @@ class FormatEntity extends AbstractHelper
 
         //set default options
         $options = [
-            'displayFlag' => isset($options['displayFlag']) ? (bool)$options['displayFlag'] : true,
-            'displayAsLink' => isset($options['displayAsLink']) ? (bool)$options['displayAsLink'] : true,
-            'displayEditPencil' => isset($options['displayEditPencil']) ? (bool)$options['displayEditPencil'] : true,
-            'failSilently' => isset($options['failSilently']) ? (bool)$options['failSilently'] : true,
-            'displayInactiveLabel' => isset($options['displayInactiveLabel']) ? (bool)$options['displayInactiveLabel'] : false,
+            'displayFlag'          => ! isset($options['displayFlag']) || (bool) $options['displayFlag'],
+            'displayAsLink'        => ! isset($options['displayAsLink']) || (bool) $options['displayAsLink'],
+            'displayEditPencil'    => ! isset($options['displayEditPencil']) || (bool) $options['displayEditPencil'],
+            'failSilently'         => ! isset($options['failSilently']) || (bool) $options['failSilently'],
+            'displayInactiveLabel' => isset($options['displayInactiveLabel'])
+                && (bool) $options['displayInactiveLabel'],
         ];
         if ($isDeleted) {
-            $options['displayAsLink'] = false;
-            $options['displayEditPencil'] - false;
-            $options['displayFlag'] = false;
+            $options['displayAsLink']     = false;
+            $options['displayEditPencil'] = false;
+            $options['displayFlag']       = false;
         }
 
         if (! is_array($data)) {
@@ -107,11 +117,11 @@ class FormatEntity extends AbstractHelper
         }
 
         //if our name field is a date, format it as a medium date
-        if ($data[$entitySpec->nameField] instanceof \DateTime) {
+        if ($data[$entitySpec->nameField] instanceof DateTime) {
             $name = $this->view->dateFormat(
                 $data[$entitySpec->nameField],
-                \IntlDateFormatter::MEDIUM,
-                \IntlDateFormatter::NONE
+                IntlDateFormatter::MEDIUM,
+                IntlDateFormatter::NONE
             );
         } else {
             $name = $data[$entitySpec->nameField];
@@ -141,10 +151,11 @@ class FormatEntity extends AbstractHelper
                 if (count($editParams) === count($entitySpec->editRouteParams)) {
                     $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
                 }
-            } elseif ($entitySpec->editRouteKeyField &&
+            } elseif (
+                $entitySpec->editRouteKeyField &&
                 isset($data[$entitySpec->editRouteKeyField])
             ) {
-                $editId = $data[$entitySpec->editRouteKeyField];
+                $editId       = $data[$entitySpec->editRouteKeyField];
                 $finalMarkup .= $this->view->editPencil($entityType, $editId);
             } elseif ($entitySpec->defaultRouteParams) {
                 $editParams = [];
@@ -161,7 +172,8 @@ class FormatEntity extends AbstractHelper
                 }
             }
         }
-        if ($options['displayInactiveLabel'] &&
+        if (
+            $options['displayInactiveLabel'] &&
             (isset($data['isActive']) && is_bool($active = $data['isActive']) ||
             isset($data['active']) && is_bool($active = $data['active']))
         ) {
@@ -181,7 +193,7 @@ class FormatEntity extends AbstractHelper
     protected function wrapAsLink($entityType, $data, $linkText)
     {
         $entitySpec = $this->entities[$entityType];
-        $route = $entitySpec->showRoute;
+        $route      = $entitySpec->showRoute;
         if (! isset($route) || ! $this->isActionAllowed('show', $entityType, $data)) {
             return $linkText;
         }
@@ -206,7 +218,7 @@ class FormatEntity extends AbstractHelper
             && $this->isActionAllowed('show', $entityType, $data)
         ) {
             $routeKey = $entitySpec->showRouteKey;
-            $id = $data[$entitySpec->showRouteKeyField];
+            $id       = $data[$entitySpec->showRouteKeyField];
             return sprintf('<a href="%s">%s</a>', $this->view->url($route, [$routeKey => $id]), $linkText);
         }
         if (is_array($entitySpec->defaultRouteParams)) {
@@ -226,24 +238,28 @@ class FormatEntity extends AbstractHelper
         return $linkText;
     }
 
-    protected function isActionAllowed($action, $entityType, $object)
+    /**
+     * @psalm-param 'show' $action
+     */
+    protected function isActionAllowed(string $action, string $entityType, array $object)
     {
         if (! $this->getRoutePermissionCheckingEnabled()) {
             return true;
         }
-        if (! isset(Entity::$isActionAllowedPermissionProperties[$action])) {
+        if (! isset(Entity::IS_ACTION_ALLOWED_PERMISSION_PROPERTIES[$action])) {
             throw new InvalidArgumentException('Invalid action parameter');
         }
         $entitySpec = $this->entities[$entityType];
 
         /**
          * isAllowed plugin
-         * @var \Zend\View\Helper\HelperInterface $isAllowedPlugin
+         *
+         * @var HelperInterface $isAllowedPlugin
          */
         $isAllowedPlugin = null;
         try {
             $isAllowedPlugin = $this->view->plugin('isAllowed');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
         }
         //if we don't have the isAllowed plugin, just allow
         if (! is_callable($isAllowedPlugin)) {
@@ -251,10 +267,12 @@ class FormatEntity extends AbstractHelper
         }
 
         //check the route permissions of BjyAuthorize
-        $routeProperty = array_key_exists($action, Entity::$actionRouteProperties) ? Entity::$actionRouteProperties[$action] : null;
+        $routeProperty = array_key_exists($action, Entity::ACTION_ROUTE_PROPERTIES)
+            ? Entity::ACTION_ROUTE_PROPERTIES[$action]
+            : null;
         if (
             isset($routeProperty) && isset($entitySpec->$routeProperty) &&
-            ! $isAllowedPlugin->__invoke('route/' . $entitySpec->$routeProperty)
+            ! $isAllowedPlugin('route/' . $entitySpec->$routeProperty)
         ) {
             return false;
         }
@@ -263,29 +281,29 @@ class FormatEntity extends AbstractHelper
             return true;
         }
 
-        $permissionProperty = Entity::$isActionAllowedPermissionProperties[$action];
+        $permissionProperty = Entity::IS_ACTION_ALLOWED_PERMISSION_PROPERTIES[$action];
         if (! isset($entitySpec->$permissionProperty)) {
             //we don't need the permission, just the resourceId
-            return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField]);
+            return $isAllowedPlugin($object[$entitySpec->aclResourceIdField]);
         }
 
-        return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField], $entitySpec->$permissionProperty);
+        return $isAllowedPlugin($object[$entitySpec->aclResourceIdField], $entitySpec->$permissionProperty);
     }
 
     /**
-    * Get the routePermissionCheckingEnabled value
-    * @return bool
-    */
+     * Get the routePermissionCheckingEnabled value
+     *
+     * @return bool
+     */
     public function getRoutePermissionCheckingEnabled()
     {
         return $this->routePermissionCheckingEnabled;
     }
 
     /**
-    *
-    * @param bool $routePermissionCheckingEnabled
-    * @return self
-    */
+     * @param bool $routePermissionCheckingEnabled
+     * @return self
+     */
     public function setRoutePermissionCheckingEnabled($routePermissionCheckingEnabled)
     {
         $this->routePermissionCheckingEnabled = $routePermissionCheckingEnabled;

@@ -6,12 +6,14 @@
  * @param bool $showEntity whether or not to show the entity column
  */
 use Cake\Utility\Text;
+use GeoIp2\Database\Reader;
+
 ?>
 <div class="responsive-table">
 <table class="table">
 <?php $standingTimeString = '';
 $showEntity = isset($this->showEntity) ? (bool)$this->showEntity : true;
-$maxRows = isset($this->maxRows) ? $this->maxRows : null;
+$maxRows = $this->maxRows ?? null;
 $limitRows = isset($maxRows);
 $counter = 0;
 foreach ($this->changes as $row):
@@ -36,13 +38,10 @@ foreach ($this->changes as $row):
 	<?php endif;
 	$geoText = null;
 	if (isset($row['ipAddress'])) {
-    	$geoText = '';
-        $geo = $this->geoip($row['ipAddress']);
-    	if ($geo && $geo->getCity()) {
-    	    $geoText .= ' ' . mb_convert_encoding($geo->getCity(),"UTF-8","Windows-1252").", ";
-    	}
-    	if ($geo && $geo->getCountryName()) {
-    	    $geoText .= mb_convert_encoding($geo->getCountryName(),"UTF-8","Windows-1252");
+        /** @var Reader $record */
+        $record = $this->geoIp2City($row['ipAddress']);
+    	if (isset($record)) {
+    	    $geoText = $record->city->name . ", " . $record->country->name;
     	}
 	}?>
 	<tr>
@@ -54,7 +53,7 @@ foreach ($this->changes as $row):
     	</td><?php
     	if ($showEntity):?>
 		<td><?php
-            if (isset($row['object']) && !is_null($row['object'])) {
+            if (isset($row['object'])) {
 
                 echo $this->formatEntity($row['entityType'], $row['object'],
                     [

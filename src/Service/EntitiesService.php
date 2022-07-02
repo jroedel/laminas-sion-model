@@ -1,13 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\Service;
 
+use Exception;
 use SionModel\Entity\Entity;
 
 class EntitiesService
 {
     /**
      * Keyed array of Entity's
+     *
      * @var Entity[] $entities
      */
     protected array $entities = [];
@@ -21,7 +25,13 @@ class EntitiesService
             if (! empty($this->entities[$entity]->sionControllers)) {
                 foreach ($this->entities[$entity]->sionControllers as $sionController) {
                     if (isset($this->entityControllers[$entity])) {
-                        throw new \Exception('Duplication assignment of SionController \'' . $sionController . '\' under the \'' . $entity . '\' entity.');
+                        throw new Exception(
+                            'Duplication assignment of SionController \''
+                            . $sionController
+                            . '\' under the \''
+                            . $entity
+                            . '\' entity.'
+                        );
                     }
                     $this->entityControllers[$sionController] = $entity;
                 }
@@ -29,17 +39,11 @@ class EntitiesService
         }
     }
 
-    /**
-     * @return array
-     */
     public function getEntityControllers(): array
     {
         return $this->entityControllers;
     }
 
-    /**
-     * @return Entity[]
-     */
     public function getEntities(): array
     {
         return $this->entities;

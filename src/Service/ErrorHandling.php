@@ -1,26 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\Service;
+
+use Exception;
+use Laminas\Log\LoggerInterface;
+
+use function implode;
 
 class ErrorHandling
 {
-    protected $logger;
-
-    function __construct($logger)
+    public function __construct(protected LoggerInterface $logger)
     {
-        $this->logger = $logger;
     }
 
-    function logException(\Exception $e)
+    public function logException(Exception $e): void
     {
-        $trace = $e->getTraceAsString();
-        $i = 1;
+        $trace    = $e->getTraceAsString();
+        $i        = 1;
         $messages = [];
         do {
             $messages[] = $i++ . ": " . $e->getMessage();
         } while ($e = $e->getPrevious());
 
-        $log = "Exception:\n" . implode("\n", $messages);
+        $log  = "Exception:\n" . implode("\n", $messages);
         $log .= "\nTrace:\n" . $trace;
 
         $this->logger->err($log);

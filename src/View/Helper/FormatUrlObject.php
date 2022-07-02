@@ -1,23 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 // SionModel/View/Helper/FormatUrlObject.php
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
+use InvalidArgumentException;
+use Laminas\View\Helper\AbstractHelper;
+
+use function array_key_exists;
+use function sprintf;
 
 class FormatUrlObject extends AbstractHelper
 {
-    public function __invoke($url, $openInNewTab = true)
+    public function __invoke(array $url, bool $openInNewTab = true): string
     {
-        if (is_null($url)) {
+        if (! isset($url)) {
             return '';
         }
         if (
-            ! key_exists('url', $url) || ! key_exists('label', $url) ||
-            is_null($url['url']) || is_null($url['label'])
+            ! array_key_exists('url', $url) || ! array_key_exists('label', $url) ||
+            ! isset($url['url']) || ! isset($url['label'])
         ) {
-            throw new \InvalidArgumentException('Please pass a URL object created by SionTable::filterUrl().');
+            throw new InvalidArgumentException('Please pass a URL object created by SionTable::filterUrl().');
         }
 
         if ($openInNewTab) {
@@ -25,7 +31,6 @@ class FormatUrlObject extends AbstractHelper
         } else {
             $format = "<a href=\"%s\">%s</a>";
         }
-        $return = sprintf($format, $url['url'], $this->view->escapeHtml($url['label']));
-        return $return;
+        return sprintf($format, $url['url'], $this->view->escapeHtml($url['label']));
     }
 }

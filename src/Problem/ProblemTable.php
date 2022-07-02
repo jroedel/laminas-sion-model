@@ -14,10 +14,9 @@ class ProblemTable extends SionTable
 
     protected $problemsCache;
 
-    public function getProblems()
+    public function getProblems(): array
     {
-
-        if (! is_null($this->problemsCache)) {
+        if (isset($this->problemsCache)) {
             return $this->problemsCache;
         }
 
@@ -52,7 +51,7 @@ FROM `a_data_problems` WHERE 1";
         return $this->problemsCache = $entities;
     }
 
-    public function getProblem()
+    public function getProblem(): void
     {
     }
 }

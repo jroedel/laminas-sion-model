@@ -10,7 +10,7 @@
 
 namespace SionModel\Filter;
 
-use Zend\Filter\AbstractFilter;
+use Laminas\Filter\AbstractFilter;
 
 class ToAscii extends AbstractFilter
 {
@@ -20,7 +20,7 @@ class ToAscii extends AbstractFilter
     }
 
     /**
-     * Defined by Zend\Filter\FilterInterface
+     * Defined by Laminas\Filter\FilterInterface
      *
      * Returns (int) $value
      *
