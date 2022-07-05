@@ -6,6 +6,7 @@ namespace SionModel\Db\Model;
 
 use DateTime;
 use Exception;
+use Laminas\Db\Adapter\AdapterInterface;
 use Laminas\Db\ResultSet\ResultSetInterface;
 use Laminas\Db\Sql\Predicate\In;
 use Laminas\Db\Sql\Predicate\Operator;
@@ -13,6 +14,7 @@ use Laminas\Db\Sql\Predicate\PredicateSet;
 use Laminas\Db\Sql\Select;
 use Laminas\Db\Sql\Where;
 
+use Psr\Container\ContainerInterface;
 use function count;
 use function is_array;
 
@@ -30,6 +32,11 @@ class PredicatesTable extends SionTable
     public const COMMENT_STATUS_IN_REVIEW = 'in-review';
     public const COMMENT_STATUS_PUBLISHED = 'published';
     public const COMMENT_STATUS_DENIED    = 'denied';
+
+    public function __construct(AdapterInterface $adapter, ContainerInterface $container, ?int $actingUserId)
+    {
+        parent::__construct($adapter, $container, $actingUserId);
+    }
 
     /**
      * Query params are [predicateKind|objectEntityKind,objectId(array|string)]

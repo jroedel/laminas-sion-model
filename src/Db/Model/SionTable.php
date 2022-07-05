@@ -42,6 +42,7 @@ use SionModel\Service\ProblemService;
 
 use function array_key_exists;
 use function array_values;
+use function assert;
 use function call_user_func_array;
 use function count;
 use function date_format;
@@ -414,9 +415,7 @@ class SionTable
         $predicate = new Operator($entitySpec->tableKey, Operator::OPERATOR_EQUAL_TO, $entityId);
         $select->where($predicate);
         $result = $gateway->selectWith($select);
-        if (! $result instanceof ResultSetInterface) {
-            throw new Exception("Unexpected query result for entity `$entity`");
-        }
+        assert($result instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
         $results = $result->toArray();
         if (! isset($results[0])) {
             return null;
@@ -630,7 +629,7 @@ class SionTable
         }
 
         //then actually process the row
-        if (false !== $entityRowFunctionCache[$entity]) {
+        if (isset($entityRowFunctionCache[$entity])) {
             $processor = $entityRowFunctionCache[$entity];
             return $this->$processor($row);
         } else {
@@ -697,7 +696,10 @@ class SionTable
         }
         $select->where($where)
         ->group(['EntityId']);
-        $result = $gateway->selectWith($select);
+        $resultObject = $gateway->selectWith($select);
+        assert($resultObject instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
+        $result = $resultObject->toArray();
+        unset($resultObject);
         foreach ($result as $row) {
             if (! isset($row['EntityId'])) {
                 continue;
@@ -722,7 +724,11 @@ class SionTable
         );
         $select->where($where)
         ->group(['EntityId']);
-        $result = $gateway->selectWith($select);
+        $resultObject = $gateway->selectWith($select);
+        assert($resultObject instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
+        $result = $resultObject->toArray();
+        unset($resultObject);
+
         foreach ($result as $row) {
             if (! isset($row['EntityId'])) {
                 continue;
@@ -1575,9 +1581,13 @@ class SionTable
         $select->group(['TheMonth', 'TheYear']);
         $select->where($predicate->in('ChangedEntity', $tableEntities));
         $select->order('TheYear, TheMonth');
-        $resultsChanges = $gateway->selectWith($select);
-        $months         = [];
-        foreach ($resultsChanges as $row) {
+        $resultObject = $gateway->selectWith($select);
+        assert($resultObject instanceof ResultSetInterface, "Unexpected query result for entity `changes`");
+        $result = $resultObject->toArray();
+        unset($resultObject);
+
+        $months = [];
+        foreach ($result as $row) {
             if (
                 is_numeric($row['TheMonth']) && $row['TheMonth'] > 0 && $row['TheMonth'] <= 12 &&
                 is_numeric($row['TheYear']) && $row['TheYear'] >= 2015 && $row['TheYear'] <= 2050 &&
@@ -1620,15 +1630,19 @@ class SionTable
             'ChangedIDValue' => $entityId,
         ]);
         $select->order(['UpdatedOn' => 'DESC']);
-        $resultsChanges = $gateway->selectWith($select);
-        $objects        = [
+        $resultObject = $gateway->selectWith($select);
+        assert($resultObject instanceof ResultSetInterface, "Unexpected query result for entity `changes`");
+        $result = $resultObject->toArray();
+        unset($resultObject);
+
+        $objects = [
             $entity => [
                 $entityId => $this->getObject($entity, $entityId),
             ],
         ];
 
         $changes = [];
-        foreach ($resultsChanges as $row) {
+        foreach ($result as $row) {
             $this->processChangeRow($row, $objects, $changes);
         }
         krsort($changes);
@@ -1648,7 +1662,9 @@ class SionTable
         $select->order(['UpdatedOn' => 'DESC']);
         $select->limit($maxRows);
         $resultsChanges = $gateway->selectWith($select);
+        assert($resultsChanges instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
         $results        = $resultsChanges->toArray();
+        unset($resultsChanges);
 
         //collect list of objects to query
         $objectKeyList = [];
@@ -1697,30 +1713,32 @@ class SionTable
     {
         static $users;
         $user = null;
-        if (isset($row['UpdatedBy']) && is_string($row['UpdatedBy']) && is_numeric($row['UpdatedBy'])) {
+        if (isset($row['UpdatedBy'])) {
+            assert(is_int($row['UpdatedBy']), 'UpdatedBy field in changes table should always be null|int');
             if (! isset($users)) {
                 $userTable = $this->getUserTable();
                 $users     = $userTable->getUsers();
             }
-            if (isset($users[$row['UpdatedBy']])) {
-                $user = $users[$row['UpdatedBy']];
-            } else {
-                $user = [
-                    'userId' => $this->filterDbId($row['UpdatedBy']),
-                ];
-            }
+            $user = $users[$row['UpdatedBy']] ?? ['userId' => $row['UpdatedBy']];
         }
         $entity    = $this->filterDbString($row['ChangedEntity']);
         $entityId  = $this->filterDbString($row['ChangedIDValue']);
         $updatedOn = $this->filterDbDate($row['UpdatedOn']);
+
+        assert(
+            isset($this->entitySpecifications[$entity]),
+            'processChangeRow received an unknown entity value'
+        );
         //only bring in recognized entities from this class
-        if (
-            ! isset($this->entitySpecifications[$entity]) ||
-            $this->entitySpecifications[$entity]->sionModelClass !== static::class ||
-            ! isset($updatedOn)
-        ) {
-            return false;
-        }
+        assert(
+            $this->entitySpecifications[$entity]->sionModelClass === static::class,
+            'processChangeRow received an entity value not managed by this SionTable'
+        );
+        assert(
+            isset($updatedOn),
+            'processChangeRow received a change row without an updatedOn value'
+        );
+
         $change = [
             'changeId'            => $this->filterDbId($row['ChangeID']),
             'entityType'          => $entity,
@@ -1909,7 +1927,7 @@ class SionTable
     /**
      * Filter a database int
      */
-    protected function filterDbInt(string $str): int|null
+    protected function filterDbInt(?string $str): int|null
     {
         if (! isset($str) || $str === '') {
             return null;
@@ -1932,16 +1950,13 @@ class SionTable
         return $filter->filter($str);
     }
 
-    /**
-     * @param string $str
-     */
-    protected function filterDbDate(string $str): DateTime|null
+    protected function filterDbDate(?string $str): DateTime|null
     {
         static $tz;
         if (! isset($tz)) {
             $tz = new DateTimeZone('UTC');
         }
-        if (null === $str || $str === '' || $str === '0000-00-00' || $str === '0000-00-00 00:00:00') {
+        if (! isset($str) || $str === '' || $str === '0000-00-00' || $str === '0000-00-00 00:00:00') {
             return null;
         }
         try {

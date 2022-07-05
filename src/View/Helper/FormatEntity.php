@@ -14,8 +14,8 @@ use SionModel\Entity\Entity;
 use SionModel\Service\EntitiesService;
 
 use function array_key_exists;
+use function assert;
 use function count;
-use function is_array;
 use function is_bool;
 use function is_callable;
 use function sprintf;
@@ -39,13 +39,12 @@ class FormatEntity extends AbstractHelper
     }
 
     /**
-     * @param string $entityType
      * @param mixed[] $data
      * @param array $options
      * Available options: displayAsLink(bool), displayEditPencil(bool), displayFlag(bool)
      * @throws InvalidArgumentException
      */
-    public function __invoke($entityType, $data, array $options = [])
+    public function __invoke(string $entityType, array $data, array $options = []): string
     {
         if (! isset($entityType) || ! array_key_exists($entityType, $this->entities)) {
             if ($options['failSilently']) {
@@ -65,12 +64,11 @@ class FormatEntity extends AbstractHelper
 
         //set default options
         $options = [
-            'displayFlag'          => ! isset($options['displayFlag']) || (bool) $options['displayFlag'],
-            'displayAsLink'        => ! isset($options['displayAsLink']) || (bool) $options['displayAsLink'],
-            'displayEditPencil'    => ! isset($options['displayEditPencil']) || (bool) $options['displayEditPencil'],
-            'failSilently'         => ! isset($options['failSilently']) || (bool) $options['failSilently'],
-            'displayInactiveLabel' => isset($options['displayInactiveLabel'])
-                && (bool) $options['displayInactiveLabel'],
+            'displayFlag'          => ! isset($options['displayFlag']) || $options['displayFlag'],
+            'displayAsLink'        => ! isset($options['displayAsLink']) || $options['displayAsLink'],
+            'displayEditPencil'    => ! isset($options['displayEditPencil']) || $options['displayEditPencil'],
+            'failSilently'         => ! isset($options['failSilently']) || $options['failSilently'],
+            'displayInactiveLabel' => isset($options['displayInactiveLabel']) && $options['displayInactiveLabel'],
         ];
         if ($isDeleted) {
             $options['displayAsLink']     = false;
@@ -78,13 +76,6 @@ class FormatEntity extends AbstractHelper
             $options['displayFlag']       = false;
         }
 
-        if (! is_array($data)) {
-            if ($options['failSilently']) {
-                return '';
-            } else {
-                throw new InvalidArgumentException('$data should be an array.');
-            }
-        }
         if (
             ! $entitySpec->entityKeyField ||
             ! isset($data[$entitySpec->entityKeyField])
@@ -143,7 +134,9 @@ class FormatEntity extends AbstractHelper
                 foreach ($entitySpec->editRouteParams as $routeParam => $entityField) {
                     if (! isset($data[$entityField])) {
                         //@todo log this
-//                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
+//                     throw new \Exception(
+                    //"Error while redirecting after a successful edit. Missing param `$entityField`"
+                    //);
                     } else {
                         $editParams[$routeParam] = $data[$entityField];
                     }
@@ -197,7 +190,7 @@ class FormatEntity extends AbstractHelper
         if (! isset($route) || ! $this->isActionAllowed('show', $entityType, $data)) {
             return $linkText;
         }
-        if (is_array($entitySpec->showRouteParams)) {
+        if (! empty($entitySpec->showRouteParams)) {
             $params = [];
             foreach ($entitySpec->showRouteParams as $routeParam => $entityField) {
                 if (! isset($data[$entityField])) {
@@ -221,15 +214,11 @@ class FormatEntity extends AbstractHelper
             $id       = $data[$entitySpec->showRouteKeyField];
             return sprintf('<a href="%s">%s</a>', $this->view->url($route, [$routeKey => $id]), $linkText);
         }
-        if (is_array($entitySpec->defaultRouteParams)) {
+        if (! empty($entitySpec->defaultRouteParams)) {
             $params = [];
             foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
-                if (! isset($data[$entityField])) {
-                    //@todo log this
-                    //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
-                } else {
-                    $params[$routeParam] = $data[$entityField];
-                }
+                assert(isset($data[$entityField]), "Unable to find entityField `$entityField` for `$entityType`");
+                $params[$routeParam] = $data[$entityField];
             }
             if (count($params) === count($entitySpec->defaultRouteParams)) {
                 return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);

@@ -49,17 +49,17 @@ class Entity
      * Method names from which to get reference data upon updating an entity
      * It must be in the same SionModel class from which 'updateEntity' is called
      */
-    public ?string $getObjectFunction;
+    public ?string $getObjectFunction = null;
     /**
      * Function name to get all objects. This function is called from getObjects.
      */
-    public ?string $getObjectsFunction;
+    public ?string $getObjectsFunction = null;
     /**
      * Name of a function that receives the raw database row in an array format
      * and returns an array of the processed data.
      * Is delegated from the processEntityRow function
      */
-    public ?string $rowProcessorFunction;
+    public ?string $rowProcessorFunction = null;
     /**
      * A list of entity names this one depends on to complete its data.
      * This is used for cache management. For example, if entity A depends on entity B and a row of entity B
@@ -72,7 +72,7 @@ class Entity
     /**
      * A registered alias of a view helper to render the entity
      */
-    public ?string $formatViewHelper;
+    public ?string $formatViewHelper = null;
     /**
      * List of columns needed in order to insert a new entity
      * @var string[] $requiredColumnsForCreation
@@ -81,7 +81,7 @@ class Entity
     /**
      * The name of the entity's field to use to display the name
      */
-    public ?string $nameField;
+    public ?string $nameField = null;
     /**
      * Should the name be translated upon display?
      * @var bool $nameFieldIsTranslatable
@@ -90,7 +90,7 @@ class Entity
     /**
      * Used in FormatEntity to display a flag before the name field.
      */
-    public ?string $countryField;
+    public ?string $countryField = null;
     /**
      * List of fields that should be stored in the Changes table as a text column instead of varchar
      * @var string[] $textColumns
@@ -119,18 +119,18 @@ class Entity
      * A route name where an index of the entities can be found.
      * The SionController will redirect here if an invalid entity was attempted to be edited.
      */
-    public ?string $indexRoute;
+    public ?string $indexRoute = null;
 
     /**
      * A template stack address to render the SionController::indexAction
      */
-    public ?string $indexTemplate;
+    public ?string $indexTemplate = null;
 
     /**
      * The route parameter to pass the entity id, if a more specific one isn't specified
      * @deprecated
      */
-    public ?string $defaultRouteKey;
+    public ?string $defaultRouteKey = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
      * @var string[] $defaultRouteParams
@@ -139,12 +139,12 @@ class Entity
     /**
      * Template stack address to render on the SionController::showAction
      */
-    public ?string $showActionTemplate;
+    public ?string $showActionTemplate = null;
     /**
      * The route to show this entity
      * Example: 'persons/person'
      */
-    public ?string $showRoute;
+    public ?string $showRoute = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
      * @var string[] $showRouteParams
@@ -155,26 +155,26 @@ class Entity
      * Example: 'person_id'
      * @deprecated
      */
-    public ?string $showRouteKey;
+    public ?string $showRouteKey = null;
     /**
      * The entity field to pass as the show route parameter
      * Example: 'personId'
      * @deprecated
      */
-    public ?string $showRouteKeyField;
+    public ?string $showRouteKeyField = null;
     /**
      * String representing either a service, or a class name
      */
-    public ?string $editActionForm;
+    public ?string $editActionForm = null;
     /**
      * Template stack address to render on the SionController::editAction
      */
-    public ?string $editActionTemplate;
+    public ?string $editActionTemplate = null;
     /**
      * The route to edit this entity
      * Example: 'persons/person/edit'
      */
-    public ?string $editRoute;
+    public ?string $editRoute = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
      * @var string[] $editRouteParams
@@ -185,30 +185,30 @@ class Entity
      * Example: 'person_id'
      * @deprecated
      */
-    public ?string $editRouteKey;
+    public ?string $editRouteKey = null;
     /**
      * The entity field to pass as the edit route parameter
      * Example: 'personId'
      * @deprecated
      */
-    public ?string $editRouteKeyField;
+    public ?string $editRouteKeyField = null;
 
     /**
      * String representing either a service, or a class name
      */
-    public ?string $createActionForm;
+    public ?string $createActionForm = null;
 
     /**
      * A function within the SionController child class to handle functionality once
      * the entity has been validated. The function will receive one parameter, the
      * validated data.
      */
-    public ?string $createActionValidDataHandler;
+    public ?string $createActionValidDataHandler = null;
 
     /**
      * Route to which the user will be redirected upon a successful entity creation
      */
-    public ?string $createActionRedirectRoute;
+    public ?string $createActionRedirectRoute = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
      * @var string[] $createActionRedirectRouteParams
@@ -221,24 +221,24 @@ class Entity
      * If this value is omitted, the user will be redirected with no route parameter
      * @deprecated
      */
-    public ?string $createActionRedirectRouteKey;
+    public ?string $createActionRedirectRouteKey = null;
 
     /**
      * Entity field to use as route key value upon successfully creating an entity instance
      * @deprecated
      */
-    public ?string $createActionRedirectRouteKeyField;
+    public ?string $createActionRedirectRouteKeyField = null;
 
     /**
      * A view template in the template stack to render in the SionController->createAction.
      * If it is not specified, the default view template will be used.
      */
-    public ?string $createActionTemplate;
+    public ?string $createActionTemplate = null;
     /**
      * The field of entity to touch if none is specified.
      * If not specified, the $entityKeyField will be touched
      */
-    public ?string $touchDefaultField;
+    public ?string $touchDefaultField = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
      * @var string[] $touchRouteParams
@@ -248,29 +248,29 @@ class Entity
      * A route key that specifies the entity id to touch in the touchAction
      * @deprecated
      */
-    public ?string $touchRouteKey;
+    public ?string $touchRouteKey = null;
     /**
      * A route key that specifies the entity field to touch for the touchAction
      * and touchJsonAction of SionController.
      * If not specified, the $touchDefaultField will be touched
      * @deprecated
      */
-    public ?string $touchFieldRouteKey;
+    public ?string $touchFieldRouteKey = null;
     /**
      * The route to edit this entity
      * Example: 'persons/person/touch'
      */
-    public ?string $touchJsonRoute;
+    public ?string $touchJsonRoute = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
      */
-    public ?array $touchJsonRouteParams;
+    public ?array $touchJsonRouteParams = [];
     /**
      * The route parameter to pass when generating the URL to the edit route
      * Example: 'person_id'
      * @deprecated
      */
-    public ?string $touchJsonRouteKey;
+    public ?string $touchJsonRouteKey = null;
 
     /**
      * A function to be called upon $data before creating/updating an entity
@@ -286,7 +286,7 @@ class Entity
      *
      * @var string $databaseBoundDataPreprocessor
      */
-    public ?string $databaseBoundDataPreprocessor;
+    public ?string $databaseBoundDataPreprocessor = null;
     /**
      * Same as database bound data preprocessor, but will be run after editing the database
      * This can be used to do manipulation to other related entities in the database.
@@ -296,22 +296,22 @@ class Entity
      * @param $entityAction string one of the SionTable::ENTITY_ACTION_ consts
      * @var string $databaseBoundDataPostprocessor
      */
-    public ?string $databaseBoundDataPostprocessor;
+    public ?string $databaseBoundDataPostprocessor = null;
     /**
      * The route to moderate a suggestion on this entity
      * Example: 'persons/person/moderate'
      */
-    public ?string $moderateRoute;
+    public ?string $moderateRoute = null;
     /**
      * The key used when generating the URL to the moderate route
      * Example: 'person_id'
      * @var ?string $moderateRouteEntityKey
      */
-    public ?string $moderateRouteEntityKey;
+    public ?string $moderateRouteEntityKey = null;
     /**
      * String representing either a service, or a class name
      */
-    public ?string $suggestForm;
+    public ?string $suggestForm = null;
     /**
      * Allow the entity to be deleted using the SionModel delete action
      * @var bool $enableDeleteAction
@@ -321,54 +321,54 @@ class Entity
      * The route parameter key from which to get the entity's id in the deleteAction
      * @var ?string $deleteRouteKey
      */
-    public ?string $deleteRouteKey;
+    public ?string $deleteRouteKey = null;
     /**
      * Acl resource identifier to check for permissions to delete a concrete entity
      * @deprecated
      * @var ?string $deleteActionAclResource
      */
-    public ?string $deleteActionAclResource;
+    public ?string $deleteActionAclResource = null;
     /**
      * A permission of the resource identifier to check for with isAllowed
      * @deprecated
      * @var ?string $deleteActionAclPermission
      */
-    public ?string $deleteActionAclPermission;
+    public ?string $deleteActionAclPermission = null;
     /**
      *
      * The route to which the user should be redirected after deleting an entity
      */
-    public ?string $deleteActionRedirectRoute;
+    public ?string $deleteActionRedirectRoute = null;
 
     /**
      * Entity field to find the resource identifier for permission checking
      */
-    public ?string $aclResourceIdField;
+    public ?string $aclResourceIdField = null;
     /**
      * Permission name to check if user is allowed to show the entity using the
      * BjyAuthorize isAllowed controller plugin
      */
-    public ?string $aclShowPermission;
+    public ?string $aclShowPermission = null;
     /**
      * Permission name to check if user is allowed to edit the entity using the
      * BjyAuthorize isAllowed controller plugin
      */
-    public ?string $aclEditPermission;
+    public ?string $aclEditPermission = null;
     /**
      * Permission name to check if user is allowed to suggest on the entity using the
      * BjyAuthorize isAllowed controller plugin
      */
-    public ?string $aclSuggestPermission;
+    public ?string $aclSuggestPermission = null;
     /**
      * Permission name to check if user is allowed to moderate the entity using the
      * BjyAuthorize isAllowed controller plugin
      */
-    public ?string $aclModeratePermission;
+    public ?string $aclModeratePermission = null;
     /**
      * Permission name to check if user is allowed to delete the entity using the
      * BjyAuthorize isAllowed controller plugin
      */
-    public ?string $aclDeletePermission;
+    public ?string $aclDeletePermission = null;
 
     public const IS_ACTION_ALLOWED_PERMISSION_PROPERTIES = [
         'show' => 'aclShowPermission',

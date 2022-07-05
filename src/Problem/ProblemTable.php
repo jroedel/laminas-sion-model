@@ -2,6 +2,8 @@
 
 namespace SionModel\Problem;
 
+use Laminas\Db\Adapter\AdapterInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Db\Model\SionTable;
 
 class ProblemTable extends SionTable
@@ -13,6 +15,11 @@ class ProblemTable extends SionTable
     protected $problemPrototype;
 
     protected $problemsCache;
+
+    public function __construct(AdapterInterface $adapter, ContainerInterface $container, ?int $actingUserId)
+    {
+        parent::__construct($adapter, $container, $actingUserId);
+    }
 
     public function getProblems(): array
     {
