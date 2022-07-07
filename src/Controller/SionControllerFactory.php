@@ -1,24 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\Controller;
 
-use Interop\Container\ContainerInterface;
+use Exception;
+use Laminas\Form\FormElementManager;
+use Laminas\Mvc\I18n\Translator;
 use Laminas\ServiceManager\Factory\AbstractFactoryInterface;
-use SionModel\Service\EntitiesService;
-use Laminas\ServiceManager\Exception\ServiceNotFoundException;
-use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
+use Laminas\Validator\ValidatorPluginManager;
+use Psr\Container\ContainerInterface;
 use SionModel\Db\Model\PredicatesTable;
+use SionModel\Form\SionForm;
+use SionModel\Service\EntitiesService;
 
+use function array_key_exists;
+use function class_exists;
+
+/**
+ * @deprecated
+ */
 class SionControllerFactory implements AbstractFactoryInterface
 {
-    /** @var EntitiesService $entitiesService */
-    protected $entitiesService;
+    protected ?EntitiesService $entitiesService = null;
 
     public function canCreate(ContainerInterface $container, $requestedName)
     {
         if (! isset($this->entitiesService)) {
-            $parentLocator = $container->getServiceLocator();
-            /** @var EntitiesService $entitiesService */
+            $parentLocator         = $container->getServiceLocator();
             $this->entitiesService = $parentLocator->get(EntitiesService::class);
         }
         $controllers = $this->entitiesService->getEntityControllers();
@@ -27,49 +36,43 @@ class SionControllerFactory implements AbstractFactoryInterface
 
     /**
      * These aliases work to substitute class names with SM types that are buried in ZF
+     *
      * @var array
      */
     protected $aliases = [
-        'Laminas\Form\FormElementManager' => 'FormElementManager',
-        'Laminas\Validator\ValidatorPluginManager' => 'ValidatorManager',
-        'Laminas\Mvc\I18n\Translator' => 'translator',
+        FormElementManager::class     => 'FormElementManager',
+        ValidatorPluginManager::class => 'ValidatorManager',
+        Translator::class             => 'translator',
     ];
 
     /**
      * Create an object
      *
-     * @param  ContainerInterface $container
      * @param  string             $requestedName
      * @param  null|array         $options
      * @return object
-     * @throws ServiceNotFoundException if unable to resolve the service.
-     * @throws ServiceNotCreatedException if an exception is raised when
-     *     creating a service.
-     * @throws \Exception if any other error occurs
      */
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $parentLocator = $container->getServiceLocator();
         if (! isset($this->entitiesService)) {
-            /** @var EntitiesService $entitiesService */
             $this->entitiesService = $parentLocator->get(EntitiesService::class);
         }
         //figure out what entity we're dealing with
         $entitiesSpecs = $this->entitiesService->getEntities();
-        $controllers = $this->entitiesService->getEntityControllers();
-        $entity = $controllers[$requestedName];
-        $entitySpec = $entitiesSpecs[$entity];
+        $controllers   = $this->entitiesService->getEntityControllers();
+        $entity        = $controllers[$requestedName];
+        $entitySpec    = $entitiesSpecs[$entity];
 
         //get sionTable
         if (! isset($entitySpec->sionModelClass) || ! $parentLocator->has($entitySpec->sionModelClass)) {
-            throw new \Exception('Invalid SionModel class set for entity \'' . $entity . '\'');
+            throw new Exception('Invalid SionModel class set for entity \'' . $entity . '\'');
         }
-        $sionTable = $parentLocator->get($entitySpec->sionModelClass);
-
-        $predicateTable = $parentLocator->get(PredicatesTable::class);
+        $sionTable       = $parentLocator->get($entitySpec->sionModelClass);
+        $predicatesTable = $parentLocator->get(PredicatesTable::class);
 
         //get createActionForm
-        /** @var \SionModel\Form\SionForm $createActionForm **/
+        /** @var SionForm $createActionForm **/
         $createActionForm = null;
         if (isset($entitySpec->createActionForm) && $parentLocator->has($entitySpec->createActionForm)) {
             $createActionForm = $parentLocator->get($entitySpec->createActionForm);
@@ -78,44 +81,29 @@ class SionControllerFactory implements AbstractFactoryInterface
         }
 
         //get editActionForm
-        /** @var \SionModel\Form\SionForm $editActionForm **/
+        /** @var SionForm $editActionForm **/
         $editActionForm = null;
         if (isset($entitySpec->editActionForm) && $parentLocator->has($entitySpec->editActionForm)) {
             $editActionForm = $parentLocator->get($entitySpec->editActionForm);
         } elseif (class_exists($entitySpec->editActionForm)) {
-            $className = $entitySpec->editActionForm;
+            $className      = $entitySpec->editActionForm;
             $editActionForm = new $className();
         }
 
         //get sionModelConfig
-        $config = $parentLocator->get('Config');
+        $config = $parentLocator->get('config');
 
-        //get other requested services
-        $services = [];
-        foreach ($entitySpec->controllerServices as $service) {
-            $obj = null;
-            if (isset($service) && $container->has($service)) {
-                $obj = $container->get($service);
-            }
-            $services[$service] = $obj;
-        }
-        
-        $controller = new $requestedName(
-            $entity,
-            $this->entitiesService,
-            $sionTable,
-            $predicateTable,
-            $createActionForm,
-            $editActionForm,
-            $config,
-            $services
-            );
-        
-        if (method_exists($controller, 'setLogger')) {
-            $logger = $container->get('SionModel\Logger');
-            $controller->setLogger($logger);
-        }
+        $logger = $container->get('SionModel\Logger');
 
-        return $controller;
+        return new $requestedName(
+            entity: $entity,
+            entitiesService: $this->entitiesService,
+            sionTable: $sionTable,
+            predicatesTable: $predicatesTable,
+            createActionForm: $createActionForm,
+            editActionForm: $editActionForm,
+            config: $config,
+            logger: $logger
+        );
     }
 }

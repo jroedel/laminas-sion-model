@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SionModel\View\Helper;
 
+use BjyAuthorize\View\Helper\IsAllowed;
 use DateTime;
-use Exception;
 use IntlDateFormatter;
 use InvalidArgumentException;
 use Laminas\View\Helper\AbstractHelper;
@@ -13,6 +13,7 @@ use Laminas\View\Helper\HelperInterface;
 use SionModel\Entity\Entity;
 use SionModel\Service\EntitiesService;
 
+use Webmozart\Assert\Assert;
 use function array_key_exists;
 use function assert;
 use function count;
@@ -24,25 +25,15 @@ use function strlen;
 class FormatEntity extends AbstractHelper
 {
     /** @var Entity[] $entities */
-    protected $entities = [];
+    protected array $entities = [];
 
-    /** @var bool $routePermissionCheckingEnabled */
-    protected $routePermissionCheckingEnabled = false;
-
-    /**
-     * @param EntitiesService $entityService
-     */
-    public function __construct($entityService, $routePermissionCheckingEnabled = false)
+    public function __construct(EntitiesService $entityService)
     {
         $this->entities = $entityService->getEntities();
-        $this->setRoutePermissionCheckingEnabled($routePermissionCheckingEnabled);
     }
 
     /**
-     * @param mixed[] $data
-     * @param array $options
-     * Available options: displayAsLink(bool), displayEditPencil(bool), displayFlag(bool)
-     * @throws InvalidArgumentException
+     * @param array $options displayAsLink(bool), displayEditPencil(bool), displayFlag(bool)
      */
     public function __invoke(string $entityType, array $data, array $options = []): string
     {
@@ -132,33 +123,25 @@ class FormatEntity extends AbstractHelper
             if ($entitySpec->editRouteParams) {
                 $editParams = [];
                 foreach ($entitySpec->editRouteParams as $routeParam => $entityField) {
-                    if (! isset($data[$entityField])) {
-                        //@todo log this
-//                     throw new \Exception(
-                    //"Error while redirecting after a successful edit. Missing param `$entityField`"
-                    //);
-                    } else {
-                        $editParams[$routeParam] = $data[$entityField];
-                    }
+                    Assert::keyExists(
+                        $data,
+                        $entityField,
+                        "editRouteParams for entity `$entityType` mentions an unknown field `$entityField`"
+                    );
+                    $editParams[$routeParam] = $data[$entityField];
                 }
                 if (count($editParams) === count($entitySpec->editRouteParams)) {
                     $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
                 }
-            } elseif (
-                $entitySpec->editRouteKeyField &&
-                isset($data[$entitySpec->editRouteKeyField])
-            ) {
-                $editId       = $data[$entitySpec->editRouteKeyField];
-                $finalMarkup .= $this->view->editPencil($entityType, $editId);
             } elseif ($entitySpec->defaultRouteParams) {
                 $editParams = [];
                 foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
-                    if (! isset($data[$entityField])) {
-                        //@todo log this
-                        //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
-                    } else {
-                        $editParams[$routeParam] = $data[$entityField];
-                    }
+                    Assert::keyExists(
+                        $data,
+                        $entityField,
+                        "defaultRouteParams for entity `$entityType` mentions an unknown field `$entityField`"
+                    );
+                    $editParams[$routeParam] = $data[$entityField];
                 }
                 if (count($editParams) === count($entitySpec->defaultRouteParams)) {
                     $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
@@ -177,13 +160,7 @@ class FormatEntity extends AbstractHelper
         return $finalMarkup;
     }
 
-    /**
-     * @param string $entityType
-     * @param array $data
-     * @param string $linkText
-     * @return string
-     */
-    protected function wrapAsLink($entityType, $data, $linkText)
+    protected function wrapAsLink(string $entityType, array $data, string $linkText): string
     {
         $entitySpec = $this->entities[$entityType];
         $route      = $entitySpec->showRoute;
@@ -193,31 +170,24 @@ class FormatEntity extends AbstractHelper
         if (! empty($entitySpec->showRouteParams)) {
             $params = [];
             foreach ($entitySpec->showRouteParams as $routeParam => $entityField) {
-                if (! isset($data[$entityField])) {
-                    //@todo log this
-//                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
-                } else {
-                    $params[$routeParam] = $data[$entityField];
-                }
+                Assert::keyExists(
+                    $data,
+                    $entityField,
+                    "showRouteParams for entity `$entityType` mentions an unknown field `$entityField`"
+                );
+                $params[$routeParam] = $data[$entityField];
             }
-            if (count($params) === count($entitySpec->showRouteParams)) {
-                return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);
-            }
-        }
-        if (
-            $entitySpec->showRouteKey
-            && $entitySpec->showRouteKeyField
-            && isset($data[$entitySpec->showRouteKeyField])
-            && $this->isActionAllowed('show', $entityType, $data)
-        ) {
-            $routeKey = $entitySpec->showRouteKey;
-            $id       = $data[$entitySpec->showRouteKeyField];
-            return sprintf('<a href="%s">%s</a>', $this->view->url($route, [$routeKey => $id]), $linkText);
+            Assert::count($params, count($entitySpec->showRouteParams));
+            return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);
         }
         if (! empty($entitySpec->defaultRouteParams)) {
             $params = [];
             foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
-                assert(isset($data[$entityField]), "Unable to find entityField `$entityField` for `$entityType`");
+                Assert::keyExists(
+                    $data,
+                    $entityField,
+                    "Unable to find entityField `$entityField` for `$entityType`"
+                );
                 $params[$routeParam] = $data[$entityField];
             }
             if (count($params) === count($entitySpec->defaultRouteParams)) {
@@ -227,33 +197,16 @@ class FormatEntity extends AbstractHelper
         return $linkText;
     }
 
-    /**
-     * @psalm-param 'show' $action
-     */
-    protected function isActionAllowed(string $action, string $entityType, array $object)
+    protected function isActionAllowed(string $action, string $entityType, array $object): bool
     {
-        if (! $this->getRoutePermissionCheckingEnabled()) {
-            return true;
-        }
         if (! isset(Entity::IS_ACTION_ALLOWED_PERMISSION_PROPERTIES[$action])) {
             throw new InvalidArgumentException('Invalid action parameter');
         }
         $entitySpec = $this->entities[$entityType];
 
-        /**
-         * isAllowed plugin
-         *
-         * @var HelperInterface $isAllowedPlugin
-         */
-        $isAllowedPlugin = null;
-        try {
-            $isAllowedPlugin = $this->view->plugin('isAllowed');
-        } catch (Exception $e) {
-        }
-        //if we don't have the isAllowed plugin, just allow
-        if (! is_callable($isAllowedPlugin)) {
-            return true;
-        }
+        /** @var IsAllowed $isAllowedPlugin */
+        $isAllowedPlugin = $this->view->plugin('isAllowed');
+        Assert::isCallable($isAllowedPlugin);
 
         //check the route permissions of BjyAuthorize
         $routeProperty = array_key_exists($action, Entity::ACTION_ROUTE_PROPERTIES)
@@ -277,25 +230,5 @@ class FormatEntity extends AbstractHelper
         }
 
         return $isAllowedPlugin($object[$entitySpec->aclResourceIdField], $entitySpec->$permissionProperty);
-    }
-
-    /**
-     * Get the routePermissionCheckingEnabled value
-     *
-     * @return bool
-     */
-    public function getRoutePermissionCheckingEnabled()
-    {
-        return $this->routePermissionCheckingEnabled;
-    }
-
-    /**
-     * @param bool $routePermissionCheckingEnabled
-     * @return self
-     */
-    public function setRoutePermissionCheckingEnabled($routePermissionCheckingEnabled)
-    {
-        $this->routePermissionCheckingEnabled = $routePermissionCheckingEnabled;
-        return $this;
     }
 }

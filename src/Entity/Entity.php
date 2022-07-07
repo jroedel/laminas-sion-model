@@ -3,6 +3,7 @@
 namespace SionModel\Entity;
 
 use SionModel\Filter\MixedCase;
+use Webmozart\Assert\Assert;
 
 class Entity
 {
@@ -28,14 +29,14 @@ class Entity
      * @var array $sionControllers
      * @deprecated
      */
-    public $sionControllers = [];
+    public array $sionControllers = [];
     /**
      * If a SionController needs more services than those provided they can specify these
      * in the 'controller_services' configuration, and they will be injected into this array.
      * @var array $controllerServices
      * @deprecated
      */
-    public $controllerServices = [];
+    public array $controllerServices = [];
     /**
      * Name of identifier field
      * Example: 'personId'
@@ -127,11 +128,6 @@ class Entity
     public ?string $indexTemplate = null;
 
     /**
-     * The route parameter to pass the entity id, if a more specific one isn't specified
-     * @deprecated
-     */
-    public ?string $defaultRouteKey = null;
-    /**
      * An associative array mapping route parameters to properties of the entity.
      * @var string[] $defaultRouteParams
      */
@@ -151,18 +147,6 @@ class Entity
      */
     public array $showRouteParams = [];
     /**
-     * The route parameter to pass when generating the URL to the show route
-     * Example: 'person_id'
-     * @deprecated
-     */
-    public ?string $showRouteKey = null;
-    /**
-     * The entity field to pass as the show route parameter
-     * Example: 'personId'
-     * @deprecated
-     */
-    public ?string $showRouteKeyField = null;
-    /**
      * String representing either a service, or a class name
      */
     public ?string $editActionForm = null;
@@ -180,30 +164,11 @@ class Entity
      * @var string[] $editRouteParams
      */
     public array $editRouteParams = [];
-    /**
-     * The route parameter to pass when generating the URL to the edit route
-     * Example: 'person_id'
-     * @deprecated
-     */
-    public ?string $editRouteKey = null;
-    /**
-     * The entity field to pass as the edit route parameter
-     * Example: 'personId'
-     * @deprecated
-     */
-    public ?string $editRouteKeyField = null;
 
     /**
      * String representing either a service, or a class name
      */
     public ?string $createActionForm = null;
-
-    /**
-     * A function within the SionController child class to handle functionality once
-     * the entity has been validated. The function will receive one parameter, the
-     * validated data.
-     */
-    public ?string $createActionValidDataHandler = null;
 
     /**
      * Route to which the user will be redirected upon a successful entity creation
@@ -214,20 +179,6 @@ class Entity
      * @var string[] $createActionRedirectRouteParams
      */
     public array $createActionRedirectRouteParams = [];
-
-    /**
-     * The route parameter to be paired with the $createActionRedirectRoute.
-     * The value will be the new PRIMARYKEY value of the newly created entity.
-     * If this value is omitted, the user will be redirected with no route parameter
-     * @deprecated
-     */
-    public ?string $createActionRedirectRouteKey = null;
-
-    /**
-     * Entity field to use as route key value upon successfully creating an entity instance
-     * @deprecated
-     */
-    public ?string $createActionRedirectRouteKeyField = null;
 
     /**
      * A view template in the template stack to render in the SionController->createAction.
@@ -245,18 +196,6 @@ class Entity
      */
     public array $touchRouteParams = [];
     /**
-     * A route key that specifies the entity id to touch in the touchAction
-     * @deprecated
-     */
-    public ?string $touchRouteKey = null;
-    /**
-     * A route key that specifies the entity field to touch for the touchAction
-     * and touchJsonAction of SionController.
-     * If not specified, the $touchDefaultField will be touched
-     * @deprecated
-     */
-    public ?string $touchFieldRouteKey = null;
-    /**
      * The route to edit this entity
      * Example: 'persons/person/touch'
      */
@@ -265,12 +204,6 @@ class Entity
      * An associative array mapping route parameters to properties of the entity.
      */
     public ?array $touchJsonRouteParams = [];
-    /**
-     * The route parameter to pass when generating the URL to the edit route
-     * Example: 'person_id'
-     * @deprecated
-     */
-    public ?string $touchJsonRouteKey = null;
 
     /**
      * A function to be called upon $data before creating/updating an entity
@@ -393,12 +326,31 @@ class Entity
     {
         $this->name = $name;
         $camelCaseFilter = new MixedCase('_');
+
+        $propertiesSet = [];
         foreach ($entitySpecification as $key => $value) {
             $key = $camelCaseFilter->filter($key);
             if (property_exists($this, $key)) {
+                $propertiesSet[] = $value;
                 $this->$key = $value;
             }
         }
+
+        //make sure we've set all required properties
+        Assert::true(isset($this->sionModelClass), "Expected sionModelClass to be set for Entity `$name`, unset.");
+        Assert::true(
+            isset($this->tableName) && ! empty($this->tableName),
+            "Expected tableName to be set for Entity `$name`, unset."
+        );
+        Assert::true(
+            isset($this->tableKey) && ! empty($this->tableKey),
+            "Expected tableKey to be set for Entity `$name`, unset."
+        );
+        Assert::true(
+            isset($this->entityKeyField) && ! empty($this->entityKeyField),
+            "Expected entityKeyField to be set for Entity `$name`, unset."
+        );
+        Assert::notEmpty($this->updateColumns);
     }
 
     /**

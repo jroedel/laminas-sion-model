@@ -39,6 +39,7 @@ use SionModel\Problem\EntityProblem;
 use SionModel\Problem\ProblemTable;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
+use Webmozart\Assert\Assert;
 
 use function array_key_exists;
 use function array_values;
@@ -1185,7 +1186,7 @@ class SionTable
             //returns the number of affected rows
             $rowsAffected = $tableGateway->update($updateVals, [$tableKey => $id]);
             if ($rowsAffected > 0 && $reportChanges) {
-                $this->reportChange($changes);
+                $this->reportChanges($changes);
             }
             if ($rowsAffected > 1) { //we expect that there be exactly one or zero row affected
                 $table = $tableGateway->getTable();
@@ -1224,7 +1225,7 @@ class SionTable
             }
         }
 
-        $return = $this->createHelper(
+        $newId = $this->createHelper(
             $data,
             $requiredCols,
             $updateCols,
@@ -1238,23 +1239,15 @@ class SionTable
             $this->removeDependentCacheItems($entity);
         }
 
-        /**
-         * Run the changed/new data through the postprocessor function if it exists
-         *
-         * @see Entity
-         *
-         * @todo Code for the case of no AUTO_INCREMENT (look for the $tableKey set in the $data)
-         */
         if (
-            isset($return) && //$return should be the AUTO_INCREMENT value of the inserted row
             isset($entitySpec->databaseBoundDataPostprocessor)
         ) {
-            $newEntityData = $this->getObject($entity, $return);
+            $newEntityData = $this->getObject($entity, $newId);
             $postprocessor = $entitySpec->databaseBoundDataPostprocessor;
             $this->$postprocessor($data, $newEntityData, self::ENTITY_ACTION_CREATE);
         }
 
-        return $return;
+        return $newId;
     }
 
     protected function createHelper(
@@ -1265,7 +1258,7 @@ class SionTable
         TableGatewayInterface $tableGateway,
         array $manyToOneUpdateColumns = [],
         bool $reportChanges = false
-    ): int|null {
+    ): int {
         //make sure required cols are being passed
         foreach ($requiredCols as $colName) {
             if (! isset($data[$colName])) {
@@ -1275,6 +1268,7 @@ class SionTable
             }
         }
 
+        //@todo there should be a more efficient way of doing this. Sometimes we do mass database edits
         $now        = (new DateTime("now", new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         $updateVals = [];
         foreach ($data as $col => $value) {
@@ -1296,10 +1290,10 @@ class SionTable
                 $updateVals[$updateCols[$col . 'UpdatedOn']] = $now;
             }
             if (
-                null !== $value
+                isset($value)
                 && isset($updateCols[$col . 'UpdatedBy'])
                 && ! isset($data[$col . 'UpdatedBy'])
-                && null !== $this->actingUserId
+                && isset($this->actingUserId)
             ) { //check if this column has updatedOn column
                 $updateVals[$updateCols[$col . 'UpdatedBy']] = $this->actingUserId;
             }
@@ -1313,7 +1307,7 @@ class SionTable
                 if (
                     isset($updateCols[$manyToOneUpdateColumns[$col] . 'UpdatedBy'])
                     && ! isset($data[$manyToOneUpdateColumns[$col] . 'UpdatedBy'])
-                    && null !== $this->actingUserId
+                    && isset($this->actingUserId)
                 ) { //check if this column  maps to some other updatedBy column
                     $updateVals[$updateCols[$manyToOneUpdateColumns[$col] . 'UpdatedBy']] = $this->actingUserId;
                 }
@@ -1338,28 +1332,27 @@ class SionTable
         ) { //check if this column has updatedOn column
             $updateVals[$updateCols['createdBy']] = $this->actingUserId;
         }
-        if (count($updateVals) > 0) {
-            $rowsAffected = $tableGateway->insert($updateVals);
-            if ($rowsAffected === 0 || $rowsAffected > 1) {
-                $table = $tableGateway->getTable();
-                throw new Exception(
-                    "Expected 1 row affected from createEntity, $rowsAffected affected inserting into `$table`"
-                );
-            }
-            $newId      = $tableGateway->getLastInsertValue();
-            $changeVals = [
-                [
-                    'entity' => $entityType,
-                    'field'  => 'newEntry',
-                    'id'     => $newId,
-                ],
-            ];
-            if ($reportChanges) {
-                $this->reportChange($changeVals);
-            }
-            return $newId;
+        Assert::minCount($updateVals, 1);
+        $rowsAffected = $tableGateway->insert($updateVals);
+        Assert::eq($rowsAffected, 1);
+        $newId     = $tableGateway->getLastInsertValue();
+        $newIdType = gettype($newId);
+        Assert::integer(
+            $newId,
+            "There was an issue creating entity `$entityType`. Expected int, received $newIdType"
+        );
+        Assert::greaterThan($newId, 0);
+        $changeVals = [
+            [
+                'entity' => $entityType,
+                'field'  => 'newEntry',
+                'id'     => $newId,
+            ],
+        ];
+        if ($reportChanges && isset($this->actingUserId)) {
+            $this->reportChanges($changeVals);
         }
-        return null;
+        return $newId;
     }
 
     /**
@@ -1486,7 +1479,7 @@ class SionTable
                     'id'     => $id,
                 ],
             ];
-            $this->reportChange($changeVals);
+            $this->reportChanges($changeVals);
         }
 
         if ($refreshCache) {
@@ -1496,55 +1489,58 @@ class SionTable
 
     /**
      * Takes an array of associative arrays containing reports of changed columns.
-     * Keys are table(req), field(req),  id(req), newValue, oldValue.
+     * Keys are entity(req), field(req),  id(req), newValue, oldValue.
      *
      * @todo include the UserAgent
      */
-    public function reportChange(array $data): int
+    public function reportChanges(array $rows): void
     {
         $changesTableGateway = $this->getChangesTableGateway();
-        if (! $changesTableGateway instanceof TableGatewayInterface) {
-            return -1;
-        }
-        $i    = 0;
+        Assert::notNull($this->actingUserId, "reportChanges requires actingUserId being set");
+        Assert::isInstanceOf($changesTableGateway, TableGatewayInterface::class);
+        Assert::allIsArray($rows);
+
         $date = new DateTime("now", new DateTimeZone('utc'));
-        foreach ($data as $row) {
-            if (isset($row['entity']) && isset($row['field']) && isset($row['id'])) {
-                if (isset($row['oldValue']) && $row['oldValue'] instanceof DateTime) {
-                    $row['oldValue'] = $this->formatDbDate($row['oldValue']);
-                }
-                if (isset($row['newValue']) && $row['newValue'] instanceof DateTime) {
-                    $row['newValue'] = $this->formatDbDate($row['newValue']);
-                }
-                if (isset($row['oldValue']) && is_array($row['oldValue'])) {
-                    $row['oldValue'] = $this->formatDbArray($row['oldValue']);
-                }
-                if (isset($row['newValue']) && is_array($row['newValue'])) {
-                    $row['newValue'] = $this->formatDbArray($row['newValue']);
-                }
+        foreach ($rows as $row) {
+            Assert::true(isset($row['entity']), 'Missing `entity` field for a change submitted');
+            $entity = $row['entity'];
+            Assert::true(isset($row['id']), "Missing `id` field for a `$entity` change submitted");
+            Assert::true(isset($row['field']), "Missing `field` field for a `$entity` change submitted");
+            if (isset($row['oldValue']) && $row['oldValue'] instanceof DateTime) {
+                $row['oldValue'] = $this->formatDbDate($row['oldValue']);
+            }
+            if (isset($row['newValue']) && $row['newValue'] instanceof DateTime) {
+                $row['newValue'] = $this->formatDbDate($row['newValue']);
+            }
+            if (isset($row['oldValue']) && is_array($row['oldValue'])) {
+                $row['oldValue'] = $this->formatDbArray($row['oldValue']);
+            }
+            if (isset($row['newValue']) && is_array($row['newValue'])) {
+                $row['newValue'] = $this->formatDbArray($row['newValue']);
+            }
                 //if the value is too long, don't insert it.
-                if (
+            if (
                     isset($row['oldValue'])
                     && is_string($row['oldValue'])
                     && strlen($row['oldValue']) > $this->maxChangeTableValueStringLength
-                ) {
-                    if (isset($this->maxChangeTableValueStringLengthReplacementText)) {
-                        $row['oldValue'] = $this->maxChangeTableValueStringLengthReplacementText;
-                    } else {
-                        unset($row['oldValue']);
-                    }
+            ) {
+                if (isset($this->maxChangeTableValueStringLengthReplacementText)) {
+                    $row['oldValue'] = $this->maxChangeTableValueStringLengthReplacementText;
+                } else {
+                    unset($row['oldValue']);
                 }
-                if (
+            }
+            if (
                     isset($row['newValue'])
                     && is_string($row['newValue'])
                     && strlen($row['newValue']) > $this->maxChangeTableValueStringLength
-                ) {
-                    if (isset($this->maxChangeTableValueStringLengthReplacementText)) {
-                        $row['newValue'] = $this->maxChangeTableValueStringLengthReplacementText;
-                    } else {
-                        unset($row['newValue']);
-                    }
+            ) {
+                if (isset($this->maxChangeTableValueStringLengthReplacementText)) {
+                    $row['newValue'] = $this->maxChangeTableValueStringLengthReplacementText;
+                } else {
+                    unset($row['newValue']);
                 }
+            }
                 $params = [
                     'ChangedEntity'  => $row['entity'],
                     'ChangedField'   => $row['field'],
@@ -1555,12 +1551,8 @@ class SionTable
                     'UpdatedBy'      => $this->actingUserId,
                     'IpAddress'      => $_SERVER['REMOTE_ADDR'], //@todo there should be a better way to do this
                 ];
-                $changesTableGateway->insert($params);
-                $i++;
-            }
+                Assert::eq($changesTableGateway->insert($params), 1);
         }
-
-        return $i;
     }
 
     /**
@@ -1609,9 +1601,9 @@ class SionTable
     public function getTableEntities(): array
     {
         $tableEntities = [];
-        foreach ($this->entitySpecifications as $key => $entitySpec) {
+        foreach ($this->entitySpecifications as $entitySpec) {
             if ($entitySpec->sionModelClass === $this::class) {
-                $entityName      = null !== $entitySpec->name ? $entitySpec->name : $key;
+                $entityName      = $entitySpec->name;
                 $tableEntities[] = $entityName;
             }
         }
@@ -1663,7 +1655,7 @@ class SionTable
         $select->limit($maxRows);
         $resultsChanges = $gateway->selectWith($select);
         assert($resultsChanges instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
-        $results        = $resultsChanges->toArray();
+        $results = $resultsChanges->toArray();
         unset($resultsChanges);
 
         //collect list of objects to query
@@ -2009,23 +2001,23 @@ class SionTable
         return $object->format('Y-m-d H:i:s');
     }
 
-    protected function formatDbArray(string|array|null $arr, string $delimiter = '|', bool $trim = true): string|null
+    protected function formatDbArray(?iterable $arr, string $delimiter = '|', bool $trim = true): string|null
     {
-        if (! isset($arr)) {
-            return null;
-        }
-        if (! is_array($arr)) {
-            return $arr;
-        }
         if (empty($arr)) {
             return null;
         }
-        if ($trim) {
-            foreach ($arr as $key => $value) {
-                $arr[$key] = trim($value);
+        $return = '';
+        foreach ($arr as $value) {
+            if (empty($value)) {
+                continue;
             }
+            if (empty($return)) {
+                $return = $trim ? trim($value) : $value;
+                continue;
+            }
+            $return .= $delimiter . $trim ? trim($value) : $value;
         }
-        return implode($delimiter, $arr);
+        return $return;
     }
 
     protected function filterDbArray(?string $str, string $delimiter = '|', bool $trim = true): array

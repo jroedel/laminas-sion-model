@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SionModel\Form;
 
 use Exception;
+use JUser\Model\User;
 use Laminas\Authentication\AuthenticationServiceInterface;
 use Laminas\Db\Adapter\AdapterInterface;
 use Laminas\Filter\StringTrim;
@@ -107,7 +108,7 @@ class SionForm extends Form
      * it fetches records for the value options of suggestionByPersonId.
      */
     public function prepareForSuggestion(
-        AuthenticationServiceInterface $authService,
+        User $userIdentity,
         ?PersonProviderInterface $personProvider = null
     ): void {
         $name = $this->getName();
@@ -189,7 +190,7 @@ class SionForm extends Form
         $this->setInputFilterSpecification($inputSpec);
 
         //prime the suggestionByPersonId if user is multi-person
-        if ($authService->hasIdentity() && $authService->getIdentity()->multiPersonUser) {
+        if ($userIdentity && $userIdentity->multiPersonUser) {
             $this->setIsMultiPersonUser(true);
             if (! isset($personProvider)) {
                 /*
