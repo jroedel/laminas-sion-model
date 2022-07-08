@@ -9,16 +9,13 @@ use DateTime;
 use IntlDateFormatter;
 use InvalidArgumentException;
 use Laminas\View\Helper\AbstractHelper;
-use Laminas\View\Helper\HelperInterface;
 use SionModel\Entity\Entity;
 use SionModel\Service\EntitiesService;
-
 use Webmozart\Assert\Assert;
+
 use function array_key_exists;
-use function assert;
 use function count;
 use function is_bool;
-use function is_callable;
 use function sprintf;
 use function strlen;
 
@@ -65,27 +62,6 @@ class FormatEntity extends AbstractHelper
             $options['displayAsLink']     = false;
             $options['displayEditPencil'] = false;
             $options['displayFlag']       = false;
-        }
-
-        if (
-            ! $entitySpec->entityKeyField ||
-            ! isset($data[$entitySpec->entityKeyField])
-        ) {
-            if ($options['failSilently']) {
-                return '';
-            } else {
-                throw new InvalidArgumentException('Id field not set for entity ' . $entityType);
-            }
-        }
-        if (
-            ! $entitySpec->nameField ||
-            ! isset($data[$entitySpec->nameField])
-        ) {
-            if ($options['failSilently']) {
-                return '';
-            } else {
-                throw new InvalidArgumentException('Name field not set for entity ' . $entityType);
-            }
         }
 
         $finalMarkup = '';

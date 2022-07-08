@@ -12,6 +12,7 @@ use Laminas\Validator\ValidatorPluginManager;
 use Psr\Container\ContainerInterface;
 use SionModel\Db\Model\PredicatesTable;
 use SionModel\Form\SionForm;
+use SionModel\Form\SuggestForm;
 use SionModel\Service\EntitiesService;
 
 use function array_key_exists;
@@ -76,7 +77,7 @@ class SionControllerFactory implements AbstractFactoryInterface
         $createActionForm = null;
         if (isset($entitySpec->createActionForm) && $parentLocator->has($entitySpec->createActionForm)) {
             $createActionForm = $parentLocator->get($entitySpec->createActionForm);
-        } elseif (class_exists($entitySpec->createActionForm)) {
+        } elseif (isset($entitySpec->createActionForm) && class_exists($entitySpec->createActionForm)) {
             $createActionForm = new $entitySpec->createActionForm();
         }
 
@@ -85,9 +86,19 @@ class SionControllerFactory implements AbstractFactoryInterface
         $editActionForm = null;
         if (isset($entitySpec->editActionForm) && $parentLocator->has($entitySpec->editActionForm)) {
             $editActionForm = $parentLocator->get($entitySpec->editActionForm);
-        } elseif (class_exists($entitySpec->editActionForm)) {
+        } elseif (isset($entitySpec->editActionForm) && class_exists($entitySpec->editActionForm)) {
             $className      = $entitySpec->editActionForm;
             $editActionForm = new $className();
+        }
+
+        //get suggestForm
+        $suggestFormName = $entitySpec->suggestForm ?? SuggestForm::class;
+        /** @var SionForm $suggestForm **/
+        $suggestForm = null;
+        if ($parentLocator->has($suggestFormName)) {
+            $suggestForm = $parentLocator->get($suggestFormName);
+        } elseif (class_exists($suggestFormName)) {
+            $suggestForm = new $suggestFormName();
         }
 
         //get sionModelConfig
@@ -102,6 +113,7 @@ class SionControllerFactory implements AbstractFactoryInterface
             predicatesTable: $predicatesTable,
             createActionForm: $createActionForm,
             editActionForm: $editActionForm,
+            suggestForm: $suggestForm,
             config: $config,
             logger: $logger
         );

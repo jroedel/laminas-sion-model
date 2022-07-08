@@ -52,7 +52,7 @@ if ('partial' === $type) {
         $buttonClass = isset($this->buttonClass) ? $this->buttonClass : 'btn-primary';?>
 <a href="<?php
 if (isset($this->target)) {
-    echo $target;
+    echo $this->target;
 } elseif (isset($this->urlArgs) && is_array($this->urlArgs)) {
     echo $this->serverUrl(call_user_func_array([$this, 'url'], $this->urlArgs));
 }?>" class="<?php echo $this->escapeHtmlAttr($buttonClass);?>" itemprop="url"><?php

@@ -43,7 +43,6 @@ use Webmozart\Assert\Assert;
 
 use function array_key_exists;
 use function array_values;
-use function assert;
 use function call_user_func_array;
 use function count;
 use function date_format;
@@ -416,7 +415,7 @@ class SionTable
         $predicate = new Operator($entitySpec->tableKey, Operator::OPERATOR_EQUAL_TO, $entityId);
         $select->where($predicate);
         $result = $gateway->selectWith($select);
-        assert($result instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
+        Assert::isInstanceOf($result, ResultSetInterface::class, "Unexpected query result for entity `$entity`");
         $results = $result->toArray();
         if (! isset($results[0])) {
             return null;
@@ -698,7 +697,11 @@ class SionTable
         $select->where($where)
         ->group(['EntityId']);
         $resultObject = $gateway->selectWith($select);
-        assert($resultObject instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
+        Assert::isInstanceOf(
+            $resultObject,
+            ResultSetInterface::class,
+            "Unexpected query result for entity `$entity`"
+        );
         $result = $resultObject->toArray();
         unset($resultObject);
         foreach ($result as $row) {
@@ -726,7 +729,7 @@ class SionTable
         $select->where($where)
         ->group(['EntityId']);
         $resultObject = $gateway->selectWith($select);
-        assert($resultObject instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
+        Assert::isInstanceOf($resultObject, ResultSetInterface::class, "Unexpected query result for entity `$entity`");
         $result = $resultObject->toArray();
         unset($resultObject);
 
@@ -1574,7 +1577,7 @@ class SionTable
         $select->where($predicate->in('ChangedEntity', $tableEntities));
         $select->order('TheYear, TheMonth');
         $resultObject = $gateway->selectWith($select);
-        assert($resultObject instanceof ResultSetInterface, "Unexpected query result for entity `changes`");
+        Assert::isInstanceOf($resultObject, ResultSetInterface::class, "Unexpected query result for entity `changes`");
         $result = $resultObject->toArray();
         unset($resultObject);
 
@@ -1623,7 +1626,7 @@ class SionTable
         ]);
         $select->order(['UpdatedOn' => 'DESC']);
         $resultObject = $gateway->selectWith($select);
-        assert($resultObject instanceof ResultSetInterface, "Unexpected query result for entity `changes`");
+        Assert::isInstanceOf($resultObject, ResultSetInterface::class, "Unexpected query result for entity `changes`");
         $result = $resultObject->toArray();
         unset($resultObject);
 
@@ -1654,7 +1657,7 @@ class SionTable
         $select->order(['UpdatedOn' => 'DESC']);
         $select->limit($maxRows);
         $resultsChanges = $gateway->selectWith($select);
-        assert($resultsChanges instanceof ResultSetInterface, "Unexpected query result for entity `$entity`");
+        Assert::isInstanceOf($resultsChanges, ResultSetInterface::class, "Unexpected query result for changes entity.");
         $results = $resultsChanges->toArray();
         unset($resultsChanges);
 
@@ -1701,12 +1704,12 @@ class SionTable
      * Process a row from the changes table and add it to the referenced array
      * This allows DRYs up code for processing various subsets of changes
      */
-    protected function processChangeRow(array $row, array $objects, array &$changes): bool
+    protected function processChangeRow(array $row, array $object, array &$changes): bool
     {
         static $users;
         $user = null;
         if (isset($row['UpdatedBy'])) {
-            assert(is_int($row['UpdatedBy']), 'UpdatedBy field in changes table should always be null|int');
+            Assert::integerish($row['UpdatedBy']);
             if (! isset($users)) {
                 $userTable = $this->getUserTable();
                 $users     = $userTable->getUsers();
@@ -1717,19 +1720,14 @@ class SionTable
         $entityId  = $this->filterDbString($row['ChangedIDValue']);
         $updatedOn = $this->filterDbDate($row['UpdatedOn']);
 
-        assert(
-            isset($this->entitySpecifications[$entity]),
-            'processChangeRow received an unknown entity value'
-        );
+        Assert::keyExists($this->entitySpecifications, $entity, 'processChangeRow received an unknown entity value');
         //only bring in recognized entities from this class
-        assert(
-            $this->entitySpecifications[$entity]->sionModelClass === static::class,
+        Assert::eq(
+            $this->entitySpecifications[$entity]->sionModelClass,
+            static::class,
             'processChangeRow received an entity value not managed by this SionTable'
         );
-        assert(
-            isset($updatedOn),
-            'processChangeRow received a change row without an updatedOn value'
-        );
+        Assert::notNull($updatedOn, 'processChangeRow received a change row without an updatedOn value');
 
         $change = [
             'changeId'            => $this->filterDbId($row['ChangeID']),
@@ -1744,8 +1742,8 @@ class SionTable
             'updatedBy'           => $user,
             'object'              => null,
         ];
-        if (isset($objects[$entity]) && isset($objects[$entity][$entityId])) {
-            $change['object'] = $objects[$entity][$entityId];
+        if (isset($object[$entity]) && isset($object[$entity][$entityId])) {
+            $change['object'] = $object[$entity][$entityId];
         }
         if (null === $change['object']) { //it looks like the object has been deleted, let's fill in some data
             $change['object'] = [
