@@ -6,6 +6,7 @@ namespace SionModel\Db\Model;
 
 use Closure;
 use DateTime;
+use DateTimeInterface;
 use DateTimeZone;
 use Exception;
 use InvalidArgumentException;
@@ -674,12 +675,11 @@ class SionTable
      * An associative array keyed on the entityId is returned containing at least
      * elements 'total' and 'pastMonth'
      *
+     * @param string $entity
      * @param array $ids
-     * @param array $options
      * @return int[][]
-     * @psalm-return array<array{total: int, pastMonth: int}>
      */
-    public function getVisitCounts(string $entity, array $ids = [], array $options = []): array
+    public function getVisitCounts(string $entity, array $ids = []): array
     {
         $counts  = [];
         $gateway = $this->getVisitTableGateway();
@@ -829,9 +829,6 @@ class SionTable
      */
     public static function processUrls(array $unprocessedUrls): array|null
     {
-        if (null === $unprocessedUrls) {
-            return null;
-        }
         $urls = [];
         foreach ($unprocessedUrls as $urlRow) {
             if (
@@ -1790,21 +1787,12 @@ class SionTable
 
     /**
      * Hashes some data using the configured hash algorithm and salt.
-     *
-     * @param string $data
      */
-    public function privacyHash($data): string|null
+    public function privacyHash(string $data): string|null
     {
-        if (! isset($data)) {
-            return null;
-        }
-        if (isset($this->privacyHashAlgorithm)) {
-            if (isset($this->privacyHashSalt)) {
-                $data = $this->privacyHashSalt . $data;
-            }
-            return Hash::compute($this->privacyHashAlgorithm, $data);
-        }
-        return $data;
+        Assert::notNull($this->privacyHashAlgorithm);
+        Assert::notNull($this->privacyHashSalt);
+        return Hash::compute($this->privacyHashAlgorithm, $this->privacyHashSalt . $data);
     }
 
     public function getUserTable(): UserTable|null
@@ -1826,44 +1814,30 @@ class SionTable
      * Takes two DateTime objects and returns a string of the range of years the dates involve.
      * If one date is null, just the one year is returned. If both dates are null, null is returned.
      *
-     * @param DateTime|null $startDate
-     * @param DateTime|null $endDate
      * @throws InvalidArgumentException
-     * @return string|null
      */
-    public static function getYearRange($startDate, $endDate)
+    public static function getYearRange(?DateTimeInterface $startDate, ?DateTimeInterface $endDate): string|null
     {
-        if (
-            (null !== $startDate && ! $startDate instanceof DateTime) ||
-            (null !== $endDate && ! $endDate instanceof DateTime)
-        ) {
-            throw new InvalidArgumentException('Date parameters must be either DateTime instances or null.');
-        }
-
         $text = '';
-        if (
-            (null !== $startDate && $startDate instanceof DateTime) ||
-            (null !== $endDate && $startDate instanceof DateTime)
-        ) {
-            if (null !== $startDate xor null !== $endDate) { //only one is set
-                if (null !== $startDate) {
-                    $text .= $startDate->format('Y');
-                } else {
-                    $text .= $endDate->format('Y');
-                }
-            } else {
-                $startYear = (int) $startDate->format('Y');
-                $endYear   = (int) $endDate->format('Y');
-                if ($startYear == $endYear) {
-                    $text .= ' ' . $startYear;
-                } else {
-                    $text .= ' ' . $startYear . '-' . $endYear;
-                }
-            }
-            return $text;
-        } else {
+        if (! isset($startDate) && ! isset($endDate)) {
             return null;
         }
+        if (null !== $startDate xor null !== $endDate) { //only one is set
+            if (isset($startDate)) {
+                $text .= $startDate->format('Y');
+            } else {
+                $text .= $endDate->format('Y');
+            }
+        } else {
+            $startYear = (int) $startDate->format('Y');
+            $endYear   = (int) $endDate->format('Y');
+            if ($startYear === $endYear) {
+                $text .= ' ' . $startYear;
+            } else {
+                $text .= ' ' . $startYear . '-' . $endYear;
+            }
+        }
+        return $text;
     }
 
     /**
@@ -1874,14 +1848,8 @@ class SionTable
      * @return bool
      * @throws InvalidArgumentException
      */
-    public static function areWeWithinDateRange($startDate, $endDate)
+    public static function areWeWithinDateRange(?DateTimeInterface $startDate, ?DateTimeInterface $endDate): bool
     {
-        if (
-            (null !== $startDate && ! $startDate instanceof DateTime) ||
-            (null !== $endDate && ! $endDate instanceof DateTime)
-        ) {
-            throw new InvalidArgumentException('Invalid value passed to `areWeWithinDateRange`');
-        }
         static $today;
         if (! isset($today)) {
             $timeZone = new DateTimeZone('UTC');
@@ -2135,12 +2103,6 @@ class SionTable
         return $this->adapter;
     }
 
-    public function setAdapter(AdapterInterface $adapter): static
-    {
-        $this->adapter = $adapter;
-        return $this;
-    }
-
     public function getActingUserId(): int|null
     {
         return $this->actingUserId;
@@ -2155,12 +2117,6 @@ class SionTable
     public function getChangesTableGateway(): TableGateway|TableGatewayInterface|null
     {
         return $this->getTableGateway($this->changeTableName);
-    }
-
-    public function setChangesTableGateway(TableGatewayInterface $gateway): static
-    {
-        $this->changesTableGateway = $gateway;
-        return $this;
     }
 
     public function getVisitTableGateway(): TableGatewayInterface|null

@@ -2,14 +2,9 @@
 
 declare(strict_types=1);
 
-/**
- * Zend Framework (http://framework.zend.com/)
- *
- * @link      http://github.com/zendframework/ZendSkeletonModule for the canonical source repository
- */
-
 namespace SionModel\Controller;
 
+use BjyAuthorize\View\Helper\IsAllowed;
 use DomainException;
 use Exception;
 use InvalidArgumentException;
@@ -18,7 +13,6 @@ use Laminas\Form\FormInterface;
 use Laminas\Http\Response;
 use Laminas\Log\LoggerInterface;
 use Laminas\Mvc\Controller\AbstractActionController;
-use Laminas\Mvc\Controller\Plugin\PluginInterface;
 use Laminas\Mvc\Plugin\FlashMessenger\FlashMessenger;
 use Laminas\Stdlib\ResponseInterface;
 use Laminas\View\Model\JsonModel;
@@ -37,7 +31,6 @@ use Webmozart\Assert\Assert;
 use function array_keys;
 use function count;
 use function implode;
-use function is_callable;
 use function ucfirst;
 use function ucwords;
 
@@ -242,6 +235,7 @@ class SionController extends AbstractActionController
             $form->setData($data);
             if ($form->isValid()) {
                 $data = $form->getData();
+                //if the form data is valid, there shouldn't be any database exceptions
                 return $this->createEntityPostFormValidation($data, $form);
             } else {
                 $view = $this->doWorkWhenFormInvalidForCreateAction($view);
@@ -277,7 +271,7 @@ class SionController extends AbstractActionController
         $messages = $form->getMessages();
         /** @var NowMessenger $nowMessenger */
         $nowMessenger = $this->plugin('nowMessenger');
-        Assert::isCallable($nowMessenger);
+        Assert::isInstanceOf($nowMessenger, NowMessenger::class);
         $nowMessenger->setNamespace(NowMessenger::NAMESPACE_ERROR);
         $nowMessenger->addMessage(
             'Error in form submission, please review: ' . implode(', ', array_keys($messages))
@@ -312,10 +306,10 @@ class SionController extends AbstractActionController
         $table  = $this->getSionTable();
         /** @var FlashMessenger $flashMessenger */
         $flashMessenger = $this->plugin('flashMessenger');
-        Assert::isCallable($flashMessenger);
+        Assert::isInstanceOf($flashMessenger, FlashMessenger::class);
         /** @var NowMessenger $nowMessenger */
         $nowMessenger = $this->plugin('nowMessenger');
-        Assert::isCallable($nowMessenger);
+        Assert::isInstanceOf($nowMessenger, NowMessenger::class);
         $newId = $table->createEntity($entity, $data);
         $flashMessenger->setNamespace(FlashMessenger::NAMESPACE_SUCCESS);
         $flashMessenger->addMessage(ucwords($entity) . ' successfully created.');
@@ -402,10 +396,10 @@ class SionController extends AbstractActionController
 
         /** @var FlashMessenger $flashMessenger */
         $flashMessenger = $this->plugin('flashMessenger');
-        Assert::isCallable($flashMessenger);
+        Assert::isInstanceOf($flashMessenger, FlashMessenger::class);
         /** @var NowMessenger $nowMessenger */
         $nowMessenger = $this->plugin('nowMessenger');
-        Assert::isCallable($nowMessenger);
+        Assert::isInstanceOf($nowMessenger, NowMessenger::class);
 
         //if the entity doesn't exist, redirect to the index or the default route
         if (! $id) {
@@ -426,9 +420,7 @@ class SionController extends AbstractActionController
         if (! $this->isActionAllowed('edit')) {
             $flashMessenger->setNamespace(FlashMessenger::NAMESPACE_ERROR);
             $flashMessenger->addMessage('Access to entity denied.');
-            $redirectRoute = $entitySpec->indexRoute
-                ? $entitySpec->indexRoute
-                : $this->getDefaultRedirectRoute();
+            $redirectRoute = $entitySpec->indexRoute ?: $this->getDefaultRedirectRoute();
             return $this->redirect()->toRoute($redirectRoute);
         }
 
@@ -504,7 +496,7 @@ class SionController extends AbstractActionController
         int $id,
         array $data = [],
         ?FormInterface $form = null,
-        $updatedObject = []
+        array $updatedObject = []
     ): ResponseInterface {
         $entitySpec = $this->getEntitySpecification();
         $this->getEntityObject($id);
@@ -542,7 +534,7 @@ class SionController extends AbstractActionController
      * @throws Exception
      * @return ViewModel|ResponseInterface
      */
-    public function touchAction()
+    public function touchAction(): ModelInterface|ResponseInterface
     {
         $entity     = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
@@ -550,18 +542,11 @@ class SionController extends AbstractActionController
 
         /** @var FlashMessenger $flashMessenger */
         $flashMessenger = $this->plugin('flashMessenger');
-        Assert::isCallable($flashMessenger);
+        Assert::isInstanceOf($flashMessenger, FlashMessenger::class);
         /** @var NowMessenger $nowMessenger */
         $nowMessenger = $this->plugin('nowMessenger');
-        Assert::isCallable($nowMessenger);
+        Assert::isInstanceOf($nowMessenger, NowMessenger::class);
 
-        //if the entity doesn't exist, redirect to the index or the default route
-        if (! $id) {
-            $flashMessenger->setNamespace(FlashMessenger::NAMESPACE_ERROR);
-            $flashMessenger->addMessage(ucfirst($entity) . ' not found.');
-            $redirectRoute = $entitySpec->indexRoute ?: $this->getDefaultRedirectRoute();
-            return $this->redirect()->toRoute($redirectRoute);
-        }
         $entityObject = $this->getEntityObject($id);
         //if the entity doesn't exist, redirect to the index or the default route
         if (! isset($entityObject)) {
@@ -571,6 +556,7 @@ class SionController extends AbstractActionController
             return $this->redirect()->toRoute($redirectRoute);
         }
 
+        //@todo do we need to be able to customize this form?
         $form = new TouchForm();
 
         $request = $this->getRequest();
@@ -584,24 +570,7 @@ class SionController extends AbstractActionController
                 $table->touchEntity($entity, $id, $fieldToTouch);
                 $flashMessenger->setNamespace(FlashMessenger::NAMESPACE_SUCCESS);
                 $flashMessenger->addMessage(ucfirst($entity) . ' successfully marked up-to-date.');
-                if (
-                    $entitySpec->showRouteKey && $entitySpec->showRouteKey &&
-                    $entitySpec->showRouteKeyField
-                ) {
-                    if (! isset($entityObject[$entitySpec->showRouteKeyField])) {
-                        throw new Exception(
-                            "show_route_key_field config for entity '"
-                            . $entity
-                            . "' refers to a key that doesn't exist"
-                        );
-                    }
-                    return $this->redirect()->toRoute(
-                        $entitySpec->showRoute,
-                        [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]
-                    );
-                } else {
-                    return $this->redirect()->toRoute($this->getDefaultRedirectRoute());
-                }
+                $this->redirectAfterCreate($id, $entityObject); //reuse the redirect logic after creation
             } else {
                 $nowMessenger->setNamespace(NowMessenger::NAMESPACE_ERROR);
                 $nowMessenger->addMessage('Error in form submission, please review.');
@@ -618,8 +587,6 @@ class SionController extends AbstractActionController
 
     /**
      * Touch the entity, and return the status through the HTTP code
-     *
-     * @return ResponseInterface|JsonModel
      */
     public function touchJsonAction(): ModelInterface|ResponseInterface
     {
@@ -669,8 +636,9 @@ class SionController extends AbstractActionController
      * If the request is a GET, ask the user to confirm the deletion
      *
      * @return ViewModel|ResponseInterface
-     * @todo Create a view template to ask for confirmation
+     * @throws Exception
      * @todo check if client expects json, and make it AJAX friendly
+     * @todo Create a view template to ask for confirmation
      */
     public function deleteAction(): ModelInterface|ResponseInterface
     {
@@ -680,10 +648,10 @@ class SionController extends AbstractActionController
 
         /** @var FlashMessenger $flashMessenger */
         $flashMessenger = $this->plugin('flashMessenger');
-        Assert::isCallable($flashMessenger);
+        Assert::isInstanceOf($flashMessenger, FlashMessenger::class);
         /** @var NowMessenger $nowMessenger */
         $nowMessenger = $this->plugin('nowMessenger');
-        Assert::isCallable($nowMessenger);
+        Assert::isInstanceOf($nowMessenger, NowMessenger::class);
 
         $request = $this->getRequest();
 
@@ -696,20 +664,6 @@ class SionController extends AbstractActionController
 
         //make sure the user has permission to delete the entity
         if (! $this->isActionAllowed('delete')) {
-            $flashMessenger->setNamespace(FlashMessenger::NAMESPACE_ERROR);
-            $flashMessenger->addMessage('You do not have permission to delete this entity.');
-            return $this->redirectAfterDelete(false);
-        }
-
-        //@deprecated @todo remove this part
-        if (
-            isset($entitySpec->deleteActionAclResource) &&
-            ! $this->isAllowed(
-                $entitySpec->deleteActionAclResource,
-                $entitySpec->deleteActionAclPermission ?
-                $entitySpec->deleteActionAclPermission : null
-            )
-        ) {
             $flashMessenger->setNamespace(FlashMessenger::NAMESPACE_ERROR);
             $flashMessenger->addMessage('You do not have permission to delete this entity.');
             return $this->redirectAfterDelete(false);
@@ -790,49 +744,29 @@ class SionController extends AbstractActionController
     /**
      * @psalm-param 'delete'|'edit'|'show' $action
      */
-    protected function isActionAllowed(string $action)
+    protected function isActionAllowed(string $action, bool $isAllowedByDefault = true): bool
     {
-        if (! isset(Entity::IS_ACTION_ALLOWED_PERMISSION_PROPERTIES[$action])) {
-            throw new InvalidArgumentException('Invalid action parameter');
-        }
+        Assert::keyExists(Entity::IS_ACTION_ALLOWED_PERMISSION_PROPERTIES, $action);
         $entityId   = $this->getEntityIdParam($action);
         $entitySpec = $this->getEntitySpecification();
 
         if (! isset($entitySpec->aclResourceIdField)) {
-            return true;
+            return $isAllowedByDefault;
         }
 
-        /**
-         * isAllowed plugin
-         *
-         * @var PluginInterface $isAllowedPlugin
-         */
-        $isAllowedPlugin = null;
-        try {
-            $isAllowedPlugin = $this->plugin('isAllowed');
-        } catch (Exception $e) {
-        }
-        //if we don't have the isAllowed plugin, just allow
-        if (! is_callable($isAllowedPlugin)) {
-            return true;
-        }
+        /** @var IsAllowed $isAllowedPlugin */
+        $isAllowedPlugin = $this->plugin('isAllowed');
+        Assert::isInstanceOf($isAllowedPlugin, IsAllowed::class);
 
         $permissionProperty = Entity::IS_ACTION_ALLOWED_PERMISSION_PROPERTIES[$action];
         $object             = $this->getEntityObject($entityId);
-        if (! isset($entitySpec->$permissionProperty)) {
-            //we don't need the permission, just the resourceId
-            return $isAllowedPlugin($object[$entitySpec->aclResourceIdField]);
-        }
-
+        //all permission properties are strings defaulting to null, we can pass them through
         return $isAllowedPlugin($object[$entitySpec->aclResourceIdField], $entitySpec->$permissionProperty);
     }
 
     /**
-     * The goal here is to find out the entityId of what user is looking at.
-     * There are a couple different places we have to look to discover this:
-     * 1. We check the routeParams property of the Entity corresponding to the current action.
-     *    If the consumer has set that property, we see if one of those parameters is the entityKeyField
-     * 2. Then we check the defaultRouteParams property and see if one is the entityKeyField
+     * Retrieves the alleged entityId to be operated upon.
+     * Warning: does not check the entity's existence!
      *
      * @throws Exception
      */
@@ -895,11 +829,10 @@ class SionController extends AbstractActionController
      * 2. Else, if the touchDefaultField exists, use it.
      * 3. Else, touch the entityKeyField if it exists
      */
-    protected function whichFieldToTouch()
+    protected function whichFieldToTouch(): string
     {
         $entity     = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
-        $touchField = null;
         if (isset($entitySpec->touchFieldRouteKey)) {
             $touchField = $this->params()->fromRoute($entitySpec->touchFieldRouteKey);
             if (isset($entitySpec->updateColumns[$touchField])) {
@@ -942,7 +875,7 @@ class SionController extends AbstractActionController
      * @param int $id
      * @return mixed[]
      */
-    public function getEntityObject($id)
+    public function getEntityObject(int $id): array
     {
         if (isset($this->object[$id])) {
             return $this->object[$id];

@@ -30,6 +30,7 @@ class EditPencil extends AbstractHelper
     {
         Assert::keyExists($this->entities, $entityType, "Unknown entity `$entityType`");
         Assert::notNull($this->entities[$entityType]->editRoute);
+        Assert::greaterThan($id, 0);
         Assert::true(
             isset($this->entities[$entityType]->editRouteParams)
             || isset($this->entities[$entityType]->defaultRouteParams),

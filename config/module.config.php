@@ -10,6 +10,7 @@ use Laminas\Router\Http\Segment;
 use Laminas\ServiceManager\Proxy\LazyServiceFactory;
 use Laminas\View\Helper\InlineScript;
 use SionModel\Controller\LazyControllerFactory;
+use SionModel\Db\Model\MailingsTable;
 use SionModel\Form\Element\Phone;
 
 return [
@@ -229,47 +230,45 @@ return [
 //             'plugins' => ['serializer'],
 //         ],
         'entities' => [
-//            'mailing' => [
-//                'table_name'                    => 'mailings',
-//                'table_key'                     => 'MailingId',
-//                'entity_key_field'              => 'mailingId',
-//                'get_object_function'           => 'getMailing',
-//                'required_columns_for_creation' => [
-//                    'toAddresses',
-//                    'status',
-//                ],
-//                'name_field'                    => 'mailingName',
-//                'name_field_is_translatable'    => false,
-//                'text_columns'   => [],
-//                'date_columns'   => [
-//                    'mailingOn',
-//                    'openedOn',
-//                    'queueUntil',
-//                ],
-//                'update_columns' => [
-//                    'mailingId'           => 'MailingId',
-//                    'toAddresses'         => 'ToAddresses',
-//                    'mailingOn'           => 'MailingOn',
-//                    'mailingBy'           => 'MailingBy',
-//                    'subject'             => 'Subject',
-//                    'body'                => 'Body',
-//                    'sender'              => 'Sender',
-//                    'text'                => 'MailingText',
-//                    'tags'                => 'MailingTags',
-//                    'trackingToken'       => 'TrackingToken',
-//                    'openedFromIpAddress' => 'OpenedFromIpAddress',
-//                    'openedFromHeaders'   => 'OpenedFromHeaders',
-//                    'openedOn'            => 'OpenedOn',
-//                    'emailTemplate'       => 'EmailTemplate',
-//                    'emailLocale'         => 'EmailLocale',
-//                    'status'              => 'Status',
-//                    'attempt'             => 'Attempt',
-//                    'maxAttempts'         => 'MaxAttempts',
-//                    'queueUntil'          => 'QueueUntil',
-//                    'errorMessage'        => 'ErrorMessage',
-//                    'stackTrace'          => 'StackTrace',
-//                ],
-//            ],
+            'mailing' => [
+                'table_name'                    => 'mailings',
+                'table_key'                     => 'MailingId',
+                'entity_key_field'              => 'mailingId',
+                'sion_model_class'              => MailingsTable::class,
+                'get_object_function'           => 'getMailing',
+                'required_columns_for_creation' => [
+                    'toAddresses',
+                    'status',
+                ],
+                'name_field'                    => 'mailingName',
+                'name_field_is_translatable'    => false,
+                'text_columns'                  => [],
+                'date_columns'                  => [
+                    'mailingOn',
+                    'openedOn',
+                    'queueUntil',
+                ],
+                'update_columns'                => [
+                    'mailingId'           => 'MailingId',
+                    'toAddresses'         => 'ToAddresses',
+                    'ccAddresses'         => 'CcAddresses',
+                    'bccAddresses'        => 'BccAddresses',
+                    'replyToAddresses'    => 'ReplyToAddresses',
+                    'mailingOn'           => 'MailingOn',
+                    'mailingBy'           => 'MailingSentWithinRequestUser',
+                    'subject'             => 'Subject',
+                    'body'                => 'Body',
+                    'sender'              => 'Sender',
+                    'text'                => 'MailingText',
+                    'tags'                => 'MailingTags',
+                    'trackingToken'       => 'TrackingToken',
+                    'openedFromIpAddress' => 'FirstOpenedFromIpAddress',
+                    'openedFromHeaders'   => 'FirstOpenedFromHeaders',
+                    'openedOn'            => 'FirstOpenedOn',
+                    'emailTemplate'       => 'EmailTemplate',
+                    'emailLocale'         => 'EmailLocale',
+                ],
+            ],
             /**
              * For more information on entity config:
              *
@@ -383,27 +382,27 @@ return [
 //                ],
 //            ],
             'comment'      => [
-                'name'                 => 'comment',
-                'table_name'           => 'comments',
-                'table_key'            => 'CommentId',
-                'entity_key_field'     => 'commentId',
-                'sion_model_class'     => Db\Model\PredicatesTable::class,
-                'get_object_function'  => 'getComment',
-                'get_objects_function' => 'getComments',
-                'sion_controllers'     => [Controller\CommentController::class],
-                'controller_services'  => [],
-                'required_columns_for_creation' => [
+                'name'                              => 'comment',
+                'table_name'                        => 'comments',
+                'table_key'                         => 'CommentId',
+                'entity_key_field'                  => 'commentId',
+                'sion_model_class'                  => Db\Model\PredicatesTable::class,
+                'get_object_function'               => 'getComment',
+                'get_objects_function'              => 'getComments',
+                'sion_controllers'                  => [Controller\CommentController::class],
+                'controller_services'               => [],
+                'required_columns_for_creation'     => [
                     'comment',
                     'kind',
                     'status',
                 ],
-                'name_field'                    => 'comment',
-                'name_field_is_translatable'    => false,
-                'report_changes'             => false,
-                'create_action_form' => Form\CommentForm::class,
+                'name_field'                        => 'comment',
+                'name_field_is_translatable'        => false,
+                'report_changes'                    => false,
+                'create_action_form'                => Form\CommentForm::class,
                 'database_bound_data_postprocessor' => 'postprocessComment',
-                'enable_delete_action' => true,
-                'update_columns' => [
+                'enable_delete_action'              => true,
+                'update_columns'                    => [
                     'commentId'  => 'CommentId',
                     'rating'     => 'Rating',
                     'kind'       => 'CommentKind',
@@ -435,9 +434,9 @@ return [
                 ],
                 'name_field'                    => 'text',
                 'name_field_is_translatable'    => true,
-                'report_changes'             => false,
-                'enable_delete_action' => false,
-                'update_columns' => [
+                'report_changes'                => false,
+                'enable_delete_action'          => false,
+                'update_columns'                => [
                     'predicateKind'     => 'PredicateKind',
                     'subjectEntityKind' => 'SubjectEntityKind',
                     'objectEntityKind'  => 'ObjectEntityKind',
@@ -464,9 +463,9 @@ return [
                 ],
                 'name_field'                    => 'comment',
                 'name_field_is_translatable'    => false,
-                'report_changes'             => false,
-                'enable_delete_action' => true,
-                'update_columns' => [
+                'report_changes'                => false,
+                'enable_delete_action'          => true,
+                'update_columns'                => [
                     'relationshipId'       => 'RelationshipId',
                     'subjectEntityId'      => 'SubjectEntityId',
                     'objectEntityId'       => 'ObjectEntityId',
