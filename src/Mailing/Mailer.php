@@ -6,6 +6,7 @@ namespace SionModel\Mailing;
 
 use DateTime;
 use DateTimeZone;
+use Laminas\Log\LoggerInterface;
 use Laminas\Mail\AddressList;
 use Laminas\Mail\Message;
 use Laminas\Mail\Transport\TransportInterface;
@@ -27,7 +28,8 @@ class Mailer
     public function __construct(
         private TransportInterface $mailTransport,
         private MailingsTable $mailingsTable,
-        private array $config,
+        private LoggerInterface $logger,
+        private array $config
     ) {
     }
 
@@ -41,16 +43,14 @@ class Mailer
         $message = $mailingMessage->message;
         Assert::true($message->isValid());
         $result    = $this->mailTransport->send($message);
-        $exception = null;
         if (! $result->isValid()) {
-            if ($result->hasException()) {
-                $exception = $result->getException();
-            } else {
-                $exception = new Exception($result->getMessage());
-            }
+            $errorReport = $result->hasException() ? $result->getException()->getMessage() : $result->getMessage();
+            $this->logger->err('Mailer failed to send message', $errorReport);
+            return false;
         }
         //report email
-        $this->reportMailing($message, 1, 3, $exception, $locale, $template, $trackingToken, $tags);
+        $this->reportMailing($mailingMessage);
+        return true;
     }
 
     public function sendMessagesAndLog(array $mailingMessages): void
