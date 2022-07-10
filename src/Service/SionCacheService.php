@@ -2,39 +2,36 @@
 
 declare(strict_types=1);
 
-namespace SionModel\Db\Model;
+namespace SionModel\Service;
 
 use Exception;
+use Laminas\Cache\Exception\ExceptionInterface;
 use Laminas\Cache\Storage\StorageInterface;
-use Laminas\EventManager\EventManagerInterface;
 use Laminas\Filter\FilterChain;
+use Laminas\Filter\FilterInterface;
 use Laminas\Filter\PregReplace;
 use Laminas\Filter\StringToLower;
-use Laminas\Mvc\MvcEvent;
+use Laminas\Log\LoggerInterface;
 use Webmozart\Assert\Assert;
 
 use function array_key_exists;
+use function debug_backtrace;
 use function in_array;
 use function memory_get_peak_usage;
 use function microtime;
 
-/**
- * @todo This will become a class to be injected into all the SionTables
- */
-trait SionCacheTrait
-{
-    protected StorageInterface $persistentCache;
+use const DEBUG_BACKTRACE_IGNORE_ARGS;
 
-    protected array $memoryCache = [];
+class SionCacheService
+{
+    private array $memoryCache = [];
 
     /**
      * List of keys that should be persisted onFinish
      *
      * @var array $newPersistentCacheItems
      */
-    protected array $newPersistentCacheItems = [];
-
-    protected int $maxItemsToCache = 2;
+    private array $newPersistentCacheItems = [];
 
     /**
      * For each cache key, the list of entities they depend on.
@@ -50,14 +47,27 @@ trait SionCacheTrait
      */
     protected array $cacheDependencies = [];
 
-    /**
-     * A string representing the FQN of this class for salting cache keys
-     */
-    protected string $classIdentifier;
+    private FilterInterface $classIdentifierFilter;
 
-    public function wireOnFinishTrigger(EventManagerInterface $em, int $priority = 100): void
-    {
-        $em->attach(MvcEvent::EVENT_FINISH, [$this, 'onFinishWriteCache'], $priority);
+    public function __construct(
+        private StorageInterface $persistentCache,
+        private LoggerInterface $logger,
+        protected int $maxItemsToCache = 2
+    ) {
+        //check if there are dependencies in the cache
+        $hasCacheDependencies = false;
+        $cacheDependencies    = $this->persistentCache->getItem(
+            'cachedependencies',
+            $hasCacheDependencies
+        );
+        if ($hasCacheDependencies) {
+            $this->cacheDependencies = $cacheDependencies;
+        }
+
+        //prep FQCN filter
+        $this->classIdentifierFilter = new FilterChain();
+        $this->classIdentifierFilter->attach(new StringToLower())
+            ->attach(new PregReplace(['pattern' => '/\\\\/', 'replacement' => '']));
     }
 
     /**
@@ -65,14 +75,15 @@ trait SionCacheTrait
      *
      * @param array $entityDependencies Entities are abstract concepts. When it's reported that an entity changed
      *                                  all cache items that depended on it are eliminated.
-     * @throws \Laminas\Cache\Exception\ExceptionInterface
+     * @throws Exception
      */
     public function cacheEntityObjects(string $cacheKey, array &$objects, array $entityDependencies = []): void
     {
-        if (! isset($this->persistentCache)) {
-            throw new Exception('The cache must be configured to cache entities.');
-        }
-        $fullyQualifiedCacheKey                     = $this->getClassIdentifier() . '-' . $cacheKey;
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
+        Assert::keyExists($caller, 'class');
+        Assert::stringNotEmpty($caller['class']);
+        $filteredCallerClassName                    = $this->getClassIdentifier($caller['class']);
+        $fullyQualifiedCacheKey                     = $filteredCallerClassName . '-' . $cacheKey;
         $this->memoryCache[$fullyQualifiedCacheKey] = $objects;
         if (! in_array($fullyQualifiedCacheKey, $this->newPersistentCacheItems, true)) {
             $this->newPersistentCacheItems[] = $fullyQualifiedCacheKey;
@@ -80,11 +91,8 @@ trait SionCacheTrait
         //we suppose that the dependencies for a given cacheKey will not change
         if (! isset($this->cacheDependencies[$fullyQualifiedCacheKey])) {
             $this->cacheDependencies[$fullyQualifiedCacheKey] = $entityDependencies;
-            //don't wait till the end of the call, because sometimes we get short circuited
-            $this->persistentCache->setItem(
-                $this->getClassIdentifier() . '-cachedependencies',
-                $this->cacheDependencies
-            );
+            //don't wait till the end of the call, because sometimes we get short-circuited
+            $this->persistentCache->setItem('cachedependencies', $this->cacheDependencies);
         }
     }
 
@@ -95,14 +103,15 @@ trait SionCacheTrait
      * memory cache and return the objects. If we don't find the key we
      * return null.
      *
-     * @throws Exception|\Laminas\Cache\Exception\ExceptionInterface
+     * @throws Exception
      */
     public function &fetchCachedEntityObjects(string $key, bool &$success = false): mixed
     {
-        if (! isset($this->persistentCache)) {
-            throw new Exception('Please set a cache before fetching cached entities.');
-        }
-        $fullyQualifiedCacheKey = $this->getClassIdentifier() . '-' . $key;
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
+        Assert::keyExists($caller, 'class');
+        Assert::stringNotEmpty($caller['class']);
+        $filteredCallerClassName = $this->getClassIdentifier($caller['class']);
+        $fullyQualifiedCacheKey  = $filteredCallerClassName . '-' . $key;
         if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
             return $this->memoryCache[$fullyQualifiedCacheKey];
         }
@@ -124,7 +133,11 @@ trait SionCacheTrait
     public function &fetchMemoryCachedEntityObjects(string $key): mixed
     {
         Assert::notEmpty($key);
-        $fullyQualifiedCacheKey = $this->getClassIdentifier() . '-' . $key;
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
+        Assert::keyExists($caller, 'class');
+        Assert::stringNotEmpty($caller['class']);
+        $filteredCallerClassName = $this->getClassIdentifier($caller['class']);
+        $fullyQualifiedCacheKey  = $filteredCallerClassName . '-' . $key;
         if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
             return $this->memoryCache[$fullyQualifiedCacheKey];
         }
@@ -138,17 +151,20 @@ trait SionCacheTrait
     public function removeDependentCacheItems(array $entities): void
     {
         Assert::allStringNotEmpty($entities);
-        $cache        = $this->getPersistentCache();
-        $changesKey   = $this->getClassIdentifier() . '-changes';
-        $problemsKey  = $this->getClassIdentifier() . '-problems';
-        $removedItems = [];
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
+        Assert::keyExists($caller, 'class');
+        Assert::stringNotEmpty($caller['class']);
+        $filteredCallerClassName = $this->getClassIdentifier($caller['class']);
+        $changesKey              = $filteredCallerClassName . '-changes';
+        $problemsKey             = $filteredCallerClassName . '-problems';
+        $removedItems            = [];
         foreach ($this->cacheDependencies as $fullyQualifiedCacheKey => $dependentEntities) {
             if (
                 in_array($entities, $dependentEntities, true)
                 || $changesKey === $fullyQualifiedCacheKey
                 || $problemsKey === $fullyQualifiedCacheKey
             ) {
-                $cache->removeItem($fullyQualifiedCacheKey);
+                $this->persistentCache->removeItem($fullyQualifiedCacheKey);
                 $removedItems[] = $fullyQualifiedCacheKey;
                 if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
                     unset($this->memoryCache[$fullyQualifiedCacheKey]);
@@ -163,59 +179,9 @@ trait SionCacheTrait
         }
     }
 
-    /**
-     * Get the maxItemsToCache value
-     *
-     * @return int
-     */
-    public function getMaxItemsToCache(): int
+    public function getClassIdentifier(string $fqcn): string
     {
-        return $this->maxItemsToCache;
-    }
-
-    public function setMaxItemsToCache(int $maxItemsToCache): void
-    {
-        $this->maxItemsToCache = $maxItemsToCache;
-    }
-
-    /**
-     * Get the cache value
-     *
-     * @return StorageInterface
-     */
-    public function getPersistentCache()
-    {
-        return $this->persistentCache;
-    }
-
-    public function setPersistentCache(StorageInterface $cache): void
-    {
-        $this->persistentCache = $cache;
-
-        $hasCacheDependencies = false;
-        $cacheDependencies    = $this->persistentCache->getItem(
-            $this->getClassIdentifier() . '-cachedependencies',
-            $hasCacheDependencies
-        );
-        if ($hasCacheDependencies) {
-            $this->cacheDependencies = $cacheDependencies;
-        }
-    }
-
-    /**
-     * Get a string to identify this SionTable amongst others. Based on a transformed class name.
-     *
-     * @return string
-     */
-    public function getClassIdentifier()
-    {
-        if (isset($this->classIdentifier)) {
-            return $this->classIdentifier;
-        }
-        $filter = new FilterChain();
-        $filter->attach(new StringToLower())
-        ->attach(new PregReplace(['pattern' => '/\\\\/', 'replacement' => '']));
-        return $this->classIdentifier = $filter->filter(static::class);
+        return $this->classIdentifierFilter->filter($fqcn);
     }
 
     /**
@@ -224,7 +190,7 @@ trait SionCacheTrait
      */
     public function onFinishWriteCache(): void
     {
-        $maxObjects = $this->getMaxItemsToCache();
+        $maxObjects = $this->maxItemsToCache;
         $count      = 0;
         foreach ($this->newPersistentCacheItems as $fullyQualifiedCacheKey) {
             if (array_key_exists($fullyQualifiedCacheKey, $this->memoryCache)) {

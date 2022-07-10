@@ -28,8 +28,7 @@ class SionControllerFactory implements AbstractFactoryInterface
     public function canCreate(ContainerInterface $container, $requestedName)
     {
         if (! isset($this->entitiesService)) {
-            $parentLocator         = $container->getServiceLocator();
-            $this->entitiesService = $parentLocator->get(EntitiesService::class);
+            $this->entitiesService = $container->get(EntitiesService::class);
         }
         $controllers = $this->entitiesService->getEntityControllers();
         return array_key_exists($requestedName, $controllers);
@@ -55,9 +54,8 @@ class SionControllerFactory implements AbstractFactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $parentLocator = $container->getServiceLocator();
         if (! isset($this->entitiesService)) {
-            $this->entitiesService = $parentLocator->get(EntitiesService::class);
+            $this->entitiesService = $container->get(EntitiesService::class);
         }
         //figure out what entity we're dealing with
         $entitiesSpecs = $this->entitiesService->getEntities();
@@ -66,17 +64,17 @@ class SionControllerFactory implements AbstractFactoryInterface
         $entitySpec    = $entitiesSpecs[$entity];
 
         //get sionTable
-        if (! isset($entitySpec->sionModelClass) || ! $parentLocator->has($entitySpec->sionModelClass)) {
+        if (! isset($entitySpec->sionModelClass) || ! $container->has($entitySpec->sionModelClass)) {
             throw new Exception('Invalid SionModel class set for entity \'' . $entity . '\'');
         }
-        $sionTable       = $parentLocator->get($entitySpec->sionModelClass);
-        $predicatesTable = $parentLocator->get(PredicatesTable::class);
+        $sionTable       = $container->get($entitySpec->sionModelClass);
+        $predicatesTable = $container->get(PredicatesTable::class);
 
         //get createActionForm
         /** @var SionForm $createActionForm **/
         $createActionForm = null;
-        if (isset($entitySpec->createActionForm) && $parentLocator->has($entitySpec->createActionForm)) {
-            $createActionForm = $parentLocator->get($entitySpec->createActionForm);
+        if (isset($entitySpec->createActionForm) && $container->has($entitySpec->createActionForm)) {
+            $createActionForm = $container->get($entitySpec->createActionForm);
         } elseif (isset($entitySpec->createActionForm) && class_exists($entitySpec->createActionForm)) {
             $createActionForm = new $entitySpec->createActionForm();
         }
@@ -84,8 +82,8 @@ class SionControllerFactory implements AbstractFactoryInterface
         //get editActionForm
         /** @var SionForm $editActionForm **/
         $editActionForm = null;
-        if (isset($entitySpec->editActionForm) && $parentLocator->has($entitySpec->editActionForm)) {
-            $editActionForm = $parentLocator->get($entitySpec->editActionForm);
+        if (isset($entitySpec->editActionForm) && $container->has($entitySpec->editActionForm)) {
+            $editActionForm = $container->get($entitySpec->editActionForm);
         } elseif (isset($entitySpec->editActionForm) && class_exists($entitySpec->editActionForm)) {
             $className      = $entitySpec->editActionForm;
             $editActionForm = new $className();
@@ -95,14 +93,14 @@ class SionControllerFactory implements AbstractFactoryInterface
         $suggestFormName = $entitySpec->suggestForm ?? SuggestForm::class;
         /** @var SionForm $suggestForm **/
         $suggestForm = null;
-        if ($parentLocator->has($suggestFormName)) {
-            $suggestForm = $parentLocator->get($suggestFormName);
+        if ($container->has($suggestFormName)) {
+            $suggestForm = $container->get($suggestFormName);
         } elseif (class_exists($suggestFormName)) {
             $suggestForm = new $suggestFormName();
         }
 
         //get sionModelConfig
-        $config = $parentLocator->get('config');
+        $config = $container->get('config');
 
         $logger = $container->get('SionModel\Logger');
 

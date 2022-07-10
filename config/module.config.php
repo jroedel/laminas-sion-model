@@ -5,26 +5,26 @@ declare(strict_types=1);
 namespace SionModel;
 
 use GeoIp2\Database\Reader;
+use Laminas\Mail\Transport\Smtp;
+use Laminas\Mail\Transport\TransportInterface;
 use Laminas\Router\Http\Literal;
 use Laminas\Router\Http\Segment;
 use Laminas\ServiceManager\Proxy\LazyServiceFactory;
 use Laminas\View\Helper\InlineScript;
 use SionModel\Controller\LazyControllerFactory;
-use SionModel\Db\Model\MailingsTable;
 use SionModel\Form\Element\Phone;
 
 return [
     'view_helpers'    => [
         'factories'  => [
-            'inlineScript'      => Service\InlineScriptFactory::class,
-            InlineScript::class => Service\InlineScriptFactory::class,
-            'address'           => Service\AddressFactory::class,
-            'editPencil'        => Service\EditPencilFactory::class,
-            'formatEntity'      => Service\FormatEntityFactory::class,
-            'touchButton'       => Service\TouchButtonFactory::class,
-            'controllerName'    => Service\ControllerNameFactory::class,
-            'routeName'         => Service\RouteNameFactory::class,
-            'geoIp2City'        => Service\GeoIp2ViewFactory::class,
+            InlineScript::class   => Service\InlineScriptFactory::class,
+            'address'        => Service\AddressFactory::class,
+            'editPencil'     => Service\EditPencilFactory::class,
+            'formatEntity'   => Service\FormatEntityFactory::class,
+            'touchButton'    => Service\TouchButtonFactory::class,
+            'controllerName' => Service\ControllerNameFactory::class,
+            'routeName'      => Service\RouteNameFactory::class,
+            'geoIp2City'     => Service\GeoIp2ViewFactory::class,
         ],
         'invokables' => [
             'editPencilNew'   => View\Helper\EditPencilNew::class,
@@ -81,21 +81,27 @@ return [
         ],
         'factories'     => [
             'CountryValueOptions'           => Service\CountryValueOptionsFactory::class,
+            'ExceptionsLogger'              => Service\ExceptionsLoggerFactory::class,
             'SionModel\Config'              => Service\ConfigServiceFactory::class,
-            Db\Model\FilesTable::class      => Service\FilesTableFactory::class,
-            Form\SuggestForm::class         => Service\SuggestFormFactory::class,
             'SionModel\PersistentCache'     => Service\PersistentCacheFactory::class,
-            Problem\ProblemTable::class     => Service\ProblemTableFactory::class,
+            'SionModel\Logger'              => Service\LoggerFactory::class,
+            Db\Model\FilesTable::class      => Service\FilesTableFactory::class,
+            Db\Model\PredicatesTable::class => Service\PredicatesTableFactory::class,
+            Db\Model\MailingsTable::class   => Service\MailingsTableFactory::class,
+            Form\SuggestForm::class         => Service\SuggestFormFactory::class,
+            Problem\EntityProblem::class    => Service\EntityProblemFactory::class,
             Service\EntitiesService::class  => Service\EntitiesServiceFactory::class,
             Service\ProblemService::class   => Service\ProblemServiceFactory::class,
             Service\ChangesCollector::class => Service\ChangesCollectorFactory::class,
+            Service\SionCacheService::class => Service\SionCacheServiceFactory::class,
             Mailing\Mailer::class           => Service\MailerFactory::class,
-            Db\Model\PredicatesTable::class => Service\PredicatesTableFactory::class,
             Mvc\CspListener::class          => Service\CspListenerFactory::class,
             Service\ErrorHandling::class    => Service\ErrorHandlingFactory::class,
-            'ExceptionsLogger'              => Service\ExceptionsLoggerFactory::class,
-            'SionModel\Logger'              => Service\LoggerFactory::class,
             Reader::class                   => Service\GeoIp2Factory::class,
+            TransportInterface::class       => Service\MailTransportFactory::class,
+        ],
+        'aliases'       => [
+            Smtp::class => TransportInterface::class,
         ],
         'lazy_services' => [
             // Mapping services to their class names is required
@@ -104,7 +110,6 @@ return [
                 Db\Model\FilesTable::class      => Db\Model\FilesTable::class,
                 Mailing\Mailer::class           => Mailing\Mailer::class,
                 Service\ProblemService::class   => Service\ProblemService::class,
-                Problem\ProblemTable::class     => Problem\ProblemTable::class,
                 Form\SuggestForm::class         => Form\SuggestForm::class,
                 Db\Model\PredicatesTable::class => Db\Model\PredicatesTable::class,
                 Service\ChangesCollector::class => Service\ChangesCollector::class,
@@ -118,9 +123,6 @@ return [
                 LazyServiceFactory::class,
             ],
             Service\ProblemService::class   => [
-                LazyServiceFactory::class,
-            ],
-            Problem\ProblemTable::class     => [
                 LazyServiceFactory::class,
             ],
             Form\SuggestForm::class         => [
@@ -231,14 +233,13 @@ return [
 //         ],
         'entities' => [
             'mailing' => [
-                'table_name'                    => 'mailings',
+                'table_name'                    => 'a_data_mailing',
                 'table_key'                     => 'MailingId',
                 'entity_key_field'              => 'mailingId',
-                'sion_model_class'              => MailingsTable::class,
+                'sion_model_class'              => Db\Model\MailingsTable::class,
                 'get_object_function'           => 'getMailing',
                 'required_columns_for_creation' => [
                     'toAddresses',
-                    'status',
                 ],
                 'name_field'                    => 'mailingName',
                 'name_field_is_translatable'    => false,
@@ -249,6 +250,7 @@ return [
                     'queueUntil',
                 ],
                 'update_columns'                => [
+                    //@todo add fromAddresses
                     'mailingId'           => 'MailingId',
                     'toAddresses'         => 'ToAddresses',
                     'ccAddresses'         => 'CcAddresses',

@@ -6,6 +6,7 @@ namespace SionModel\Mailing;
 
 use DateTime;
 use DateTimeZone;
+use Exception;
 use Laminas\Log\LoggerInterface;
 use Laminas\Mail\AddressList;
 use Laminas\Mail\Message;
@@ -21,7 +22,7 @@ use function implode;
 
 class Mailer
 {
-    private const CSS_PATH_DEFAULT = '/../../../public/css/email-default.css';
+    private const CSS_PATH_DEFAULT = 'module/SionModel/dist/css/email-default.css';
 
     private const TOKEN_LENGTH = 24;
 
@@ -29,7 +30,8 @@ class Mailer
         private TransportInterface $mailTransport,
         private MailingsTable $mailingsTable,
         private LoggerInterface $logger,
-        private array $config
+        //        private array $config,
+        private string $defaultFromAddress
     ) {
     }
 
@@ -41,11 +43,14 @@ class Mailer
     public function sendMessageAndLog(MailingMessage $mailingMessage): bool
     {
         $message = $mailingMessage->message;
-        Assert::true($message->isValid());
-        $result    = $this->mailTransport->send($message);
-        if (! $result->isValid()) {
-            $errorReport = $result->hasException() ? $result->getException()->getMessage() : $result->getMessage();
-            $this->logger->err('Mailer failed to send message', $errorReport);
+        if ($message->getFrom()->count() === 0) {
+            $message->setFrom($this->defaultFromAddress);
+        }
+        Assert::true($message->isValid(), "Please set From field before attempting to send a message.");
+        try {
+            $this->mailTransport->send($message);
+        } catch (Exception $e) {
+            $this->logger->err('Mailer failed to send message', $e);
             return false;
         }
         //report email
@@ -55,7 +60,6 @@ class Mailer
 
     public function sendMessagesAndLog(array $mailingMessages): void
     {
-
     }
 
     public function reportMailing(MailingMessage $mailingMessage): void
@@ -107,7 +111,7 @@ class Mailer
         // create instance
         $cssToInlineStyles = new CssToInlineStyles();
 
-        $css = file_get_contents(__DIR__ . $cssPath);
+        $css = file_get_contents($cssPath);
 
         // output
         return $cssToInlineStyles->convert(

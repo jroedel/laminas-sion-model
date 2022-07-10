@@ -13,8 +13,7 @@ class EditPencilFactory implements FactoryInterface
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $parentLocator = $container->getServiceLocator();
-        $entityService = $parentLocator->get(EntitiesService::class);
+        $entityService = $container->get(EntitiesService::class);
 
         return new EditPencil($entityService);
     }

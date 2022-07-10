@@ -32,7 +32,7 @@ class FilesTable extends SionTable
 
     public function getFiles(): array
     {
-        if (null !== ($cache = $this->fetchCachedEntityObjects('files'))) {
+        if (null !== ($cache = $this->sionCacheService->fetchCachedEntityObjects('files'))) {
             return $cache;
         }
 
@@ -78,7 +78,7 @@ FROM `files` WHERE 1";
             ];
         }
 
-        $this->cacheEntityObjects('files', $entities, ['file']);
+        $this->sionCacheService->cacheEntityObjects('files', $entities, ['file']);
         return $entities;
     }
 

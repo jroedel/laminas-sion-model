@@ -1,27 +1,35 @@
 <?php
 
-/**
- * SionModel Module
- */
+declare(strict_types=1);
 
 namespace SionModel\Service;
 
+use Laminas\Mail\Transport\TransportInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
+use SionModel\Db\Model\MailingsTable;
 use SionModel\Mailing\Mailer;
+use Webmozart\Assert\Assert;
 
 class MailerFactory implements FactoryInterface
 {
-    /**
-     * @todo FACTOR OUT!
-     */
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $translator = $container->get('translator');
-        $mailService = $container->get('acmailer.mailservice.default');
-        $config = $container->get('Config');
+        $mailTransport = $container->get(TransportInterface::class);
+        $mailingsTable = $container->get(MailingsTable::class);
+        $logger        = $container->get('SionModel\Logger');
+        $config        = $container->get('Config');
+        Assert::keyExists($config, 'zend_mail_transport_options');
+        Assert::keyExists($config['zend_mail_transport_options'], 'connection_config');
+        Assert::keyExists($config['zend_mail_transport_options']['connection_config'], 'username');
+        Assert::email($config['zend_mail_transport_options']['connection_config']['username']);
 
-        $mailer = new Mailer($mailService, $translator, $config);
-        return $mailer;
+        return new Mailer(
+            mailTransport: $mailTransport,
+            mailingsTable: $mailingsTable,
+            logger: $logger,
+//            config: $config,
+            defaultFromAddress: $config['zend_mail_transport_options']['connection_config']['username']
+        );
     }
 }

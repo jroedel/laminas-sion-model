@@ -13,8 +13,7 @@ class InlineScriptFactory implements FactoryInterface
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $parentLocator = $container->getServiceLocator();
-        $csp           = $parentLocator->get(CspListener::class);
+        $csp           = $container->get(CspListener::class);
         $nonce         = $csp->getNonce();
         return new InlineScript($nonce);
     }

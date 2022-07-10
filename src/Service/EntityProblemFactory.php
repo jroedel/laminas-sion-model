@@ -6,17 +6,14 @@ namespace SionModel\Service;
 
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
-use SionModel\Service\EntitiesService;
-use SionModel\View\Helper\TouchButton;
+use SionModel\Problem\EntityProblem;
 
-class TouchButtonFactory implements FactoryInterface
+class EntityProblemFactory implements FactoryInterface
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        /**
-         * @var EntitiesService $entities
-         */
+        $config   = $container->get('config');
         $entities = $container->get(EntitiesService::class);
-        return new TouchButton($entities->getEntities());
+        return new EntityProblem($entities->getEntities(), $config['sion_model']['problem_specifications'] ?? []);
     }
 }

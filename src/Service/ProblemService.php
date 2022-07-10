@@ -32,8 +32,7 @@ class ProblemService
     protected array $sortedProblems = [];
 
     public function __construct(
-        protected ServiceLocatorInterface $serviceLocator,
-        protected ProblemTable $problemTable,
+        protected ServiceLocatorInterface $serviceLocator, //@todo factor this out
         array $problemProviders,
         protected EntityProblem $entityProblemPrototype
     ) {

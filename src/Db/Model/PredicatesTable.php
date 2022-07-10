@@ -237,7 +237,7 @@ class PredicatesTable extends SionTable
     public function getPredicates()
     {
         $cacheKey = 'predicates';
-        if (null !== ($cache = $this->fetchCachedEntityObjects($cacheKey))) {
+        if (null !== ($cache = $this->sionCacheService->fetchCachedEntityObjects($cacheKey))) {
             return $cache;
         }
         $gateway = $this->getTableGateway('predicates');
@@ -256,7 +256,7 @@ class PredicatesTable extends SionTable
             ];
         }
 
-        $this->cacheEntityObjects($cacheKey, $objects);
+        $this->sionCacheService->cacheEntityObjects($cacheKey, $objects);
         return $objects;
     }
 
