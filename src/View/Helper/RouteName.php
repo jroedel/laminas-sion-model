@@ -1,25 +1,20 @@
 <?php
 
-// SionModel/View/Helper/ControllerName.php
+declare(strict_types=1);
 
 namespace SionModel\View\Helper;
 
+use Laminas\Router\RouteMatch;
 use Laminas\View\Helper\AbstractHelper;
 
 class RouteName extends AbstractHelper
 {
-
-    protected $routeMatch;
-
-    public function __construct($routeMatch)
+    public function __construct(private RouteMatch $routeMatch)
     {
-        $this->routeMatch = $routeMatch;
     }
 
-    public function __invoke()
+    public function __invoke(): string
     {
-        if ($this->routeMatch) {
-            return $this->routeMatch->getMatchedRouteName();
-        }
+        return $this->routeMatch->getMatchedRouteName();
     }
 }

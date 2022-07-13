@@ -18,11 +18,11 @@ return [
     'view_helpers'    => [
         'factories'  => [
             InlineScript::class   => Service\InlineScriptFactory::class,
-            'address'        => Service\AddressFactory::class,
+            View\Helper\Address::class        => Service\AddressFactory::class,
+            View\Helper\Request::class        => Service\RequestFactory::class,
             'editPencil'     => Service\EditPencilFactory::class,
             'formatEntity'   => Service\FormatEntityFactory::class,
             'touchButton'    => Service\TouchButtonFactory::class,
-            'controllerName' => Service\ControllerNameFactory::class,
             'routeName'      => Service\RouteNameFactory::class,
             'geoIp2City'     => Service\GeoIp2ViewFactory::class,
         ],
@@ -41,6 +41,10 @@ return [
             'telephoneList'   => View\Helper\TelephoneList::class,
             'tooltip'         => View\Helper\Tooltip::class,
             'ipPlace'         => View\Helper\IpPlace::class,
+        ],
+        'aliases' => [
+            'address' => View\Helper\Address::class,
+            'request' => View\Helper\Request::class,
         ],
     ],
     'validators'      => [
@@ -94,6 +98,7 @@ return [
             Service\ProblemService::class   => Service\ProblemServiceFactory::class,
             Service\ChangesCollector::class => Service\ChangesCollectorFactory::class,
             Service\SionCacheService::class => Service\SionCacheServiceFactory::class,
+            View\Helper\Address::class      => Service\AddressFactory::class,
             Mailing\Mailer::class           => Service\MailerFactory::class,
             Mvc\CspListener::class          => Service\CspListenerFactory::class,
             Service\ErrorHandling::class    => Service\ErrorHandlingFactory::class,

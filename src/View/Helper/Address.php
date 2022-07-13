@@ -1,24 +1,17 @@
 <?php
 
-// SionModel/View/Helper/Email.php
-
 namespace SionModel\View\Helper;
 
 use Laminas\View\Helper\AbstractHelper;
 
 class Address extends AbstractHelper
 {
-    public $defaultPlaceLineFormat = ':zip :cityState';
-    public $placeLineCountryFormats = [];
 
-    public function __construct($config)
+    public function __construct(
+        public string $defaultPlaceLineFormat = ':zip :cityState',
+        public array $placeLineCountryFormats = []
+    )
     {
-        if (isset($config['post_place_line_format'])) {
-            $this->defaultPlaceLineFormat = $config['post_place_line_format'];
-        }
-        if (isset($config['post_place_line_format_by_country'])) {
-            $this->placeLineCountryFormats = $config['post_place_line_format_by_country'];
-        }
     }
 
     public function __invoke($data)

@@ -1,31 +1,30 @@
 <?php
 
-// SionModel/View/Helper/DiffForHumans.php
+declare(strict_types=1);
 
 namespace SionModel\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
 use Carbon\Carbon;
+use DateTimeInterface;
+use IntlDateFormatter;
+use Laminas\View\Helper\AbstractHelper;
+use Locale;
+
+use function vsprintf;
 
 class DiffForHumans extends AbstractHelper
 {
-    protected $firstInvocation = true;
-
-    public function __invoke($date)
+    public function __construct()
     {
-        if (! $date instanceof \DateTime) {
-            throw new \InvalidArgumentException('Diff for humans only accepts DateTime objects.');
-        }
+        Carbon::setLocale(Locale::getDefault());
+    }
 
-        if ($this->firstInvocation) {
-            Carbon::setLocale(\Locale::getDefault());
-            $this->firstInvocation = false;
-        }
-
+    public function __invoke(DateTimeInterface $date)
+    {
         $carbonDate = Carbon::instance($date);
-        $format = '<abbr title="%s">%s</abbr>';
-        $args = [
-            $this->view->dateFormat($date, \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT),
+        $format     = '<abbr title="%s">%s</abbr>';
+        $args       = [
+            $this->view->dateFormat($date, IntlDateFormatter::SHORT, IntlDateFormatter::SHORT),
             $carbonDate->diffForHumans(),
         ];
         return vsprintf($format, $args);

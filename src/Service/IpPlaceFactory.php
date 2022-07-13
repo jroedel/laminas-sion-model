@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace SionModel\Service;
 
+use SionModel\View\Helper\IpPlace;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
-use SionModel\View\Helper\ControllerName;
 
-class ControllerNameFactory implements FactoryInterface
+class IpPlaceFactory implements FactoryInterface
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $routeMatch = $container->get('application')->getMvcEvent()->getRouteMatch();
-        return new ControllerName($routeMatch);
+        $geo = $container->get('GeoIp2');
+        return new IpPlace($geo);
     }
 }

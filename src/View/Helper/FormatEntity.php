@@ -9,6 +9,7 @@ use DateTime;
 use IntlDateFormatter;
 use InvalidArgumentException;
 use Laminas\View\Helper\AbstractHelper;
+use SionModel\Controller\SionController;
 use SionModel\Entity\Entity;
 use SionModel\Service\EntitiesService;
 use Webmozart\Assert\Assert;
@@ -96,33 +97,8 @@ class FormatEntity extends AbstractHelper
 
         if ($options['displayEditPencil'] && isset($entitySpec->editRoute)) {
             $editRoute = $entitySpec->editRoute;
-            if ($entitySpec->editRouteParams) {
-                $editParams = [];
-                foreach ($entitySpec->editRouteParams as $routeParam => $entityField) {
-                    Assert::keyExists(
-                        $data,
-                        $entityField,
-                        "editRouteParams for entity `$entityType` mentions an unknown field `$entityField`"
-                    );
-                    $editParams[$routeParam] = $data[$entityField];
-                }
-                if (count($editParams) === count($entitySpec->editRouteParams)) {
-                    $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
-                }
-            } elseif ($entitySpec->defaultRouteParams) {
-                $editParams = [];
-                foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
-                    Assert::keyExists(
-                        $data,
-                        $entityField,
-                        "defaultRouteParams for entity `$entityType` mentions an unknown field `$entityField`"
-                    );
-                    $editParams[$routeParam] = $data[$entityField];
-                }
-                if (count($editParams) === count($entitySpec->defaultRouteParams)) {
-                    $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
-                }
-            }
+            $editParams = SionController::assembleRouteParamValues($entitySpec, 'edit', $data);
+            $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
         }
         if (
             $options['displayInactiveLabel'] &&

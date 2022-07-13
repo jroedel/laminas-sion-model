@@ -1,16 +1,21 @@
 <?php
 
-/**
- * Zend Framework (http://framework.zend.com/)
- *
- * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
- * @license   http://framework.zend.com/license/new-bsd New BSD License
- */
+declare(strict_types=1);
 
 namespace SionModel\Filter;
 
+use ForceUTF8\Encoding;
 use Laminas\Filter\AbstractFilter;
+
+use function iconv;
+use function is_array;
+use function preg_replace;
+use function setlocale;
+use function str_replace;
+use function strtolower;
+use function trim;
+
+use const LC_CTYPE;
 
 class ToAscii extends AbstractFilter
 {
@@ -34,10 +39,10 @@ class ToAscii extends AbstractFilter
         if (! isset($str) || is_array($str)) {
             return $str;
         }
-        $str = \ForceUTF8\Encoding::toUTF8($str);
+        $str = Encoding::toUTF8($str);
 
         if (is_array($replace) && ! empty($replace)) {
-            $str = str_replace((array)$replace, ' ', $str);
+            $str = str_replace((array) $replace, ' ', $str);
         }
         $clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
         $clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);

@@ -36,7 +36,6 @@ use SionModel\Db\GeoPoint;
 use SionModel\Entity\Entity;
 use SionModel\I18n\LanguageSupport;
 use SionModel\Problem\EntityProblem;
-use SionModel\Service\EntitiesService;
 use SionModel\Service\SionCacheService;
 use Webmozart\Assert\Assert;
 
@@ -117,7 +116,6 @@ class SionTable
 
     /** @var Select[] $selectPrototypes */
     protected array $selectPrototypes = [];
-
     protected UserTable|SionTable $userTable;
     protected ?string $changeTableName = null;
     protected ?string $visitsTableName;
@@ -132,11 +130,13 @@ class SionTable
 
     /**
      * Default algorithm for hashing sensitive data
+     * @TODO strongly consider making this required
      */
     protected ?string $privacyHashAlgorithm = 'sha256';
 
     /**
      * Default random salt for hashing sensitive data
+     * @todo strongly consider making this a required config key; being in the repo takes away all its added value
      */
     protected string $privacyHashSalt = '78z^PjApc';
 
@@ -171,9 +171,11 @@ class SionTable
         protected LanguageSupport $languageSupport,
         protected LoggerInterface $logger,
         protected ?int $actingUserId,
-        protected array $config,
+        protected array $generalConfig,
     ) {
         Assert::allIsInstanceOf($entitySpecifications, Entity::class);
+        Assert::keyExists($this->generalConfig, 'sion_model');
+        $config = $this->generalConfig['sion_model'];
         Assert::keyExists($config, 'changes_table');
         Assert::keyExists($config, 'visits_table');
         $this->changeTableName = $config['changes_table'];
@@ -311,7 +313,6 @@ class SionTable
     /**
      * Try a query given certain parameters and options
      *
-     * @param string $entity
      * @param array|PredicateInterface|PredicateInterface[] $query
      * @param array $options 'failSilently'(bool), 'orCombination'(bool), 'limit'(int),
      *      'offset'(int), 'order'
@@ -1213,9 +1214,6 @@ class SionTable
         return $this->tableGatewaysCache[$tableName] = $gateway;
     }
 
-    /**
-     * @return LoggerInterface
-     */
     public function getLogger(): LoggerInterface
     {
         return $this->logger;
@@ -1618,20 +1616,20 @@ class SionTable
     /**
      * Register a visit in the visits table as defined by the config
      *
-     * @param string $entity
      * @param int $entityId If null, it refers to an entity index that was visited, or
      *                      non-numeric entity on the site
      * @throws InvalidArgumentException
      */
-    public function registerVisit($entity, $entityId = null): void
+    public function registerVisit(string $entity, ?int $entityId = null): void
     {
-        $date   = new DateTime("now", new DateTimeZone('UTC'));
+        $date = new DateTime("now", new DateTimeZone('UTC'));
+        //@todo get rid of access to these magic properties, they mess with tests
         $params = [
             'Entity'    => $entity,
             'EntityId'  => $entityId,
             'UserId'    => $this->actingUserId,
             'IpAddress' => $this->privacyHash($_SERVER['REMOTE_ADDR']),
-            'UserAgent' => $this->privacyHash($_SERVER['HTTP_USER_AGENT']),
+            'UserAgent' => isset($_SERVER['HTTP_USER_AGENT']) ? $this->privacyHash($_SERVER['HTTP_USER_AGENT']) : null,
             'VisitedAt' => $date->format('Y-m-d H:i:s'),
         ];
         $this->getVisitTableGateway()->insert($params);

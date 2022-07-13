@@ -18,7 +18,8 @@ class ProblemServiceFactory implements FactoryInterface
         $config = $container->get('SionModel\Config');
         if (empty($config['problem_specifications'])) {
             throw new Exception(
-                'Please set specify potential problems in app config under key [\'sion_model\'][\'problem_specifications\'].'
+                'Please set specify potential problems in app config under key '
+                . '[\'sion_model\'][\'problem_specifications\'].'
             );
         }
 
@@ -29,11 +30,6 @@ class ProblemServiceFactory implements FactoryInterface
 
         $problemPrototype = new EntityProblem($entities->getEntities(), $config['problem_specifications']);
 
-        /**
-         * @var ProblemTable $problemTable
-         */
-        $problemTable = $container->get(ProblemTable::class);
-
-        return new ProblemService($container, $problemTable, $config['problem_providers'], $problemPrototype);
+        return new ProblemService($container, $config['problem_providers'], $problemPrototype);
     }
 }

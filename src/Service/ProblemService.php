@@ -7,6 +7,7 @@ namespace SionModel\Service;
 use InvalidArgumentException;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Stdlib\ArrayUtils;
+use Psr\Container\ContainerInterface;
 use SionModel\Problem\EntityProblem;
 use SionModel\Problem\ProblemProviderInterface;
 use SionModel\Problem\ProblemTable;
@@ -32,7 +33,7 @@ class ProblemService
     protected array $sortedProblems = [];
 
     public function __construct(
-        protected ServiceLocatorInterface $serviceLocator, //@todo factor this out
+        protected ContainerInterface $serviceLocator, //@todo factor this out
         array $problemProviders,
         protected EntityProblem $entityProblemPrototype
     ) {

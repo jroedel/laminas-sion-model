@@ -361,9 +361,7 @@ class SionController extends AbstractActionController
         $entityObject = $this->getEntityObject($newId);
         $params       = [];
         foreach ($routeParams as $routeParam => $entityField) {
-            Assert::string($routeParam, "Invalid $paramConfig configuration for `$entity`");
             Assert::stringNotEmpty($routeParam, "Invalid $paramConfig configuration for `$entity`");
-            Assert::string($entityField, "Invalid $paramConfig configuration for `$entity`");
             Assert::stringNotEmpty($entityField, "Invalid $paramConfig configuration for `$entity`");
             Assert::keyExists(
                 $entityObject,
@@ -718,10 +716,9 @@ class SionController extends AbstractActionController
     /**
      * Called in order to redirect after error or success on deleteAction
      *
-     * @param bool $actionWasSuccessful
      * @throws Exception
      */
-    protected function redirectAfterDelete($actionWasSuccessful = true): Response
+    protected function redirectAfterDelete(): Response
     {
         $entity     = $this->getEntity();
         $entitySpec = $this->getEntitySpecification();
@@ -780,12 +777,57 @@ class SionController extends AbstractActionController
             return $this->actionEntityId;
         }
 
-        Assert::keyExists(self::ENTITY_ACTION_ROUTE_PARAMS_PROPERTIES, $action);
+        $routeParam      = self::discernAtWhichRouteParamToLookForEntityId($this->getEntitySpecification(), $action);
         $entity          = $this->getEntity();
         $realRouteParams = $this->params()->fromRoute();
         Assert::notEmpty($realRouteParams, "No route parameters were found for action `$action` of entity `$entity`");
-        $entitySpec        = $this->getEntitySpecification();
+        Assert::keyExists(
+            $realRouteParams,
+            $routeParam,
+            "We expected to find the route param `$routeParam`; no dice"
+        );
+        $id = (int) $realRouteParams[$routeParam];
+        Assert::greaterThan($id, 0);
+
+        return $this->actionEntityId = $id;
+    }
+
+    public static function discernAtWhichRouteParamToLookForEntityId(Entity $entitySpec, string $action): string
+    {
+        Assert::keyExists(self::ENTITY_ACTION_ROUTE_PARAMS_PROPERTIES, $action);
         $actionRouteParams = self::ENTITY_ACTION_ROUTE_PARAMS_PROPERTIES[$action];
+        Assert::true(
+            ! empty($entitySpec->$actionRouteParams) || ! empty($entitySpec->defaultRouteParams),
+            "Can't find an id param for the `$action` action of entity `$entitySpec->name`. "
+            . "Please set defaultRouteParams."
+        );
+        //(bool) [] === false
+        $entityRouteParams = ! empty($entitySpec->$actionRouteParams)
+            ? $entitySpec->$actionRouteParams
+            : $entitySpec->defaultRouteParams;
+        Assert::notEmpty(
+            $entityRouteParams,
+            "Entity `$entitySpec->name` is not configured for determining route parameters."
+        );
+
+        //we're looking for a route key which maps to the entity's primary key
+        foreach ($entityRouteParams as $routeParam => $entityField) {
+            if ($entityField === $entitySpec->entityKeyField) {
+                Assert::stringNotEmpty($routeParam);
+                return $routeParam;
+            }
+        }
+        throw new Exception(
+            "Can't find an id param for the `$action` action of entity `$entitySpec->name`. "
+            . "One route param should map to `$entitySpec->entityKeyField`."
+        );
+    }
+
+    public static function assembleRouteParamValues(Entity $entitySpec, string $action, array $data): array
+    {
+        Assert::keyExists(self::ENTITY_ACTION_ROUTE_PARAMS_PROPERTIES, $action);
+        $actionRouteParams = self::ENTITY_ACTION_ROUTE_PARAMS_PROPERTIES[$action];
+        $entity            = $entitySpec->name;
         Assert::true(
             ! empty($entitySpec->$actionRouteParams) || ! empty($entitySpec->defaultRouteParams),
             "Can't find an id param for the `$action` action of entity `$entity`. Please set defaultRouteParams."
@@ -797,21 +839,19 @@ class SionController extends AbstractActionController
         Assert::notEmpty($entityRouteParams, "Entity `$entity` is not configured for determining route parameters.");
 
         //we're looking for a route key which maps to the entity's primary key
-        $id = 0;
+        $resultingParams = [];
         foreach ($entityRouteParams as $routeParam => $entityField) {
-            if ($entityField === $entitySpec->entityKeyField) {
-                Assert::keyExists(
-                    $realRouteParams,
-                    $routeParam,
-                    "We expected to find the route param `$routeParam`; no dice"
-                );
-                $id = (int) $realRouteParams[$routeParam];
-                break;
-            }
+            Assert::stringNotEmpty($routeParam, "Invalid $actionRouteParams configuration for `$entity`");
+            Assert::stringNotEmpty($entityField, "Invalid $actionRouteParams configuration for `$entity`");
+            Assert::keyExists(
+                $data,
+                $entityField,
+                "Error assembling entity `$action` url with $actionRouteParams. Missing entity field `$entityField`"
+            );
+            $resultingParams[$routeParam] = $data[$entityField];
         }
-        Assert::greaterThan($id, 0);
-
-        return $this->actionEntityId = $id;
+        Assert::true(count($resultingParams) === count($entityRouteParams)); //impossible
+        return $resultingParams;
     }
 
     protected function sendFailedMessage(string $message): ResponseInterface
@@ -872,7 +912,6 @@ class SionController extends AbstractActionController
     /**
      * Get an array representing the entity object given by a particular id
      *
-     * @param int $id
      * @return mixed[]
      */
     public function getEntityObject(int $id): array

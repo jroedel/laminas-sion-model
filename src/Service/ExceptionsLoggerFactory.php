@@ -21,7 +21,7 @@ class ExceptionsLoggerFactory implements FactoryInterface
         $yearMonth = date('Y-m');
         $path      = str_replace('{monthString}', $yearMonth, $path);
         $log       = new Logger();
-        $writer    = new LogWriterStream($path);
+        $writer    = new LogWriterStream(streamOrUrl: $path, filePermissions: 0664);
         $log->addWriter($writer);
 
         return $log;

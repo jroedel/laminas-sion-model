@@ -1,22 +1,20 @@
 <?php
 
-/**
- * @link      http://github.com/zendframework/ZendSkeletonModule for the canonical source repository
- * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
- * @license   http://framework.zend.com/license/new-bsd New BSD License
- */
+declare(strict_types=1);
 
 namespace SionModel;
 
-use Laminas\Mvc\MvcEvent;
 use BjyAuthorize\Service\Authorize;
-use SionModel\Mvc\CspListener;
+use Exception;
 use Laminas\Mvc\ModuleRouteListener;
+use Laminas\Mvc\MvcEvent;
+use Laminas\View\Helper\Navigation\AbstractHelper;
+use SionModel\Mvc\CspListener;
 use SionModel\Service\ErrorHandling;
 
 class Module
 {
-    public function getConfig()
+    public function getConfig(): array
     {
         return include __DIR__ . '/../config/module.config.php';
     }
@@ -24,17 +22,17 @@ class Module
     public function onBootstrap(MvcEvent $e): void
     {
         $app = $e->getApplication();
-        $sm = $app->getServiceManager();
+        $sm  = $app->getServiceManager();
         // Add ACL information to the Navigation view helper
         $authorize = $sm->get(Authorize::class);
-        $acl = $authorize->getAcl();
-        $role = $authorize->getIdentity();
+        $acl       = $authorize->getAcl();
+        $role      = $authorize->getIdentity();
         //I think the following doesn't do anything: @todo check this
-        \Laminas\View\Helper\Navigation\AbstractHelper::setDefaultAcl($acl);
-        \Laminas\View\Helper\Navigation\AbstractHelper::setDefaultRole($role);
+        AbstractHelper::setDefaultAcl($acl);
+        AbstractHelper::setDefaultRole($role);
 
         $eventManager = $app->getEventManager();
-        $strategy = $sm->get(CspListener::class);
+        $strategy     = $sm->get(CspListener::class);
         $strategy->attach($eventManager);
 
         $moduleRouteListener = new ModuleRouteListener();
@@ -43,8 +41,8 @@ class Module
         //setup logging
         $eventManager->attach('dispatch.error', function ($event) {
             $exception = $event->getResult()->exception;
-            if ($exception instanceof \Exception) {
-                $sm = $event->getApplication()->getServiceManager();
+            if ($exception instanceof Exception) {
+                $sm      = $event->getApplication()->getServiceManager();
                 $service = $sm->get(ErrorHandling::class);
                 $service->logException($exception);
             }

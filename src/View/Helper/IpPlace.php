@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-// JUser/View/Helper/Email.php
-
 namespace SionModel\View\Helper;
 
 use Laminas\View\Helper\AbstractHelper;

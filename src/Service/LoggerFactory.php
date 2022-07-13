@@ -20,7 +20,7 @@ class LoggerFactory implements FactoryInterface
         $path      = $config['sion_model']['application_log_path'];
         $yearMonth = date('Y-m');
         $path      = str_replace('{monthString}', $yearMonth, $path);
-        $writer    = new Stream($path);
+        $writer    = new Stream(streamOrUrl: $path, filePermissions: 0664);
         $logger    = new Logger();
         $logger->addWriter($writer);
         return $logger;

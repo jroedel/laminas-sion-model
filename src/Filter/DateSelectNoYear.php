@@ -1,17 +1,15 @@
 <?php
 
-/**
- * Zend Framework (http://framework.zend.com/)
- *
- * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
- * @license   http://framework.zend.com/license/new-bsd New BSD License
- */
+declare(strict_types=1);
 
 namespace SionModel\Filter;
 
+use DateTime;
+use DateTimeZone;
 use Laminas\Filter\AbstractFilter;
 use Laminas\Validator\Regex;
+
+use function is_null;
 
 class DateSelectNoYear extends AbstractFilter
 {
@@ -33,17 +31,17 @@ class DateSelectNoYear extends AbstractFilter
             $validator = new Regex("/\\d{4}-\\d{2}-\\d{2}/");
         }
         if (! $tz) {
-            $tz = new \DateTimeZone('UTC');
+            $tz = new DateTimeZone('UTC');
         }
-        if ($value instanceof \DateTime) {
+        if ($value instanceof DateTime) {
             return $value;
         }
 
-        if (is_null($value) || $value === '' || $value === '1900--') {
+        if (! isset($value) || $value === '' || $value === '1900--') {
             return null;
         }
         if ($validator->isValid($value)) {
-            $value = new \DateTime($value, $tz);
+            $value = new DateTime($value, $tz);
         }
         return $value;
     }
