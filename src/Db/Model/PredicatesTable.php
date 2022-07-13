@@ -6,6 +6,7 @@ namespace SionModel\Db\Model;
 
 use DateTime;
 use Exception;
+use JUser\Model\UserTable;
 use Laminas\Db\Adapter\AdapterInterface;
 use Laminas\Db\ResultSet\ResultSetInterface;
 use Laminas\Db\Sql\Predicate\In;
@@ -14,7 +15,11 @@ use Laminas\Db\Sql\Predicate\PredicateSet;
 use Laminas\Db\Sql\Select;
 use Laminas\Db\Sql\Where;
 
+use Laminas\Log\LoggerInterface;
 use Psr\Container\ContainerInterface;
+use SionModel\I18n\LanguageSupport;
+use SionModel\Problem\EntityProblem;
+use SionModel\Service\SionCacheService;
 use function count;
 use function is_array;
 
@@ -33,9 +38,28 @@ class PredicatesTable extends SionTable
     public const COMMENT_STATUS_PUBLISHED = 'published';
     public const COMMENT_STATUS_DENIED    = 'denied';
 
-    public function __construct(AdapterInterface $adapter, ContainerInterface $container, ?int $actingUserId)
-    {
-        parent::__construct($adapter, $container, $actingUserId);
+    public function __construct(
+        AdapterInterface $adapter,
+        array $entitySpecifications,
+        SionCacheService $sionCacheService,
+        EntityProblem $entityProblemPrototype,
+        ?UserTable $userTable,
+        LanguageSupport $languageSupport,
+        LoggerInterface $logger,
+        ?int $actingUserId,
+        array $generalConfig
+    ) {
+        parent::__construct(
+            adapter: $adapter,
+            entitySpecifications: $entitySpecifications,
+            sionCacheService: $sionCacheService,
+            entityProblemPrototype: $entityProblemPrototype,
+            userTable: $userTable,
+            languageSupport: $languageSupport,
+            logger: $logger,
+            actingUserId: $actingUserId,
+            generalConfig: $generalConfig
+        );
     }
 
     /**

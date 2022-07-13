@@ -17,19 +17,6 @@ use function substr;
 
 class FilesTable extends SionTable
 {
-    /** @var array $sionModelConfig */
-    protected $sionModelConfig;
-
-    public function __construct(
-        AdapterInterface   $dbAdapter,
-        ContainerInterface $container,
-        ?int               $actingUserId,
-        array              $sionModelConfig
-    ) {
-        parent::__construct($dbAdapter, $container, $actingUserId);
-        $this->sionModelConfig = $sionModelConfig;
-    }
-
     public function getFiles(): array
     {
         if (null !== ($cache = $this->sionCacheService->fetchCachedEntityObjects('files'))) {
@@ -147,21 +134,9 @@ FROM `files` WHERE 1";
 
     /**
      * Get the sionModelConfig value
-     *
-     * @return array
      */
-    public function getSionModelConfig()
+    public function getSionModelConfig(): array
     {
-        return $this->sionModelConfig;
-    }
-
-    /**
-     * @param array $sionModelConfig
-     * @return self
-     */
-    public function setSionModelConfig($sionModelConfig)
-    {
-        $this->sionModelConfig = $sionModelConfig;
-        return $this;
+        return $this->generalConfig['sion_model'];
     }
 }
