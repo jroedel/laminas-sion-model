@@ -518,7 +518,7 @@ class SionController extends AbstractActionController
                 Assert::keyExists($updatedObject, $entityField);
                 $params[$routeParam] = $updatedObject[$entityField];
             }
-            Assert::true(count($params) === count($entitySpec->showRouteParams));
+            Assert::true(count($params) === count($routeParams));
             return $this->redirect()->toRoute($entitySpec->showRoute, $params);
         }
         if ($entitySpec->indexRoute) {
