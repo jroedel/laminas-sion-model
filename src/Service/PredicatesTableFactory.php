@@ -22,7 +22,7 @@ class PredicatesTableFactory implements FactoryInterface
         /** @var  User $userService **/
         $userService  = $container->get('lmcuser_user_service');
         $user         = $userService->getAuthService()->getIdentity();
-        $actingUserId = $user ? (int) $user->id : null;
+        $actingUserId = $user ? (int) $user->getId() : null;
 
         $adapter                = $container->get(Adapter::class);
         $entitiesService        = $container->get(EntitiesService::class);
