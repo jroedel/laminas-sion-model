@@ -1,5 +1,5 @@
 {
-    "name": "jroedel/zf3-sion-model",
+    "name": "jroedel/laminas-sion-model",
     "description": "Some support database, filter and form classes for Sion projects.",
     "type": "library",
     "require": {

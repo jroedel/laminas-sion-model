@@ -1,28 +1,21 @@
 # Sion Model
 
-A simple array-based ORM platform for ZF2. Includes many filters and view helpers for real life ZF2 use. 
+An array-based ORM platform for Laminas. Includes many filters and view helpers. Requires jtranslate and juser.
 
 ## Installation
 
 ```bash
-./composer.phar require jroedel/zf2-juser
+composer require jroedel/laminas-sion-model
 ```
 
 ## Features
 
 * Simple array-based ORM
-* Support for user suggestions upon the entities, required posterior moderation
+* Automatic caching
+* Automatic logging
 * Automatic reporting on who changed what, when.
-
-## ORM
-
-Object Relational Mapping. While you should probably take advantage of PHP classes to handle 
-database objects, sometimes **arrays just make more sense**. 
-
-Why does this make my life easier? It hides all database code behind the `createEntity` and `updateEntity`
-functions, it keeps track of who edited what data, and when, allows for easy data problem management (when
-users inserted legal, but clearly wrong information), and provides code for public users **suggestions** 
-that will later by looked over by moderators.
+* Integrated mailing support
+* Integrated data problem management
 
 ### Entities
 
@@ -34,23 +27,21 @@ and how these entities are integrated into the router tree.
 
 How to implement a Book database:
 
-1. Extend the SionModel class, and create a ServiceFactory to build it.
+1. Extend the SionTable class, and create a ServiceFactory to build it.
 
 2. Define your entity configuration in the `module.config.php` referencing the example file `sionmodel.global.php.dist` 
 and properties from `SionModel\Entity\Entity`.
 
-3. Implement `getBooks()` and `getBook()` using the `fetchSome()` function. 
+3. Implement the `processBookRow` function and register the row processor function in the config. 
 
-4. Create a BookForm implementing the `SionForm` class. 
+4. Create a BookForm extending the `SionForm` class. 
 
-5. Extend the EntityController class, implementing `showAction`, `editAction`, `createAction`, and `indexAction`.
-	(The EntityController is not yet created)
+5. Extend the SionController class
 
 ## Data problem management
 
 With data problem management you create two classes to detect problems with a certain 
-entity. The problems may be submitted to the database to be tracked when they are 
-resolved. Also, the user can choose to ignore a particular error. A pre-made GUI is 
+entity type. The user can choose to ignore a particular error. A pre-made GUI is 
 included which shows all the collected problems. 
 
 ### Steps to use:
@@ -73,6 +64,4 @@ included which shows all the collected problems.
 
 ## Coming soon
 
-* Integrated mailing support
-* Integrated data problem management (display data errors and warnings to admins through a GUI) (Completed!)
 * Support entity-level ACL rules

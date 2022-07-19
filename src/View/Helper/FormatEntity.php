@@ -35,7 +35,7 @@ class FormatEntity extends AbstractHelper
      */
     public function __invoke(string $entityType, array $data, array $options = []): string
     {
-        if (! isset($entityType) || ! array_key_exists($entityType, $this->entities)) {
+        if (! isset($entityType) || ! array_key_exists($entityType, $this->entities) || empty($data)) {
             if ($options['failSilently']) {
                 return '';
             } else {
@@ -75,6 +75,14 @@ class FormatEntity extends AbstractHelper
             $finalMarkup .= $this->view->flag($data[$entitySpec->countryField]) . "&nbsp;";
         }
 
+        if (! isset($data[$entitySpec->nameField])) {
+            if ($options['failSilently']) {
+                return '';
+            }
+            throw new InvalidArgumentException("We were expecting a name field `$entitySpec->nameField` "
+                . "for entity `$entityType`. That field doesn't exist.");
+        }
+
         //if our name field is a date, format it as a medium date
         if ($data[$entitySpec->nameField] instanceof DateTime) {
             $name = $this->view->dateFormat(
@@ -90,6 +98,10 @@ class FormatEntity extends AbstractHelper
         }
 
         if ($options['displayAsLink']) {
+            if (! isset($name)) {
+                var_dump($data);
+                die();
+            }
             $finalMarkup .= $this->wrapAsLink($entityType, $data, $this->view->escapeHtml($name));
         } else {
             $finalMarkup .= $this->view->escapeHtml($name);

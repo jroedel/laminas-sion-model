@@ -7,6 +7,7 @@
  */
 use Cake\Utility\Text;
 use GeoIp2\Database\Reader;
+use GeoIp2\Model\City;
 
 ?>
 <div class="responsive-table">
@@ -38,10 +39,10 @@ foreach ($this->changes as $row):
 	<?php endif;
 	$geoText = null;
 	if (isset($row['ipAddress'])) {
-        /** @var Reader $record */
+        /** @var City $record */
         $record = $this->geoIp2City($row['ipAddress']);
     	if (isset($record)) {
-    	    $geoText = $record->city->name . ", " . $record->country->name;
+    	    $geoText = $this->escapeHtml($record->city->name) . ", " . $this->escapeHtml($record->country->name);
     	}
 	}?>
 	<tr>
@@ -54,12 +55,12 @@ foreach ($this->changes as $row):
     	if ($showEntity):?>
 		<td><?php
             if (isset($row['object'])) {
-
-                echo $this->formatEntity($row['entityType'], $row['object'],
+                $formattedEntity = $this->formatEntity($row['entityType'], $row['object'],
                     [
                         'displayEditPencil' => !isset($row['object']['isDeleted']),
                         'failSilently' => true,
                     ]);
+                echo ! empty($formattedEntity) ? $formattedEntity : $this->escapeHtml($row['entityType']);
             }?></td><?php
         endif;?>
 		<td><?php echo $this->escapeHtml($row['field']);?></td>

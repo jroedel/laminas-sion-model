@@ -6,6 +6,7 @@ namespace SionModel\Db\Model;
 
 use Closure;
 use DateTime;
+use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use Exception;
@@ -106,6 +107,24 @@ class SionTable
     public const SUGGESTION_INREVIEW = 'In review';
     public const SUGGESTION_ACCEPTED = 'Accepted';
     public const SUGGESTION_DENIED   = 'Denied';
+    /**
+     * Represents the action of updating an entity
+     *
+     * @var string
+     */
+    public const ENTITY_ACTION_UPDATE = 'entity-action-update';
+    /**
+     * Represents the action of creating an entity
+     *
+     * @var string
+     */
+    public const ENTITY_ACTION_CREATE = 'entity-action-create';
+    /**
+     * Represents the action of suggesting an edit to an entity
+     *
+     * @var string
+     */
+    public const ENTITY_ACTION_SUGGEST = 'entity-action-suggest';
 
     /**
      * A cache of already created table gateways, keyed by the table name
@@ -130,12 +149,14 @@ class SionTable
 
     /**
      * Default algorithm for hashing sensitive data
-     * @TODO strongly consider making this required
+     *
+     * @todo strongly consider making this required
      */
     protected ?string $privacyHashAlgorithm = 'sha256';
 
     /**
      * Default random salt for hashing sensitive data
+     *
      * @todo strongly consider making this a required config key; being in the repo takes away all its added value
      */
     protected string $privacyHashSalt = '78z^PjApc';
@@ -143,24 +164,8 @@ class SionTable
     protected int $maxChangeTableValueStringLength = 1000;
 
     protected string $maxChangeTableValueStringLengthReplacementText = '<content truncated>';
-    /**
-     * Represents the action of updating an entity
-     *
-     * @var string
-     */
-    public const ENTITY_ACTION_UPDATE = 'entity-action-update';
-    /**
-     * Represents the action of creating an entity
-     *
-     * @var string
-     */
-    public const ENTITY_ACTION_CREATE = 'entity-action-create';
-    /**
-     * Represents the action of suggesting an edit to an entity
-     *
-     * @var string
-     */
-    public const ENTITY_ACTION_SUGGEST = 'entity-action-suggest';
+
+    protected DateTimeZone $utc;
 
     public function __construct(
         protected AdapterInterface $adapter,
@@ -180,6 +185,8 @@ class SionTable
         Assert::keyExists($config, 'visits_table');
         $this->changeTableName = $config['changes_table'];
         $this->visitsTableName = $config['visits_table'];
+
+        $this->utc = new DateTimeZone('UTC');
 
         if (! isset($userTable)) {
             Assert::true(static::class === UserTable::class);
@@ -474,14 +481,13 @@ class SionTable
         if (! isset($entityRowFunctionCache[$entity])) {
             $entitySpec = $this->getEntitySpecification($entity);
 
-            if (
-                isset($entitySpec->rowProcessorFunction)
-                && method_exists($this, $entitySpec->rowProcessorFunction)
-                && ! method_exists('SionTable', $entitySpec->rowProcessorFunction)
-            ) {
+            if (isset($entitySpec->rowProcessorFunction)) {
+                Assert::stringNotEmpty($entitySpec->rowProcessorFunction);
+                Assert::methodExists($this, $entitySpec->rowProcessorFunction);
+                Assert::methodNotExists(self::class, $entitySpec->rowProcessorFunction);
                 $entityRowFunctionCache[$entity] = $entitySpec->rowProcessorFunction;
             } else {
-                $entityRowFunctionCache[$entity] = false;
+                $entityRowFunctionCache[$entity] = null;
             }
         }
 
@@ -944,7 +950,7 @@ class SionTable
         if ($tableKey === '') {
             throw new Exception('No table key provided');
         }
-        $now        = (new DateTime("now", new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        $now        = (new DateTime('now', $this->utc))->format('Y-m-d H:i:s');
         $updateVals = [];
         $changes    = [];
         foreach ($referenceEntity as $field => $value) {
@@ -961,7 +967,7 @@ class SionTable
             } elseif (in_array($field, $fieldsToTouch, true) && ! array_key_exists($field, $data)) {
                 $data[$field] = $value;
             }
-            if ($data[$field] instanceof DateTime) { //convert Date objects to strings
+            if ($data[$field] instanceof DateTimeInterface) { //convert Date objects to strings
                 $data[$field] = $data[$field]->format('Y-m-d H:i:s');
             }
             if (is_array($data[$field])) { //convert arrays to strings
@@ -1115,13 +1121,13 @@ class SionTable
         }
 
         //@todo there should be a more efficient way of doing this. Sometimes we do mass database edits
-        $now        = (new DateTime("now", new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        $now        = (new DateTime('now', $this->utc))->format('Y-m-d H:i:s');
         $updateVals = [];
         foreach ($data as $col => $value) {
             if (! isset($updateCols[$col])) {
                 continue;
             }
-            if ($value instanceof DateTime) {
+            if ($value instanceof DateTimeInterface) {
                 $data[$col] = $value->format('Y-m-d H:i:s');
             }
             if (is_array($data[$col])) {
@@ -1204,7 +1210,7 @@ class SionTable
     /**
      * Get an instance of a TableGateway for a particular table name
      */
-    protected function getTableGateway(string $tableName): TableGatewayInterface
+    protected function getTableGateway(string $tableName): TableGateway
     {
         if (isset($this->tableGatewaysCache[$tableName])) {
             return $this->tableGatewaysCache[$tableName];
@@ -1351,16 +1357,16 @@ class SionTable
         Assert::isInstanceOf($changesTableGateway, TableGatewayInterface::class);
         Assert::allIsArray($rows);
 
-        $date = new DateTime("now", new DateTimeZone('utc'));
+        $date = new DateTime('now', $this->utc);
         foreach ($rows as $row) {
             Assert::true(isset($row['entity']), 'Missing `entity` field for a change submitted');
             $entity = $row['entity'];
             Assert::true(isset($row['id']), "Missing `id` field for a `$entity` change submitted");
             Assert::true(isset($row['field']), "Missing `field` field for a `$entity` change submitted");
-            if (isset($row['oldValue']) && $row['oldValue'] instanceof DateTime) {
+            if (isset($row['oldValue']) && $row['oldValue'] instanceof DateTimeInterface) {
                 $row['oldValue'] = $this->formatDbDate($row['oldValue']);
             }
-            if (isset($row['newValue']) && $row['newValue'] instanceof DateTime) {
+            if (isset($row['newValue']) && $row['newValue'] instanceof DateTimeInterface) {
                 $row['newValue'] = $this->formatDbDate($row['newValue']);
             }
             if (isset($row['oldValue']) && is_array($row['oldValue'])) {
@@ -1622,7 +1628,7 @@ class SionTable
      */
     public function registerVisit(string $entity, ?int $entityId = null): void
     {
-        $date = new DateTime("now", new DateTimeZone('UTC'));
+        $date = new DateTime('now', $this->utc);
         //@todo get rid of access to these magic properties, they mess with tests
         $params = [
             'Entity'    => $entity,
@@ -1683,16 +1689,13 @@ class SionTable
     /**
      * Check if an assignment should be considered active based on the start/end date inclusive
      *
-     * @param null|DateTime $startDate
-     * @param null|DateTime $endDate
-     * @throws InvalidArgumentException
+     * @throws InvalidArgumentException|Exception
      */
     public static function areWeWithinDateRange(?DateTimeInterface $startDate, ?DateTimeInterface $endDate): bool
     {
         static $today;
         if (! isset($today)) {
-            $timeZone = new DateTimeZone('UTC');
-            $today    = new DateTime("now", $timeZone);
+            $today    = new DateTime('now', new DateTimeZone('UTC'));
             $today->setTime(0, 0, 0, 0);
         }
         return ($startDate <= $today && (null === $endDate || $endDate >= $today)) ||
@@ -1747,17 +1750,13 @@ class SionTable
         return $filter->filter($str);
     }
 
-    protected function filterDbDate(?string $str): DateTime|null
+    protected function filterDbDate(?string $str): DateTimeImmutable|null
     {
-        static $tz;
-        if (! isset($tz)) {
-            $tz = new DateTimeZone('UTC');
-        }
         if (! isset($str) || $str === '' || $str === '0000-00-00' || $str === '0000-00-00 00:00:00') {
             return null;
         }
         try {
-            $return = new DateTime($str, $tz);
+            $return = new DateTimeImmutable($str, $this->utc);
         } catch (Exception) {
             $return = null;
         }
@@ -1801,7 +1800,7 @@ class SionTable
         return null;
     }
 
-    protected function formatDbDate(DateTime $object): string|null
+    protected function formatDbDate(DateTimeInterface $object): string|null
     {
         return $object->format('Y-m-d H:i:s');
     }

@@ -39,8 +39,8 @@ class EditPencil extends AbstractHelper
         );
         /** @var IsAllowed $isAllowedPlugin */
         $isAllowedPlugin = $this->view->plugin('isAllowed');
-        /** @var Url $isAllowedPlugin */
-        $urlPlugin = $this->view->plugin('isAllowed');
+        /** @var Url $urlPlugin */
+        $urlPlugin = $this->view->plugin('url');
         Assert::isCallable($isAllowedPlugin);
         Assert::isCallable($urlPlugin);
         $params = ! empty($this->entities[$entityType]->editRouteParams)
@@ -52,7 +52,6 @@ class EditPencil extends AbstractHelper
             "EditPencil view helper is only compatible with entities that take only one parameter. "
                 . "`$entityType` doesn't comply."
         );
-
         $isAllowed = $isAllowedPlugin('route/' . $this->entities[$entityType]->editRoute);
         if (! $isAllowed) {
             return '';
