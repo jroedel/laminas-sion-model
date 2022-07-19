@@ -1,24 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\View\Helper;
+
+use Laminas\View\Helper\Placeholder\Container\AbstractContainer;
 
 class InlineScript extends \Laminas\View\Helper\InlineScript
 {
-    protected $nonce;
-
-    /**
-     *
-     */
-    public function __construct($nonce = null)
+    public function __construct(private string $nonce)
     {
-        $this->nonce = $nonce;
-        if (isset($nonce)) {
-            $this->setAllowArbitraryAttributes(true);
-        }
+        parent::__construct();
+        $this->setAllowArbitraryAttributes(true);
     }
 
     /**
      * {@inheritDoc}
+     *
      * @see \Laminas\View\Helper\InlineScript::__invoke()
      */
     public function __invoke(
@@ -30,12 +28,14 @@ class InlineScript extends \Laminas\View\Helper\InlineScript
     ) {
         return parent::__invoke($mode, $spec, $placement, $attrs, $type);
     }
+
     /**
      * {@inheritDoc}
+     *
      * @see \Laminas\View\Helper\HeadScript::captureStart()
      */
     public function captureStart(
-        $captureType = \Laminas\View\Helper\Placeholder\Container\AbstractContainer::APPEND,
+        $captureType = AbstractContainer::APPEND,
         $type = 'text/javascript',
         $attrs = []
     ) {
@@ -43,31 +43,17 @@ class InlineScript extends \Laminas\View\Helper\InlineScript
             $attrs['nonce'] = $this->nonce;
         }
 
-        return parent::captureStart($captureType, $type, $attrs);
+        parent::captureStart($captureType, $type, $attrs);
     }
 
     /**
      * {@inheritDoc}
+     *
      * @see \Laminas\View\Helper\HeadScript::captureEnd()
      */
     public function captureEnd()
     {
         //@todo calculate sums
-        $return = parent::captureEnd();
-        return $return;
-    }
-
-    public function setNonce($nonce): static
-    {
-        $this->nonce = $nonce;
-        if (isset($nonce)) {
-            $this->setAllowArbitraryAttributes(true);
-        }
-        return $this;
-    }
-
-    public function getNonce()
-    {
-        return $this->nonce;
+        parent::captureEnd();
     }
 }

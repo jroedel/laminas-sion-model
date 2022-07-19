@@ -214,11 +214,7 @@ class PredicatesTable extends SionTable
         return clone $select;
     }
 
-    /**
-     * @return (DateTime|int|mixed|null|string)[]
-     * @psalm-return array{commentId: (int), rating: (int|null), commentKind: mixed, comment: mixed, status: mixed, reviewedOn: DateTime, reviewedBy: (null|int), createdOn: DateTime, createdBy: (null|int), reviewedByUsername: (mixed|null|string), createdByUsername: (mixed|null|string)}
-     */
-    protected function processCommentRow($row): array
+    protected function processCommentRow(array $row): array
     {
         static $usernames;
         if (! isset($usernames)) {
@@ -242,11 +238,11 @@ class PredicatesTable extends SionTable
     }
 
     /**
-     * Return an associative array keyed on the the entity type mapped to the predicate key
+     * Return an associative array keyed on the entity type mapped to the predicate key
      *
      * @return string[]
      */
-    public function getCommentPredicates()
+    public function getCommentPredicates(): array
     {
         $predicates = $this->getPredicates();
         $objects    = [];
@@ -307,11 +303,7 @@ class PredicatesTable extends SionTable
         return clone $select;
     }
 
-    /**
-     * @return (DateTime|mixed|null|int)[]
-     * @psalm-return array{relationshipId: (null|int), subjectEntityId: (null|int), objectEntityId: (null|int), predicateKind: mixed, priority: mixed, publicNotes: mixed, adminNotes: mixed, publicNotesUpdatedOn: DateTime, publicNotesUpdatedBy: (null|int), adminNotesUpdatedOn: DateTime, adminNotesUpdatedBy: (null|int), updatedOn: DateTime, updatedBy: (null|int)}
-     */
-    protected function processRelationshipRow($row): array
+    protected function processRelationshipRow(array $row): array
     {
         return [
             'relationshipId'       => $this->filterDbId($row['RelationshipId']),

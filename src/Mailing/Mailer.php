@@ -50,7 +50,7 @@ class Mailer
         try {
             $this->mailTransport->send($message);
         } catch (Exception $e) {
-            $this->logger->err('Mailer failed to send message', $e);
+            $this->logger->err('Mailer failed to send message', ['message' => $e->getMessage()]);
             return false;
         }
         //report email

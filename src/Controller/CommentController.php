@@ -2,6 +2,8 @@
 
 namespace SionModel\Controller;
 
+use Laminas\Form\FormInterface;
+use Laminas\Stdlib\ResponseInterface;
 use SionModel\Db\Model\PredicatesTable;
 
 class CommentController extends SionController
@@ -11,7 +13,7 @@ class CommentController extends SionController
      * {@inheritDoc}
      * @see \SionModel\Controller\SionController::createEntityPostFormValidation()
      */
-    public function createEntityPostFormValidation($data, $form)
+    public function createEntityPostFormValidation(array $data, FormInterface $form): ResponseInterface
     {
         //set additional params from the route for the creation of the comment
         $data['kind'] = $this->params()->fromRoute('kind');
@@ -21,7 +23,7 @@ class CommentController extends SionController
         return parent::createEntityPostFormValidation($data, $form);
     }
 
-    public function redirectAfterCreate($newId, $data = [], $form = null)
+    public function redirectAfterCreate(int $newId, array $data = [], ?FormInterface $form = null): ResponseInterface
     {
         if (isset($data['redirect'])) {
             //@todo confirm that redirect is a valid route
