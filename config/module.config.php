@@ -69,7 +69,6 @@ return [
     ],
     'controllers'     => [
         'abstract_factories' => [
-//            Controller\SionControllerFactory::class,
             LazyControllerFactory::class,
         ],
     ],
