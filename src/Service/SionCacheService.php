@@ -7,21 +7,14 @@ namespace SionModel\Service;
 use Exception;
 use Laminas\Cache\Exception\ExceptionInterface;
 use Laminas\Cache\Storage\StorageInterface;
-use Laminas\Filter\FilterChain;
-use Laminas\Filter\FilterInterface;
-use Laminas\Filter\PregReplace;
-use Laminas\Filter\StringToLower;
 use Laminas\Log\LoggerInterface;
 use Webmozart\Assert\Assert;
 
 use function array_key_exists;
 use function array_merge;
-use function debug_backtrace;
 use function in_array;
 use function memory_get_peak_usage;
 use function microtime;
-
-use const DEBUG_BACKTRACE_IGNORE_ARGS;
 
 class SionCacheService
 {
@@ -48,8 +41,6 @@ class SionCacheService
      */
     protected array $cacheDependencies = [];
 
-    private FilterInterface $classIdentifierFilter;
-
     public function __construct(
         private StorageInterface $persistentCache,
         private LoggerInterface $logger,
@@ -64,11 +55,6 @@ class SionCacheService
         if ($hasCacheDependencies) {
             $this->cacheDependencies = $cacheDependencies;
         }
-
-        //prep FQCN filter
-        $this->classIdentifierFilter = new FilterChain();
-        $this->classIdentifierFilter->attach(new StringToLower())
-            ->attach(new PregReplace(['pattern' => '/\\\\/', 'replacement' => '']));
     }
 
     public function flush(): bool
@@ -93,24 +79,19 @@ class SionCacheService
      */
     public function cacheEntityObjects(string $cacheKey, array &$objects, array $entityDependencies = []): void
     {
-        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
-        Assert::keyExists($caller, 'class');
-        Assert::stringNotEmpty($caller['class']);
-        $filteredCallerClassName                    = $this->getClassIdentifier($caller['class']);
-        $fullyQualifiedCacheKey                     = $filteredCallerClassName . '-' . $cacheKey;
-        $this->memoryCache[$fullyQualifiedCacheKey] = $objects;
-        if (! in_array($fullyQualifiedCacheKey, $this->newPersistentCacheItems, true)) {
-            $this->newPersistentCacheItems[] = $fullyQualifiedCacheKey;
+        $this->memoryCache[$cacheKey] = $objects;
+        if (! in_array($cacheKey, $this->newPersistentCacheItems, true)) {
+            $this->newPersistentCacheItems[] = $cacheKey;
         }
         //we suppose that the dependencies for a given cacheKey will not change
-        if (! isset($this->cacheDependencies[$fullyQualifiedCacheKey])) {
-            $this->cacheDependencies[$fullyQualifiedCacheKey] = $entityDependencies;
+        if (! isset($this->cacheDependencies[$cacheKey])) {
+            $this->cacheDependencies[$cacheKey] = $entityDependencies;
             //don't wait till the end of the call, because sometimes we get short-circuited
             $this->persistentCache->setItem('cachedependencies', $this->cacheDependencies);
         } else {
             //if we hear of any new dependencies, we want to know about them
-            $this->cacheDependencies[$fullyQualifiedCacheKey] = array_merge(
-                $this->cacheDependencies[$fullyQualifiedCacheKey],
+            $this->cacheDependencies[$cacheKey] = array_merge(
+                $this->cacheDependencies[$cacheKey],
                 $entityDependencies
             );
         }
@@ -123,22 +104,19 @@ class SionCacheService
      * memory cache and return the objects. If we don't find the key we
      * return null.
      *
-     * @throws Exception
+     * @throws Exception|ExceptionInterface
      */
-    public function &fetchCachedEntityObjects(string $key, bool &$success = false): mixed
+    public function &fetchCachedEntityObjects(string $cacheKey, bool &$success = false): mixed
     {
-        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
-        Assert::keyExists($caller, 'class');
-        Assert::stringNotEmpty($caller['class']);
-        $filteredCallerClassName = $this->getClassIdentifier($caller['class']);
-        $fullyQualifiedCacheKey  = $filteredCallerClassName . '-' . $key;
-        if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
-            return $this->memoryCache[$fullyQualifiedCacheKey];
+        if (isset($this->memoryCache[$cacheKey])) {
+            $this->logger->debug('Memory cache hit', ['cacheKey' => $cacheKey]);
+            return $this->memoryCache[$cacheKey];
         }
-        $objects = $this->persistentCache->getItem($fullyQualifiedCacheKey, $success);
+        $objects = $this->persistentCache->getItem($cacheKey, $success);
         if ($success) {
-            $this->memoryCache[$fullyQualifiedCacheKey] = $objects;
-            return $this->memoryCache[$fullyQualifiedCacheKey];
+            $this->logger->debug('Persistent cache hit', ['cacheKey' => $cacheKey]);
+            $this->memoryCache[$cacheKey] = $objects;
+            return $this->memoryCache[$cacheKey];
         }
         $null = null;
         return $null;
@@ -150,16 +128,12 @@ class SionCacheService
      * the program must decide between executing a delimited query or reusing
      * pre-queried data
      */
-    public function &fetchMemoryCachedEntityObjects(string $key): mixed
+    public function &fetchMemoryCachedEntityObjects(string $cacheKey): mixed
     {
-        Assert::notEmpty($key);
-        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
-        Assert::keyExists($caller, 'class');
-        Assert::stringNotEmpty($caller['class']);
-        $filteredCallerClassName = $this->getClassIdentifier($caller['class']);
-        $fullyQualifiedCacheKey  = $filteredCallerClassName . '-' . $key;
-        if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
-            return $this->memoryCache[$fullyQualifiedCacheKey];
+        Assert::notEmpty($cacheKey);
+        if (isset($this->memoryCache[$cacheKey])) {
+            $this->logger->debug('Memory cache hit', ['cacheKey' => $cacheKey]);
+            return $this->memoryCache[$cacheKey];
         }
         $null = null;
         return $null;
@@ -171,45 +145,22 @@ class SionCacheService
     public function removeDependentCacheItems(array $entities): void
     {
         Assert::allStringNotEmpty($entities);
-        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
-        Assert::keyExists($caller, 'class');
-        Assert::stringNotEmpty($caller['class']);
-        //@todo instead of the caller class, maybe we should lookup the SionTable of the mentioned entity
-        $filteredCallerClassName = $this->getClassIdentifier($caller['class']);
-        $changesKey              = $filteredCallerClassName . '-changes';
-        $problemsKey             = $filteredCallerClassName . '-problems';
-        $removedItems            = [];
-        foreach ($this->cacheDependencies as $fullyQualifiedCacheKey => $dependentEntities) {
-            //remove the item if it's the changes table or problems of one of the dependent entities
-            if (in_array($fullyQualifiedCacheKey, [$problemsKey, $changesKey])) {
-                $this->persistentCache->removeItem($fullyQualifiedCacheKey);
-                $removedItems[] = $fullyQualifiedCacheKey;
-                if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
-                    unset($this->memoryCache[$fullyQualifiedCacheKey]);
-                }
-                continue;
-            }
+        $removedItems = [];
+        foreach ($this->cacheDependencies as $cacheKey => $dependentEntities) {
             foreach ($entities as $entity) {
                 if (in_array($entity, $dependentEntities, true)) {
-                    $this->persistentCache->removeItem($fullyQualifiedCacheKey);
-                    $removedItems[] = $fullyQualifiedCacheKey;
-                    if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
-                        unset($this->memoryCache[$fullyQualifiedCacheKey]);
+                    $this->persistentCache->removeItem($cacheKey);
+                    $removedItems[] = $cacheKey;
+                    if (isset($this->memoryCache[$cacheKey])) {
+                        unset($this->memoryCache[$cacheKey]);
                     }
                 }
             }
         }
-        if (isset($this->logger)) {
-            $this->logger->debug("An entity cache has been expired.", [
-                'entity'       => $entities,
-                'removedItems' => $removedItems,
-            ]);
-        }
-    }
-
-    public function getClassIdentifier(string $fqcn): string
-    {
-        return $this->classIdentifierFilter->filter($fqcn);
+        $this->logger->debug("An entity cache has been expired.", [
+            'entity'       => $entities,
+            'removedItems' => $removedItems,
+        ]);
     }
 
     /**
@@ -220,41 +171,35 @@ class SionCacheService
     {
         $maxObjects = $this->maxItemsToCache;
         $count      = 0;
-        foreach ($this->newPersistentCacheItems as $fullyQualifiedCacheKey) {
-            if (array_key_exists($fullyQualifiedCacheKey, $this->memoryCache)) {
-                if (isset($this->logger)) {
-                    $this->logger->debug("Writing cache.", ['cacheKey' => $fullyQualifiedCacheKey]);
-                }
+        foreach ($this->newPersistentCacheItems as $cacheKey) {
+            if (array_key_exists($cacheKey, $this->memoryCache)) {
+                $this->logger->debug("Writing cache.", ['cacheKey' => $cacheKey]);
                 try {
                     //add some debugging information since it's often difficult to cache really large objects
                     $start       = microtime(true);
                     $startMemory = memory_get_peak_usage(false);
                     $this->persistentCache->setItem(
-                        $fullyQualifiedCacheKey,
-                        $this->memoryCache[$fullyQualifiedCacheKey]
+                        $cacheKey,
+                        $this->memoryCache[$cacheKey]
                     );
                     $memorySpike     = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
                     $timeElapsedSecs = microtime(true) - $start;
-                    if (isset($this->logger)) {
-                        $this->logger->debug("Successfully wrote cache.", [
-                            'cacheKey'    => $fullyQualifiedCacheKey,
-                            'elapsedTime' => $timeElapsedSecs,
-                            'memorySpike' => $memorySpike . " MiB",
-                        ]);
-                    }
+                    $this->logger->debug("Successfully wrote cache.", [
+                        'cacheKey'    => $cacheKey,
+                        'elapsedTime' => $timeElapsedSecs,
+                        'memorySpike' => $memorySpike . " MiB",
+                    ]);
                 } catch (Exception $e) {
                     //This probably means we've used up all the memory. Free some and continue gracefully
                     unset($this->memoryCache);
                     $memorySpike     = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
                     $timeElapsedSecs = microtime(true) - $start;
-                    if (isset($this->logger)) {
-                        $this->logger->err("Error writing cache.", [
-                            'cacheKey'    => $fullyQualifiedCacheKey,
-                            'elapsedTime' => $timeElapsedSecs,
-                            'memorySpike' => $memorySpike . " MiB",
-                            'exception'   => $e->getMessage(),
-                        ]);
-                    }
+                    $this->logger->err("Error writing cache.", [
+                        'cacheKey'    => $cacheKey,
+                        'elapsedTime' => $timeElapsedSecs,
+                        'memorySpike' => $memorySpike . " MiB",
+                        'exception'   => $e->getMessage(),
+                    ]);
                     return;
                 }
                 $count++;

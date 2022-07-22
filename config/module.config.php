@@ -106,32 +106,22 @@ return [
             // since the ServiceManager is not a declarative DIC.
             'class_map' => [
                 Db\Model\FilesTable::class      => Db\Model\FilesTable::class,
-                Mailing\Mailer::class           => Mailing\Mailer::class,
-                Service\ProblemService::class   => Service\ProblemService::class,
-                Form\SuggestForm::class         => Form\SuggestForm::class,
+                Db\Model\MailingsTable::class   => Db\Model\MailingsTable::class,
                 Db\Model\PredicatesTable::class => Db\Model\PredicatesTable::class,
+                Form\SuggestForm::class         => Form\SuggestForm::class,
+                Mailing\Mailer::class           => Mailing\Mailer::class,
                 Service\ChangesCollector::class => Service\ChangesCollector::class,
+                Service\ProblemService::class   => Service\ProblemService::class,
             ],
         ],
         'delegators'    => [
-            Db\Model\FilesTable::class      => [
-                LazyServiceFactory::class,
-            ],
-            Mailing\Mailer::class           => [
-                LazyServiceFactory::class,
-            ],
-            Service\ProblemService::class   => [
-                LazyServiceFactory::class,
-            ],
-            Form\SuggestForm::class         => [
-                LazyServiceFactory::class,
-            ],
-            Db\Model\PredicatesTable::class => [
-                LazyServiceFactory::class,
-            ],
-            Service\ChangesCollector::class => [
-                LazyServiceFactory::class,
-            ],
+            Db\Model\FilesTable::class      => [LazyServiceFactory::class],
+            Db\Model\MailingsTable::class   => [LazyServiceFactory::class],
+            Db\Model\PredicatesTable::class => [LazyServiceFactory::class],
+            Form\SuggestForm::class         => [LazyServiceFactory::class],
+            Mailing\Mailer::class           => [LazyServiceFactory::class],
+            Service\ChangesCollector::class => [LazyServiceFactory::class],
+            Service\ProblemService::class   => [LazyServiceFactory::class],
         ],
     ],
     'sion_model'      => [
