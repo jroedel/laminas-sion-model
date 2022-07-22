@@ -70,12 +70,25 @@ class SionCacheService
             ->attach(new PregReplace(['pattern' => '/\\\\/', 'replacement' => '']));
     }
 
+    public function flush(): bool
+    {
+        $success = $this->persistentCache->flush();
+        if (! $success) {
+            $e = new Exception();
+            $this->logger->err(
+                "Attempted to flush cache, but we were unsuccessful",
+                ['trace' => $e->getTrace()]
+            );
+        }
+        return $success;
+    }
+
     /**
      * Cache some entities. A simple proxy of the cache's setItem method with dependency support.
      *
      * @param array $entityDependencies Entities are abstract concepts. When it's reported that an entity changed
      *                                  all cache items that depended on it are eliminated.
-     * @throws Exception
+     * @throws Exception|ExceptionInterface
      */
     public function cacheEntityObjects(string $cacheKey, array &$objects, array $entityDependencies = []): void
     {

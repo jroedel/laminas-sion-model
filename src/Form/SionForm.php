@@ -190,7 +190,7 @@ class SionForm extends Form
         $this->setInputFilterSpecification($inputSpec);
 
         //prime the suggestionByPersonId if user is multi-person
-        if ($userIdentity && $userIdentity->multiPersonUser) {
+        if ($userIdentity->getMultiPersonUser()) {
             $this->setIsMultiPersonUser(true);
             if (! isset($personProvider)) {
                 /*

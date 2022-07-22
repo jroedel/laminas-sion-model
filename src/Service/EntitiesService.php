@@ -22,20 +22,6 @@ class EntitiesService
     {
         foreach ($entitySpecifications as $entity => $spec) {
             $this->entities[$entity] = new Entity($entity, $spec);
-            if (! empty($this->entities[$entity]->sionControllers)) {
-                foreach ($this->entities[$entity]->sionControllers as $sionController) {
-                    if (isset($this->entityControllers[$entity])) {
-                        throw new Exception(
-                            'Duplication assignment of SionController \''
-                            . $sionController
-                            . '\' under the \''
-                            . $entity
-                            . '\' entity.'
-                        );
-                    }
-                    $this->entityControllers[$sionController] = $entity;
-                }
-            }
         }
     }
 

@@ -31,13 +31,6 @@ class Entity
      */
     public array $sionControllers = [];
     /**
-     * If a SionController needs more services than those provided they can specify these
-     * in the 'controller_services' configuration, and they will be injected into this array.
-     * @var array $controllerServices
-     * @deprecated
-     */
-    public array $controllerServices = [];
-    /**
      * Name of identifier field
      * Example: 'personId'
      */

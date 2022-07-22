@@ -9,10 +9,6 @@ return [
         'application_log_path' => 'data/logs/application_{monthString}.log',
         'exceptions_log_path' => 'data/logs/exceptions_{monthString}.log',
         /**
-         * An AuthenticationServiceInterface instance to be fetched from service manager
-         */
-        'default_authentication_service' => 'lmcuser_auth_service',
-        /**
          * This PersonProvider will be used by the SuggestFormFactory if we have a multi-person user
          */
         'multi_person_user_person_provider' => 'Project\Model\MyPersonProvider',
@@ -31,14 +27,6 @@ return [
          * Database table name of where to store change records
          */
         'changes_table' => 'project_changes',
-        /**
-         * This is the service name of a SionTable instance to call the getChanges() method if changes_show_all not set
-         */
-        'changes_model' => 'Project\Model\ProjectTable',
-        /**
-         * If true, the view-changes action won't restrict entities to one's that belong to the model
-         */
-        'changes_show_all' => true,
         /**
          * Max number of rows to display in
          */
@@ -75,8 +63,6 @@ return [
                 'name'                                      => 'event',
                 'table_name'                                => 'event',
                 'table_key'                                 => 'event_id',
-                'sion_controllers'                          => [],
-                'controller_services'                       => [],
                 'entity_key_field'                          => 'eventId',
                 'sion_model_class'                          => 'Project\Model\EventTable',
                 'get_object_function'                       => 'getEvent',

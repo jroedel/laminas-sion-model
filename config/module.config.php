@@ -68,14 +68,8 @@ return [
         ],
     ],
     'controllers'     => [
-        'invokables'         => [
-            //SionModelController::class => SionModelController::class,
-        ],
-        'factories'          => [
-            Controller\SionModelController::class => Service\SionModelControllerFactory::class,
-        ],
         'abstract_factories' => [
-            Controller\SionControllerFactory::class,
+//            Controller\SionControllerFactory::class,
             LazyControllerFactory::class,
         ],
     ],
@@ -396,8 +390,6 @@ return [
                 'sion_model_class'                  => Db\Model\PredicatesTable::class,
                 'get_object_function'               => 'getComment',
                 'get_objects_function'              => 'getComments',
-                'sion_controllers'                  => [Controller\CommentController::class],
-                'controller_services'               => [],
                 'required_columns_for_creation'     => [
                     'comment',
                     'kind',
@@ -428,11 +420,6 @@ return [
                 'entity_key_field'       => 'predicateKind',
                 'row_processor_function' => 'processPredicateRow',
                 'sion_model_class'       => Db\Model\PredicatesTable::class,
-//                 'get_object_function'                   => 'getRelationship',
-//                 'get_objects_function'                  => 'getRelationships',
-                'sion_controllers'    => [], //BorrowersController::class],
-                'controller_services' => [],
-                //                 'format_view_helper'                    => 'formatEvent',
                 'required_columns_for_creation' => [
                     'predicateKind',
                     'subjectEntityKind',
@@ -458,11 +445,6 @@ return [
                 'entity_key_field'       => 'relationshipId',
                 'sion_model_class'       => Db\Model\PredicatesTable::class,
                 'row_processor_function' => 'processRelationshipRow',
-//                 'get_object_function'                   => 'getRelationship',
-//                 'get_objects_function'                  => 'getRelationships',
-                'sion_controllers'    => [], //BorrowersController::class],
-                'controller_services' => [],
-//                 'format_view_helper'                    => 'formatEvent',
                 'required_columns_for_creation' => [
                     'subjectEntityId',
                     'objectEntityId',
