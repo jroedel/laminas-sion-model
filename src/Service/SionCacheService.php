@@ -15,6 +15,7 @@ use Laminas\Log\LoggerInterface;
 use Webmozart\Assert\Assert;
 
 use function array_key_exists;
+use function array_merge;
 use function debug_backtrace;
 use function in_array;
 use function memory_get_peak_usage;
@@ -106,6 +107,12 @@ class SionCacheService
             $this->cacheDependencies[$fullyQualifiedCacheKey] = $entityDependencies;
             //don't wait till the end of the call, because sometimes we get short-circuited
             $this->persistentCache->setItem('cachedependencies', $this->cacheDependencies);
+        } else {
+            //if we hear of any new dependencies, we want to know about them
+            $this->cacheDependencies[$fullyQualifiedCacheKey] = array_merge(
+                $this->cacheDependencies[$fullyQualifiedCacheKey],
+                $entityDependencies
+            );
         }
     }
 
@@ -167,20 +174,28 @@ class SionCacheService
         $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
         Assert::keyExists($caller, 'class');
         Assert::stringNotEmpty($caller['class']);
+        //@todo instead of the caller class, maybe we should lookup the SionTable of the mentioned entity
         $filteredCallerClassName = $this->getClassIdentifier($caller['class']);
         $changesKey              = $filteredCallerClassName . '-changes';
         $problemsKey             = $filteredCallerClassName . '-problems';
         $removedItems            = [];
         foreach ($this->cacheDependencies as $fullyQualifiedCacheKey => $dependentEntities) {
-            if (
-                in_array($entities, $dependentEntities, true)
-                || $changesKey === $fullyQualifiedCacheKey
-                || $problemsKey === $fullyQualifiedCacheKey
-            ) {
+            //remove the item if it's the changes table or problems of one of the dependent entities
+            if (in_array($fullyQualifiedCacheKey, [$problemsKey, $changesKey])) {
                 $this->persistentCache->removeItem($fullyQualifiedCacheKey);
                 $removedItems[] = $fullyQualifiedCacheKey;
                 if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
                     unset($this->memoryCache[$fullyQualifiedCacheKey]);
+                }
+                continue;
+            }
+            foreach ($entities as $entity) {
+                if (in_array($entity, $dependentEntities, true)) {
+                    $this->persistentCache->removeItem($fullyQualifiedCacheKey);
+                    $removedItems[] = $fullyQualifiedCacheKey;
+                    if (isset($this->memoryCache[$fullyQualifiedCacheKey])) {
+                        unset($this->memoryCache[$fullyQualifiedCacheKey]);
+                    }
                 }
             }
         }
