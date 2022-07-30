@@ -38,7 +38,7 @@ class LoggerFactory implements FactoryInterface
             'subject_prepend_text' => 'schoenstatt-fathers.link Logger message',
         ]);
         //if more serious than ERR, email
-        $mailWriter->addFilter(Logger::ERR);
+        $mailWriter->addFilter(Logger::NOTICE);
         $logger->addWriter($mailWriter);
 
         return $logger;
