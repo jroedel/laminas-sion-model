@@ -518,7 +518,24 @@ class SionController extends AbstractActionController
                 $params[$routeParam] = $updatedObject[$entityField];
             }
             Assert::true(count($params) === count($routeParams));
-            return $this->redirect()->toRoute($entitySpec->showRoute, $params);
+            try {
+                return $this->redirect()->toRoute($entitySpec->showRoute, $params);
+            } catch (Exception $e) {
+                $this->logger->err(
+                    "We weren't able to resolve the url to redirect after editing an entity",
+                    [
+                        'message'        => $e->getMessage(),
+                        'entity'         => $this->getEntity(),
+                        'route'          => $entitySpec->showRoute,
+                        'paramSource'    => ! empty($entitySpec->showRouteParams)
+                            ? 'showRouteParams'
+                            : 'defaultRouteParams',
+                        'resolvedParams' => $params,
+                        'stackTrace'     => $e->getTrace(),
+                        'entityObject'   => $updatedObject,
+                    ]
+                );
+            }
         }
         if ($entitySpec->indexRoute) {
             return $this->redirect()->toRoute($entitySpec->indexRoute);
