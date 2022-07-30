@@ -6,6 +6,7 @@ namespace SionModel;
 
 use GeoIp2\Database\Reader;
 use Laminas\Form\Factory;
+use Laminas\Log\Logger;
 use Laminas\Mail\Transport\Smtp;
 use Laminas\Mail\Transport\TransportInterface;
 use Laminas\Router\Http\Literal;
@@ -126,6 +127,11 @@ return [
         ],
     ],
     'sion_model'      => [
+        'logger_to_file_minimum_level'      => Logger::DEBUG,
+        'logger_to_email_minimum_level'     => Logger::WARN,
+        'logger_to_email_to_address'        => null,
+        'logger_to_email_sender_address'    => null,
+        'logger_to_email_subject'           => 'Logger message',
         'geoip2_database_file'              => 'data/GeoIP/GeoLite2-City.mmdb',
         'application_log_path'              => 'data/logs/application_{monthString}.log',
         'exceptions_log_path'               => 'data/logs/exceptions_{monthString}.log',
