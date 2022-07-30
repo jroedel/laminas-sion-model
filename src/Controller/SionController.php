@@ -44,7 +44,7 @@ class SionController extends AbstractActionController
 
     /**
      * Maps an action to the Entity property which gives the route params array.
-     * The route params array declares which route paramaters maps to which entity fields
+     * The route params array declares which route parameters maps to which entity fields
      *
      * @var array
      */
@@ -476,8 +476,7 @@ class SionController extends AbstractActionController
      */
     public function updateEntityPostFormValidation(int $id, array $data, ?FormInterface $form): ResponseInterface
     {
-        $entity = $this->getEntity();
-        /** @var SionTable $table **/
+        $entity        = $this->getEntity();
         $table         = $this->getSionTable();
         $updatedObject = $table->updateEntity($entity, $id, $data);
         $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)
