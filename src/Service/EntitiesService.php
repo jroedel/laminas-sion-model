@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SionModel\Service;
 
-use Exception;
 use SionModel\Entity\Entity;
+use Webmozart\Assert\Assert;
 
 class EntitiesService
 {
@@ -16,8 +16,6 @@ class EntitiesService
      */
     protected array $entities = [];
 
-    protected array $entityControllers = [];
-
     public function __construct(array $entitySpecifications)
     {
         foreach ($entitySpecifications as $entity => $spec) {
@@ -25,13 +23,18 @@ class EntitiesService
         }
     }
 
-    public function getEntityControllers(): array
-    {
-        return $this->entityControllers;
-    }
-
+    /**
+     * @return Entity[]
+     */
     public function getEntities(): array
     {
         return $this->entities;
+    }
+
+    public function getEntity(string $entity): Entity
+    {
+        Assert::stringNotEmpty($entity);
+        Assert::keyExists($this->entities, $entity);
+        return $this->entities[$entity];
     }
 }

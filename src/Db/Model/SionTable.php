@@ -167,6 +167,10 @@ class SionTable
 
     protected DateTimeZone $utc;
 
+    /**
+     * @param Entity[] $entitySpecifications
+     * @param array $generalConfig
+     */
     public function __construct(
         protected AdapterInterface $adapter,
         protected array $entitySpecifications,
@@ -1695,7 +1699,7 @@ class SionTable
     {
         static $today;
         if (! isset($today)) {
-            $today    = new DateTime('now', new DateTimeZone('UTC'));
+            $today = new DateTime('now', new DateTimeZone('UTC'));
             $today->setTime(0, 0, 0, 0);
         }
         return ($startDate <= $today && (null === $endDate || $endDate >= $today)) ||
