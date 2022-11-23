@@ -4,22 +4,21 @@ declare(strict_types=1);
 
 namespace SionModel\Db\Model;
 
-use DateTime;
 use Exception;
 use JUser\Model\UserTable;
 use Laminas\Db\Adapter\AdapterInterface;
 use Laminas\Db\ResultSet\ResultSetInterface;
+use Laminas\Db\Sql\ExpressionInterface;
 use Laminas\Db\Sql\Predicate\In;
 use Laminas\Db\Sql\Predicate\Operator;
 use Laminas\Db\Sql\Predicate\PredicateSet;
 use Laminas\Db\Sql\Select;
 use Laminas\Db\Sql\Where;
-
 use Laminas\Log\LoggerInterface;
-use Psr\Container\ContainerInterface;
 use SionModel\I18n\LanguageSupport;
 use SionModel\Problem\EntityProblem;
 use SionModel\Service\SionCacheService;
+
 use function count;
 use function is_array;
 
@@ -88,8 +87,8 @@ class PredicatesTable extends SionTable
                     'relationships.SubjectEntityId',
                     Operator::OPERATOR_EQUAL_TO,
                     'comments.CommentId',
-                    Operator::TYPE_IDENTIFIER,
-                    Operator::TYPE_IDENTIFIER
+                    ExpressionInterface::TYPE_IDENTIFIER,
+                    ExpressionInterface::TYPE_IDENTIFIER
                 ),
                 new Operator('relationships.PredicateKind', Operator::OPERATOR_EQUAL_TO, $query['predicateKind']),
             ]);
@@ -132,7 +131,7 @@ class PredicatesTable extends SionTable
         }
 
         $select->where($where);
-        $results = $gateway->selectWith($select);
+        $results = $gateway->selectWith($select)->toArray();
 
         $entities = [];
         foreach ($results as $row) {

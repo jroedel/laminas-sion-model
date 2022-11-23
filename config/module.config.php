@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SionModel;
 
 use GeoIp2\Database\Reader;
-use Laminas\Form\Factory;
 use Laminas\Log\Logger;
 use Laminas\Mail\Transport\Smtp;
 use Laminas\Mail\Transport\TransportInterface;
@@ -19,14 +18,14 @@ use SionModel\Form\Element\Phone;
 return [
     'view_helpers'    => [
         'factories'  => [
-            InlineScript::class   => Service\InlineScriptFactory::class,
-            View\Helper\Address::class        => Service\AddressFactory::class,
-            View\Helper\Request::class        => Service\RequestFactory::class,
-            'editPencil'     => Service\EditPencilFactory::class,
-            'formatEntity'   => Service\FormatEntityFactory::class,
-            'touchButton'    => Service\TouchButtonFactory::class,
-            'routeName'      => Service\RouteNameFactory::class,
-            'geoIp2City'     => Service\GeoIp2ViewFactory::class,
+            InlineScript::class        => Service\InlineScriptFactory::class,
+            View\Helper\Address::class => Service\AddressFactory::class,
+            View\Helper\Request::class => Service\RequestFactory::class,
+            'editPencil'               => Service\EditPencilFactory::class,
+            'formatEntity'             => Service\FormatEntityFactory::class,
+            'touchButton'              => Service\TouchButtonFactory::class,
+            'routeName'                => Service\RouteNameFactory::class,
+            'geoIp2City'               => Service\GeoIp2ViewFactory::class,
         ],
         'invokables' => [
             'editPencilNew'   => View\Helper\EditPencilNew::class,
@@ -44,7 +43,7 @@ return [
             'tooltip'         => View\Helper\Tooltip::class,
             'ipPlace'         => View\Helper\IpPlace::class,
         ],
-        'aliases' => [
+        'aliases'    => [
             'address' => View\Helper\Address::class,
             'request' => View\Helper\Request::class,
         ],
@@ -386,6 +385,7 @@ return [
                 'sion_model_class'                  => Db\Model\PredicatesTable::class,
                 'get_object_function'               => 'getComment',
                 'get_objects_function'              => 'getComments',
+                'row_processor_function'            => 'processCommentRow',
                 'required_columns_for_creation'     => [
                     'comment',
                     'kind',
@@ -410,12 +410,12 @@ return [
                 ],
             ],
             'predicate'    => [
-                'name'                   => 'predicate',
-                'table_name'             => 'predicates',
-                'table_key'              => 'PredicateKind',
-                'entity_key_field'       => 'predicateKind',
-                'row_processor_function' => 'processPredicateRow',
-                'sion_model_class'       => Db\Model\PredicatesTable::class,
+                'name'                          => 'predicate',
+                'table_name'                    => 'predicates',
+                'table_key'                     => 'PredicateKind',
+                'entity_key_field'              => 'predicateKind',
+                'row_processor_function'        => 'processPredicateRow',
+                'sion_model_class'              => Db\Model\PredicatesTable::class,
                 'required_columns_for_creation' => [
                     'predicateKind',
                     'subjectEntityKind',
@@ -435,12 +435,12 @@ return [
                 ],
             ],
             'relationship' => [
-                'name'                   => 'relationship',
-                'table_name'             => 'relationships',
-                'table_key'              => 'RelationshipId',
-                'entity_key_field'       => 'relationshipId',
-                'sion_model_class'       => Db\Model\PredicatesTable::class,
-                'row_processor_function' => 'processRelationshipRow',
+                'name'                          => 'relationship',
+                'table_name'                    => 'relationships',
+                'table_key'                     => 'RelationshipId',
+                'entity_key_field'              => 'relationshipId',
+                'sion_model_class'              => Db\Model\PredicatesTable::class,
+                'row_processor_function'        => 'processRelationshipRow',
                 'required_columns_for_creation' => [
                     'subjectEntityId',
                     'objectEntityId',
