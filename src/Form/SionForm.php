@@ -301,7 +301,7 @@ class SionForm extends Form
         return parent::setData($data);
     }
 
-    public function getIsMultiPersonUser()
+    public function getIsMultiPersonUser(): bool
     {
         return $this->isMultiPersonUser;
     }

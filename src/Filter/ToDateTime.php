@@ -9,7 +9,7 @@ use DateTimeZone;
 use Exception;
 use Laminas\Filter\AbstractFilter;
 
-use function is_null;
+use function is_string;
 
 class ToDateTime extends AbstractFilter
 {
@@ -21,23 +21,26 @@ class ToDateTime extends AbstractFilter
      * If the value provided is non-scalar, the value will remain unfiltered
      *
      * @param string $value
-     * @return int|mixed
+     * @return mixed
      * @throws Exception
      */
     public function filter($value)
     {
         static $tz;
+        if (! isset($value) || $value === '') {
+            return null;
+        }
+        if (! is_string($value)) {
+            return $value;
+        }
         if (! $tz) {
             $tz = new DateTimeZone('UTC');
         }
-        if ($value instanceof DateTime) {
+        try {
+            $date = new DateTime($value, $tz);
+        } catch (Exception) {
             return $value;
         }
-        if (is_null($value) || $value === '') {
-            return null;
-        }
-        $value = new DateTime($value, $tz);
-
-        return $value;
+        return $date;
     }
 }
