@@ -1,54 +1,84 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\View\Helper;
 
+use BjyAuthorize\View\Helper\IsAllowed;
+use InvalidArgumentException;
 use Laminas\View\Helper\AbstractHelper;
+use Laminas\View\Helper\Url;
 use SionModel\Entity\Entity;
 use SionModel\Form\TouchForm;
+use Webmozart\Assert\Assert;
+
+use function array_key_exists;
+use function is_numeric;
+use function is_string;
 
 class TouchButton extends AbstractHelper
 {
-    /**
-     * @var Entity[] $entities
-     */
-    public $entities;
+    public bool $firstRun = true;
 
     /**
-     * @var bool $firstRun
+     * @param Entity[] $entities
      */
-    public $firstRun = true;
-
-    public function __construct($entities)
+    public function __construct(public array $entities)
     {
-        $this->entities = $entities;
     }
 
-    public function __invoke($entity, $id, $text = 'Confirm')
+    public function __invoke(string $entity, string|int $id, string $text = 'Confirm'): string
     {
         //validate input
-        if (! isset($entity) || ! isset($id) || ! (is_string($id) || is_numeric($id))) {
-            throw new \InvalidArgumentException("Invalid parameters passed to touchButton");
+        if (is_string($id) || ! is_numeric($id)) {
+            throw new InvalidArgumentException("Invalid id passed to touchButton");
         }
         if (! array_key_exists($entity, $this->entities)) {
-            throw new \InvalidArgumentException("No configuration found for entity $entity");
+            throw new InvalidArgumentException("No configuration found for entity $entity");
         }
         $entitySpec = $this->entities[$entity];
         if (
-            ! isset($entitySpec->touchJsonRoute) || ! isset($entitySpec->touchJsonRouteKey)
+            ! isset($entitySpec->touchJsonRoute)
+            || (! isset($entitySpec->touchRouteParams) && ! isset($entitySpec->defaultRouteParams))
         ) {
-            throw new \InvalidArgumentException("Please set touch_json_route and touch_json_route_key to use the touchButton view helper for '$entity'");
+            throw new InvalidArgumentException(
+                "Please set touch_json_route and touch_json_route_key to use the touchButton view helper for '$entity'"
+            );
+        }
+        /** @var IsAllowed $isAllowedPlugin */
+        $isAllowedPlugin = $this->view->plugin('isAllowed');
+        /** @var Url $urlPlugin */
+        $urlPlugin = $this->view->plugin('url');
+        Assert::isCallable($isAllowedPlugin);
+        Assert::isCallable($urlPlugin);
+
+        $params = ! empty($entitySpec->touchJsonRouteParams)
+            ? $entitySpec->touchJsonRouteParams
+            : $entitySpec->defaultRouteParams;
+        Assert::count(
+            $params,
+            1,
+            "EditPencil view helper is only compatible with entities that take only one parameter. "
+            . "`$entity` doesn't comply."
+        );
+        $isAllowed = $isAllowedPlugin('route/' . $entitySpec->touchJsonRoute);
+        if (! $isAllowed) {
+            return '';
+        }
+        $touchRouteParams = [];
+        foreach ($params as $key => $param) {
+            $touchRouteParams[$key] = $id;
+            break;
         }
 
         $form = new TouchForm();
+        $url  = $urlPlugin($entitySpec->touchJsonRoute, $touchRouteParams);
 
-        $url = $this->view->url($entitySpec->touchJsonRoute, [
-            $entitySpec->touchJsonRouteKey => $id]);
-
-        $finalMarkup = $this->view->partial('sion-model/sion-model/touch-button', [
-            'form'          => $form,
-            'url'           => $url,
-            'buttonText'    => $text,
-            'outputModal'   => $this->firstRun
+        $finalMarkup    = $this->view->partial('sion-model/sion-model/touch-button', [
+            'form'        => $form,
+            'url'         => $url,
+            'buttonText'  => $text,
+            'outputModal' => $this->firstRun,
         ]);
         $this->firstRun = false;
 

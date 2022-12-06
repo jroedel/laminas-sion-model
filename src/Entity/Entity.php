@@ -1,33 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SionModel\Entity;
 
 use SionModel\Filter\MixedCase;
 use Webmozart\Assert\Assert;
+
+use function property_exists;
 
 class Entity
 {
     /**
      * Name of the entity. camelCase.
      * Example: 'person'
-     * @var string $name
      */
     public string $name;
     /**
      * Name of the table
      * Example: 'sch_persons'
-     * @var string $tableName
      */
     public string $tableName;
     /**
      * Name of the table column by which to update on
-     * @var string $tableKey
      */
     public string $tableKey;
     /**
      * FQCN of SionControllers that handle this entity
-     * @var array $sionControllers
+     *
      * @deprecated
+     *
+     * @var array $sionControllers
      */
     public array $sionControllers = [];
     /**
@@ -60,6 +63,7 @@ class Entity
      * has been modified, the cached results of both B and A will be invalidated.
      * If the function returns null for a particular row, that row will not be included in the results
      * Value used in the queryObjects function
+     *
      * @var string[] $dependsOnEntities
      */
     public array $dependsOnEntities = [];
@@ -69,6 +73,7 @@ class Entity
     public ?string $formatViewHelper = null;
     /**
      * List of columns needed in order to insert a new entity
+     *
      * @var string[] $requiredColumnsForCreation
      */
     public array $requiredColumnsForCreation = [];
@@ -78,7 +83,6 @@ class Entity
     public ?string $nameField = null;
     /**
      * Should the name be translated upon display?
-     * @var bool $nameFieldIsTranslatable
      */
     public bool $nameFieldIsTranslatable = false;
     /**
@@ -87,6 +91,7 @@ class Entity
     public ?string $countryField = null;
     /**
      * List of fields that should be stored in the Changes table as a text column instead of varchar
+     *
      * @var string[] $textColumns
      */
     public array $textColumns = [];
@@ -94,6 +99,7 @@ class Entity
      * A list of mappings from ORM field names to database column names
      * Example:
      * ['personId' => 'PersonId', 'email' => 'EmailAddress']
+     *
      * @var string[] $updateColumns
      */
     public array $updateColumns = [];
@@ -102,6 +108,7 @@ class Entity
      * the name of the $value.'UpdatedOn' and $value.'UpdatedBy', to update those as w3ell.
      * Example:
      * [ 'email1' => 'emails', 'email2' => 'emails]
+     *
      * @var string[] $manyToOneUpdateColumns
      */
     public array $manyToOneUpdateColumns = [];
@@ -122,6 +129,7 @@ class Entity
 
     /**
      * An associative array mapping route parameters to properties of the entity.
+     *
      * @var string[] $defaultRouteParams
      */
     public array $defaultRouteParams = [];
@@ -136,6 +144,7 @@ class Entity
     public ?string $showRoute = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
+     *
      * @var string[] $showRouteParams
      */
     public array $showRouteParams = [];
@@ -154,6 +163,7 @@ class Entity
     public ?string $editRoute = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
+     *
      * @var string[] $editRouteParams
      */
     public array $editRouteParams = [];
@@ -169,6 +179,7 @@ class Entity
     public ?string $createActionRedirectRoute = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
+     *
      * @var string[] $createActionRedirectRouteParams
      */
     public array $createActionRedirectRouteParams = [];
@@ -185,6 +196,7 @@ class Entity
     public ?string $touchDefaultField = null;
     /**
      * An associative array mapping route parameters to properties of the entity.
+     *
      * @var string[] $touchRouteParams
      */
     public array $touchRouteParams = [];
@@ -205,22 +217,21 @@ class Entity
      *
      * @see Entity
      * it must accept two parameters: $data, $entityData
+     *
      * @param $data array is the data to be updated
      * @param $entityData array the queried pre-action data, empty array on create
      * @param $entityAction string one of the SionTable::ENTITY_ACTION_ consts
      * @returns array updated data to be inserted/updated in the database
-     *
-     * @var string $databaseBoundDataPreprocessor
      */
     public ?string $databaseBoundDataPreprocessor = null;
     /**
      * Same as database bound data preprocessor, but will be run after editing the database
      * This can be used to do manipulation to other related entities in the database.
      * The function is passed:
+     *
      * @param $data array the data that was updated/inserted
      * @param $entityData array is the newly queried data of the entity
      * @param $entityAction string one of the SionTable::ENTITY_ACTION_ consts
-     * @var string $databaseBoundDataPostprocessor
      */
     public ?string $databaseBoundDataPostprocessor = null;
     /**
@@ -231,7 +242,6 @@ class Entity
     /**
      * The key used when generating the URL to the moderate route
      * Example: 'person_id'
-     * @var ?string $moderateRouteEntityKey
      */
     public ?string $moderateRouteEntityKey = null;
     /**
@@ -240,28 +250,25 @@ class Entity
     public ?string $suggestForm = null;
     /**
      * Allow the entity to be deleted using the SionModel delete action
-     * @var bool $enableDeleteAction
      */
     public bool $enableDeleteAction = false;
     /**
      * The route parameter key from which to get the entity's id in the deleteAction
-     * @var ?string $deleteRouteKey
      */
     public ?string $deleteRouteKey = null;
     /**
      * Acl resource identifier to check for permissions to delete a concrete entity
+     *
      * @deprecated
-     * @var ?string $deleteActionAclResource
      */
     public ?string $deleteActionAclResource = null;
     /**
      * A permission of the resource identifier to check for with isAllowed
+     *
      * @deprecated
-     * @var ?string $deleteActionAclPermission
      */
     public ?string $deleteActionAclPermission = null;
     /**
-     *
      * The route to which the user should be redirected after deleting an entity
      */
     public ?string $deleteActionRedirectRoute = null;
@@ -297,27 +304,27 @@ class Entity
     public ?string $aclDeletePermission = null;
 
     public const IS_ACTION_ALLOWED_PERMISSION_PROPERTIES = [
-        'show' => 'aclShowPermission',
-        'edit' => 'aclEditPermission',
-        'suggest' => 'aclSuggestPermission',
+        'show'     => 'aclShowPermission',
+        'edit'     => 'aclEditPermission',
+        'suggest'  => 'aclSuggestPermission',
         'moderate' => 'aclModeratePermission',
-        'delete' => 'aclDeletePermission',
+        'delete'   => 'aclDeletePermission',
     ];
 
     public const ACTION_ROUTE_PROPERTIES = [
-        'index' => 'indexRoute',
-        'show' => 'showRoute',
+        'index'  => 'indexRoute',
+        'show'   => 'showRoute',
         'create' => 'createRoute',
-        'edit' => 'editRoute',
+        'edit'   => 'editRoute',
 //         'suggest' => 'suggestRoute',
         'moderate' => 'moderateRoute',
-        'touch' => 'touchRoute',
+        'touch'    => 'touchRoute',
 //         'delete' => 'aclDeletePermission',
     ];
 
     public function __construct(string $name, array $entitySpecification)
     {
-        $this->name = $name;
+        $this->name      = $name;
         $camelCaseFilter = new MixedCase('_');
 
         $propertiesSet = [];
@@ -325,7 +332,7 @@ class Entity
             $key = $camelCaseFilter->filter($key);
             if (property_exists($this, $key)) {
                 $propertiesSet[] = $value;
-                $this->$key = $value;
+                $this->$key      = $value;
             }
         }
 
