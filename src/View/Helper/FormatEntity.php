@@ -6,6 +6,7 @@ namespace SionModel\View\Helper;
 
 use BjyAuthorize\View\Helper\IsAllowed;
 use DateTime;
+use Exception;
 use IntlDateFormatter;
 use InvalidArgumentException;
 use Laminas\View\Helper\AbstractHelper;
@@ -99,8 +100,7 @@ class FormatEntity extends AbstractHelper
 
         if ($options['displayAsLink']) {
             if (! isset($name)) {
-                var_dump($data);
-                die();
+                throw new Exception("There was no name passed to FormatEntity");
             }
             $finalMarkup .= $this->wrapAsLink($entityType, $data, $this->view->escapeHtml($name));
         } else {
@@ -108,8 +108,8 @@ class FormatEntity extends AbstractHelper
         }
 
         if ($options['displayEditPencil'] && isset($entitySpec->editRoute)) {
-            $editRoute = $entitySpec->editRoute;
-            $editParams = SionController::assembleRouteParamValues($entitySpec, 'edit', $data);
+            $editRoute    = $entitySpec->editRoute;
+            $editParams   = SionController::assembleRouteParamValues($entitySpec, 'edit', $data);
             $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
         }
         if (

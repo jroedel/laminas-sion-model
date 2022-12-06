@@ -235,7 +235,6 @@ class SionController extends AbstractActionController
             $form->setData($data);
             if ($form->isValid()) {
                 $data = $form->getData();
-                var_dump($data);
                 //if the form data is valid, there shouldn't be any database exceptions
                 return $this->createEntityPostFormValidation($data, $form);
             } else {
