@@ -17,7 +17,7 @@ class FilesController extends SionController
         return parent::__construct('file');
     }
 
-    protected function getSionModelConfig()
+    public function getSionModelConfig()
     {
         $sm = $this->getServiceLocator();
         return $sm->get('SionModel\Config');
