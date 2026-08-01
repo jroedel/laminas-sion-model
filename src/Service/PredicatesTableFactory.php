@@ -7,10 +7,10 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
 use Interop\Container\ContainerInterface;
 use SionModel\Db\Model\PredicatesTable;
-use Zend\Db\Adapter\Adapter;
+use Laminas\Db\Adapter\Adapter;
 
 /**
  * Factory responsible of priming the PatresTable service

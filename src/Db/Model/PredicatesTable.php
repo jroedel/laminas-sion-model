@@ -2,11 +2,11 @@
 
 namespace SionModel\Db\Model;
 
-use Zend\Db\Sql\Select;
-use Zend\Db\Sql\Where;
-use Zend\Db\Sql\Predicate\Operator;
-use Zend\Db\Sql\Predicate\PredicateSet;
-use Zend\Db\Sql\Predicate\In;
+use Laminas\Db\Sql\Select;
+use Laminas\Db\Sql\Where;
+use Laminas\Db\Sql\Predicate\Operator;
+use Laminas\Db\Sql\Predicate\PredicateSet;
+use Laminas\Db\Sql\Predicate\In;
 
 class PredicatesTable extends SionTable
 {
@@ -112,7 +112,7 @@ class PredicatesTable extends SionTable
         }
         $select = $this->getCommentSelectPrototype();
         $select->where(['CommentId' => $id]);
-        /** @var \Zend\Db\ResultSet\ResultSetInterface $result */
+        /** @var \Laminas\Db\ResultSet\ResultSetInterface $result */
         $result = $gateway->selectWith($select);
         $results = $result->toArray();
 
@@ -151,7 +151,7 @@ class PredicatesTable extends SionTable
 
     /**
      * Get a standardized select object to retrieve records from the database
-     * @return \Zend\Db\Sql\Select
+     * @return \Laminas\Db\Sql\Select
      */
     protected function getCommentSelectPrototype()
     {
@@ -235,7 +235,7 @@ class PredicatesTable extends SionTable
 
     /**
      * Get a standardized select object to retrieve records from the database
-     * @return \Zend\Db\Sql\Select
+     * @return \Laminas\Db\Sql\Select
      */
     protected function getPredicateSelectPrototype()
     {
@@ -272,7 +272,7 @@ class PredicatesTable extends SionTable
 
     /**
      * Get a standardized select object to retrieve records from the database
-     * @return \Zend\Db\Sql\Select
+     * @return \Laminas\Db\Sql\Select
      */
     protected function getRelationshipSelectPrototype()
     {

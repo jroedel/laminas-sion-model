@@ -8,10 +8,10 @@
 
 namespace SionModel;
 
-use Zend\Mvc\MvcEvent;
+use Laminas\Mvc\MvcEvent;
 use BjyAuthorize\Service\Authorize;
 use SionModel\Mvc\CspListener;
-use Zend\Mvc\ModuleRouteListener;
+use Laminas\Mvc\ModuleRouteListener;
 use SionModel\Service\ErrorHandling;
 
 class Module
@@ -30,8 +30,8 @@ class Module
         $acl = $authorize->getAcl();
         $role = $authorize->getIdentity();
         //I think the following doesn't do anything: @todo check this
-        \Zend\View\Helper\Navigation\AbstractHelper::setDefaultAcl($acl);
-        \Zend\View\Helper\Navigation\AbstractHelper::setDefaultRole($role);
+        \Laminas\View\Helper\Navigation\AbstractHelper::setDefaultAcl($acl);
+        \Laminas\View\Helper\Navigation\AbstractHelper::setDefaultRole($role);
 
         $eventManager = $app->getEventManager();
         $strategy = $sm->get(CspListener::class);

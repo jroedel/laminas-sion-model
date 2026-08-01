@@ -7,7 +7,7 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
 use Interop\Container\ContainerInterface;
 use SionModel\Db\Model\FilesTable;
 
@@ -30,7 +30,7 @@ class FilesTableFactory implements FactoryInterface
             throw new \Exception('Please specify the \'files_directory\' and \'public_files_directory\' keys to use the FilesTable.');
         }
 
-        $dbAdapter = $container->get(\Zend\Db\Adapter\Adapter::class);
+        $dbAdapter = $container->get(\Laminas\Db\Adapter\Adapter::class);
 
         /** @var  User $userService **/
         $userService = $container->get('zfcuser_user_service');

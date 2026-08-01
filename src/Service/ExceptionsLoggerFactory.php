@@ -3,12 +3,12 @@
 namespace SionModel\Service;
 
 use Interop\Container\ContainerInterface;
-use Zend\ServiceManager\Factory\FactoryInterface;
-use Zend\Log\Logger;
-use Zend\Log\Writer\Stream as LogWriterStream;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use Laminas\Log\Logger;
+use Laminas\Log\Writer\Stream as LogWriterStream;
 
 /**
- * Factory responsible of priming the ZendLog service
+ * Factory responsible of priming the LaminasLog service
  *
  * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
  */

@@ -10,10 +10,10 @@
 
 namespace SionModel\Controller;
 
-use Zend\View\Model\ViewModel;
-use Zend\Mvc\Controller\AbstractActionController;
-use Zend\Cache\Storage\FlushableInterface;
-use Zend\View\Model\JsonModel;
+use Laminas\View\Model\ViewModel;
+use Laminas\Mvc\Controller\AbstractActionController;
+use Laminas\Cache\Storage\FlushableInterface;
+use Laminas\View\Model\JsonModel;
 use BjyAuthorize\Exception\UnAuthorizedException;
 use SionModel\Form\ConfirmForm;
 use SionModel\Service\ProblemService;
@@ -57,7 +57,7 @@ class SionModelController extends AbstractActionController
 
     /**
      *
-     * @return \Zend\View\Model\ViewModel
+     * @return \Laminas\View\Model\ViewModel
      */
     public function dataProblemsAction()
     {
@@ -103,7 +103,7 @@ class SionModelController extends AbstractActionController
 
     /**
      *
-     * @return \Zend\View\Model\ViewModel
+     * @return \Laminas\View\Model\ViewModel
      */
     public function viewChangesAction()
     {

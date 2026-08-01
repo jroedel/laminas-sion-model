@@ -7,7 +7,7 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
 use Interop\Container\ContainerInterface;
 use SionModel\Problem\ProblemTable;
 
@@ -25,7 +25,7 @@ class ProblemTableFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $dbAdapter = $container->get('Zend\Db\Adapter\Adapter');
+        $dbAdapter = $container->get('Laminas\Db\Adapter\Adapter');
 
         /** @var  User $userService **/
         $userService = $container->get('zfcuser_user_service');

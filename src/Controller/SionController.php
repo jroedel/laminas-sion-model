@@ -10,23 +10,23 @@
 
 namespace SionModel\Controller;
 
-use Zend\View\Model\ViewModel;
-use Zend\Mvc\Controller\AbstractActionController;
+use Laminas\View\Model\ViewModel;
+use Laminas\Mvc\Controller\AbstractActionController;
 use SionModel\Db\Model\SionTable;
 use SionModel\Service\EntitiesService;
 use SionModel;
 use SionModel\Entity\Entity;
 use SionModel\Form\DeleteEntityForm;
-use Zend\Mvc\Plugin\FlashMessenger\FlashMessenger;
+use Laminas\Mvc\Plugin\FlashMessenger\FlashMessenger;
 use JTranslate\Controller\Plugin\NowMessenger;
 use SionModel\Form\TouchForm;
-use Zend\View\Model\JsonModel;
-use Zend\Form\Form;
-use Zend\Form\FormInterface;
+use Laminas\View\Model\JsonModel;
+use Laminas\Form\Form;
+use Laminas\Form\FormInterface;
 use SionModel\Db\Model\PredicatesTable;
 use SionModel\Form\CommentForm;
-use Zend\Stdlib\ResponseInterface;
-use Zend\Log\LoggerAwareTrait;
+use Laminas\Stdlib\ResponseInterface;
+use Laminas\Log\LoggerAwareTrait;
 
 class SionController extends AbstractActionController
 {
@@ -168,7 +168,7 @@ class SionController extends AbstractActionController
      * The consumer of the SionController should implement the view template
      * @todo introduce resource-level checks
      * @throws \Exception
-     * @return \Zend\View\Model\ViewModel|\Zend\Stdlib\ResponseInterface
+     * @return \Laminas\View\Model\ViewModel|\Laminas\Stdlib\ResponseInterface
      */
     public function showAction()
     {
@@ -289,7 +289,7 @@ class SionController extends AbstractActionController
      * Create an entity
      * @throws \InvalidArgumentException
      * @throws \Exception
-     * @return \Zend\View\Model\ViewModel|\Zend\Stdlib\ResponseInterface
+     * @return \Laminas\View\Model\ViewModel|\Laminas\Stdlib\ResponseInterface
      */
     public function createAction()
     {
@@ -398,7 +398,7 @@ class SionController extends AbstractActionController
      * Creates a new entity, notifies the user via flash messenger and redirects.
      * @param mixed[] $data
      * @param Form $form
-     * @return \Zend\Stdlib\ResponseInterface|NULL
+     * @return \Laminas\Stdlib\ResponseInterface|NULL
      */
     public function createEntityPostFormValidation($data, $form)
     {
@@ -421,7 +421,7 @@ class SionController extends AbstractActionController
      * @param mixed[] $data
      * @param FormInterface $form
      * @throws \Exception
-     * @return \Zend\Stdlib\ResponseInterface
+     * @return \Laminas\Stdlib\ResponseInterface
      */
     public function redirectAfterCreate($newId, $data = [], $form = null)
     {
@@ -519,7 +519,7 @@ class SionController extends AbstractActionController
      * checks for a post, validates the data with the form and submits the change if the form validates.
      * @throws \Exception
      * @throws \InvalidArgumentException
-     * @return ViewModel|\Zend\Stdlib\ResponseInterface
+     * @return ViewModel|\Laminas\Stdlib\ResponseInterface
      */
     public function editAction()
     {
@@ -633,7 +633,7 @@ class SionController extends AbstractActionController
      * @param mixed[] $data
      * @param FormInterface $form
      * @throws \Exception
-     * @return \Zend\Stdlib\ResponseInterface
+     * @return \Laminas\Stdlib\ResponseInterface
      */
     public function redirectAfterEdit($id, $data = [], $form = null, $updatedObject = [])
     {
@@ -699,7 +699,7 @@ class SionController extends AbstractActionController
     /**
      * @todo test!
      * @throws \Exception
-     * @return \Zend\View\Model\ViewModel|\Zend\Stdlib\ResponseInterface
+     * @return \Laminas\View\Model\ViewModel|\Laminas\Stdlib\ResponseInterface
      */
     public function touchAction()
     {
@@ -774,7 +774,7 @@ class SionController extends AbstractActionController
 
     /**
      * Touch the entity, and return the status through the HTTP code
-     * @return \Zend\Stdlib\ResponseInterface|JsonModel
+     * @return \Laminas\Stdlib\ResponseInterface|JsonModel
      */
     public function touchJsonAction()
     {
@@ -823,7 +823,7 @@ class SionController extends AbstractActionController
     /**
      * If the form has been posted, confirm the CSRF. If all is well, delete the entity.
      * If the request is a GET, ask the user to confirm the deletion
-     * @return \Zend\View\Model\ViewModel|\Zend\Stdlib\ResponseInterface
+     * @return \Laminas\View\Model\ViewModel|\Laminas\Stdlib\ResponseInterface
      *
      * @todo Create a view template to ask for confirmation
      * @todo check if client expects json, and make it AJAX friendly
@@ -949,7 +949,7 @@ class SionController extends AbstractActionController
 
         /**
          * isAllowed plugin
-         * @var \Zend\Mvc\Controller\Plugin\PluginInterface $isAllowedPlugin
+         * @var \Laminas\Mvc\Controller\Plugin\PluginInterface $isAllowedPlugin
          */
         $isAllowedPlugin = null;
         try {

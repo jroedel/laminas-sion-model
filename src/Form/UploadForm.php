@@ -2,8 +2,8 @@
 
 namespace SionModel\Form;
 
-use Zend\Form\Form;
-use Zend\InputFilter\InputFilterProviderInterface;
+use Laminas\Form\Form;
+use Laminas\InputFilter\InputFilterProviderInterface;
 
 class UploadForm extends Form implements InputFilterProviderInterface
 {

@@ -10,7 +10,7 @@
 
 namespace SionModel\Validator;
 
-use Zend\Validator\Regex;
+use Laminas\Validator\Regex;
 
 class Instagram extends Regex
 {

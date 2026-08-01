@@ -10,8 +10,8 @@
 
 namespace SionModel\Validator;
 
-use Zend\Validator\Regex;
-use Zend\Validator\AbstractValidator;
+use Laminas\Validator\Regex;
+use Laminas\Validator\AbstractValidator;
 
 class RegularExpression extends AbstractValidator
 {

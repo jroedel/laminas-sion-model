@@ -2,9 +2,9 @@
 
 namespace SionModel\Service;
 
-use Zend\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
 use Interop\Container\ContainerInterface;
-use Zend\Cache\StorageFactory;
+use Laminas\Cache\StorageFactory;
 
 class PersistentCacheFactory implements FactoryInterface
 {

@@ -2,23 +2,23 @@
 
 namespace SionModel\Form;
 
-use Zend\Form\Form;
-use Zend\Form\Element\Select;
-use Zend\Filter\ToNull;
-use Zend\Authentication\AuthenticationServiceInterface;
+use Laminas\Form\Form;
+use Laminas\Form\Element\Select;
+use Laminas\Filter\ToNull;
+use Laminas\Authentication\AuthenticationServiceInterface;
 use SionModel\Person\PersonProviderInterface;
-use Zend\Validator\StringLength;
+use Laminas\Validator\StringLength;
 use SionModel\Validator\Phone;
-use Zend\Filter\StripTags;
-use Zend\Filter\StripNewlines;
-use Zend\Filter\StringTrim;
-use Zend\Form\Element\Csrf;
-use Zend\Form\Element\Textarea;
-use Zend\Form\Element\Email;
-use Zend\Filter\ToInt;
-use Zend\Form\Element\Hidden;
-use Zend\Form\Element\Submit;
-use Zend\Validator\EmailAddress;
+use Laminas\Filter\StripTags;
+use Laminas\Filter\StripNewlines;
+use Laminas\Filter\StringTrim;
+use Laminas\Form\Element\Csrf;
+use Laminas\Form\Element\Textarea;
+use Laminas\Form\Element\Email;
+use Laminas\Filter\ToInt;
+use Laminas\Form\Element\Hidden;
+use Laminas\Form\Element\Submit;
+use Laminas\Validator\EmailAddress;
 
 class SionForm extends Form
 {
@@ -30,7 +30,7 @@ class SionForm extends Form
     
     /**
      * Db adapter used for validators, optional
-     * @var \Zend\Db\Adapter\AdapterInterface $adapter
+     * @var \Laminas\Db\Adapter\AdapterInterface $adapter
      */
     protected $adapter;
 
@@ -261,7 +261,7 @@ class SionForm extends Form
      * Normally setData is called on an edit action. This will automatically decode html
      * entity fields to prevent entities from being double-encoded.
      * {@inheritDoc}
-     * @see \Zend\Form\Form::setData()
+     * @see \Laminas\Form\Form::setData()
      * @todo I'm not positive this works 100%, it seemed to decode script tags well,
      * but not apostrophes. I ended up using StripTags instead.
      */
@@ -306,7 +306,7 @@ class SionForm extends Form
         return $this->adapter;
     }
     
-    public function setAdapter(\Zend\Db\Adapter\AdapterInterface $adapter)
+    public function setAdapter(\Laminas\Db\Adapter\AdapterInterface $adapter)
     {
         $this->adapter = $adapter;
         return $this;

@@ -10,12 +10,12 @@
 
 namespace SionModel\Filter;
 
-use Zend\Filter\Word\SeparatorToCamelCase;
+use Laminas\Filter\Word\SeparatorToCamelCase;
 
 class MixedCase extends SeparatorToCamelCase
 {
     /**
-     * Defined by Zend\Filter\FilterInterface
+     * Defined by Laminas\Filter\FilterInterface
      *
      * Returns (int) $value
      *

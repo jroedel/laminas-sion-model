@@ -2,12 +2,12 @@
 
 namespace SionModel\Db\Model;
 
-use Zend\Cache\Storage\StorageInterface;
-use Zend\Filter\FilterChain;
-use Zend\Filter\StringToLower;
-use Zend\Filter\PregReplace;
-use Zend\EventManager\EventManagerInterface;
-use Zend\Mvc\MvcEvent;
+use Laminas\Cache\Storage\StorageInterface;
+use Laminas\Filter\FilterChain;
+use Laminas\Filter\StringToLower;
+use Laminas\Filter\PregReplace;
+use Laminas\EventManager\EventManagerInterface;
+use Laminas\Mvc\MvcEvent;
 
 trait SionCacheTrait
 {

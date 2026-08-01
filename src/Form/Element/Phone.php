@@ -10,13 +10,13 @@
 
 namespace SionModel\Form\Element;
 
-use Zend\Filter\StringTrim;
-use Zend\Filter\StripNewlines;
-use Zend\InputFilter\InputProviderInterface;
+use Laminas\Filter\StringTrim;
+use Laminas\Filter\StripNewlines;
+use Laminas\InputFilter\InputProviderInterface;
 use SionModel\Validator\Phone as PhoneValidator;
-use Zend\Validator\ValidatorInterface;
-use Zend\Form\Element\Tel;
-use Zend\Filter\ToNull;
+use Laminas\Validator\ValidatorInterface;
+use Laminas\Form\Element\Tel;
+use Laminas\Filter\ToNull;
 
 class Phone extends Tel implements InputProviderInterface
 {

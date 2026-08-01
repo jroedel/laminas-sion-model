@@ -5,8 +5,8 @@ namespace SionModel\Service;
 use SionModel\Problem\ProblemTable;
 use SionModel\Problem\ProblemProviderInterface;
 use SionModel\Problem\EntityProblem;
-use Zend\Stdlib\ArrayUtils;
-use Zend\ServiceManager\ServiceLocatorInterface;
+use Laminas\Stdlib\ArrayUtils;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 
 class ProblemService
 {

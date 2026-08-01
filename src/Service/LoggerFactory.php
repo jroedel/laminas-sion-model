@@ -10,8 +10,8 @@
 namespace SionModel\Service;
 
 use Interop\Container\ContainerInterface;
-use Zend\ServiceManager\Factory\FactoryInterface;
-use Zend\Log\Logger;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use Laminas\Log\Logger;
 
 class LoggerFactory implements FactoryInterface
 {
@@ -21,7 +21,7 @@ class LoggerFactory implements FactoryInterface
         $path = $config['sion_model']['application_log_path'];
         $yearMonth = date('Y-m');
         $path = str_replace('{monthString}', $yearMonth, $path);
-        $writer = new \Zend\Log\Writer\Stream($path);
+        $writer = new \Laminas\Log\Writer\Stream($path);
         $logger = new Logger();
         $logger->addWriter($writer);
         return $logger;

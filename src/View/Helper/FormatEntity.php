@@ -3,7 +3,7 @@
 namespace SionModel\View\Helper;
 
 use InvalidArgumentException;
-use Zend\View\Helper\AbstractHelper;
+use Laminas\View\Helper\AbstractHelper;
 use SionModel\Service\EntitiesService;
 use SionModel\Entity\Entity;
 
@@ -238,7 +238,7 @@ class FormatEntity extends AbstractHelper
 
         /**
          * isAllowed plugin
-         * @var \Zend\View\Helper\HelperInterface $isAllowedPlugin
+         * @var \Laminas\View\Helper\HelperInterface $isAllowedPlugin
          */
         $isAllowedPlugin = null;
         try {

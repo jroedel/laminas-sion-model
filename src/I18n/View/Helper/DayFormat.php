@@ -4,7 +4,7 @@
 
 namespace SionModel\I18n\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
+use Laminas\View\Helper\AbstractHelper;
 
 class DayFormat extends AbstractHelper
 {

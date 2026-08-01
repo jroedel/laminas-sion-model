@@ -3,10 +3,10 @@
 namespace SionModel\Service;
 
 use Interop\Container\ContainerInterface;
-use Zend\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
 
 /**
- * Factory responsible of priming the ZendLog service
+ * Factory responsible of priming the LaminasLog service
  *
  * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
  */

@@ -4,10 +4,10 @@ namespace SionModel;
 
 use SionModel\Controller\LazyControllerFactory;
 use SionModel\Form\Element\Phone;
-use Zend\Router\Http\Literal;
-use Zend\Router\Http\Segment;
-use Zend\ServiceManager\Proxy\LazyServiceFactory;
-use Zend\View\Helper\InlineScript;
+use Laminas\Router\Http\Literal;
+use Laminas\Router\Http\Segment;
+use Laminas\ServiceManager\Proxy\LazyServiceFactory;
+use Laminas\View\Helper\InlineScript;
 
 return [
     'view_helpers' => [

@@ -4,10 +4,10 @@
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
-use Zend\Filter\StringTrim;
-use Zend\Filter\FilterChain;
-use Zend\Filter\PregReplace;
+use Laminas\View\Helper\AbstractHelper;
+use Laminas\Filter\StringTrim;
+use Laminas\Filter\FilterChain;
+use Laminas\Filter\PregReplace;
 use libphonenumber\PhoneNumberFormat;
 
 class Telephone extends AbstractHelper

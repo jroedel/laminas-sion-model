@@ -3,10 +3,10 @@
 namespace SionModel\Controller;
 
 use Interop\Container\ContainerInterface;
-use Zend\ServiceManager\Factory\AbstractFactoryInterface;
+use Laminas\ServiceManager\Factory\AbstractFactoryInterface;
 use SionModel\Service\EntitiesService;
-use Zend\ServiceManager\Exception\ServiceNotFoundException;
-use Zend\ServiceManager\Exception\ServiceNotCreatedException;
+use Laminas\ServiceManager\Exception\ServiceNotFoundException;
+use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
 use SionModel\Db\Model\PredicatesTable;
 
 class SionControllerFactory implements AbstractFactoryInterface
@@ -30,9 +30,9 @@ class SionControllerFactory implements AbstractFactoryInterface
      * @var array
      */
     protected $aliases = [
-        'Zend\Form\FormElementManager' => 'FormElementManager',
-        'Zend\Validator\ValidatorPluginManager' => 'ValidatorManager',
-        'Zend\Mvc\I18n\Translator' => 'translator',
+        'Laminas\Form\FormElementManager' => 'FormElementManager',
+        'Laminas\Validator\ValidatorPluginManager' => 'ValidatorManager',
+        'Laminas\Mvc\I18n\Translator' => 'translator',
     ];
 
     /**
@@ -61,7 +61,9 @@ class SionControllerFactory implements AbstractFactoryInterface
         $entitySpec = $entitiesSpecs[$entity];
 
         //get sionTable
-        if (! $parentLocator->has($entitySpec->sionModelClass)) {
+        //null guards: laminas-servicemanager type-errors on has(null),
+        //unlike zend-servicemanager which tolerated it
+        if (null === $entitySpec->sionModelClass || ! $parentLocator->has($entitySpec->sionModelClass)) {
             throw new \Exception('Invalid SionModel class set for entity \'' . $entity . '\'');
         }
         $sionTable = $parentLocator->get($entitySpec->sionModelClass);
@@ -71,7 +73,7 @@ class SionControllerFactory implements AbstractFactoryInterface
         //get createActionForm
         /** @var \SionModel\Form\SionForm $createActionForm **/
         $createActionForm = null;
-        if ($parentLocator->has($entitySpec->createActionForm)) {
+        if (null !== $entitySpec->createActionForm && $parentLocator->has($entitySpec->createActionForm)) {
             $createActionForm = $parentLocator->get($entitySpec->createActionForm);
         } elseif (class_exists($entitySpec->createActionForm)) {
             $createActionForm = new $entitySpec->createActionForm();
@@ -80,7 +82,7 @@ class SionControllerFactory implements AbstractFactoryInterface
         //get editActionForm
         /** @var \SionModel\Form\SionForm $editActionForm **/
         $editActionForm = null;
-        if ($parentLocator->has($entitySpec->editActionForm)) {
+        if (null !== $entitySpec->editActionForm && $parentLocator->has($entitySpec->editActionForm)) {
             $editActionForm = $parentLocator->get($entitySpec->editActionForm);
         } elseif (class_exists($entitySpec->editActionForm)) {
             $className = $entitySpec->editActionForm;

@@ -2,7 +2,7 @@
 
 namespace SionModel\Form;
 
-use Zend\InputFilter\InputFilterProviderInterface;
+use Laminas\InputFilter\InputFilterProviderInterface;
 
 class SuggestForm extends SionForm implements InputFilterProviderInterface
 {

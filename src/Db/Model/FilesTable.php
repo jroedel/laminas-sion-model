@@ -2,7 +2,7 @@
 
 namespace SionModel\Db\Model;
 
-use Zend\Db\Adapter\AdapterInterface;
+use Laminas\Db\Adapter\AdapterInterface;
 
 class FilesTable extends SionTable
 {

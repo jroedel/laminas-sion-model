@@ -2,37 +2,37 @@
 
 namespace SionModel\Db\Model;
 
-use Zend\Db\Adapter\Adapter;
-use Zend\Db\Sql\Insert;
-use Zend\Db\TableGateway\TableGateway;
-use Zend\Filter\Boolean;
-use Zend\Validator\EmailAddress;
+use Laminas\Db\Adapter\Adapter;
+use Laminas\Db\Sql\Insert;
+use Laminas\Db\TableGateway\TableGateway;
+use Laminas\Filter\Boolean;
+use Laminas\Validator\EmailAddress;
 use SionModel\Entity\Entity;
-use Zend\Db\TableGateway\TableGatewayInterface;
-use Zend\Uri\Http;
-use Zend\Db\Adapter\AdapterInterface;
+use Laminas\Db\TableGateway\TableGatewayInterface;
+use Laminas\Uri\Http;
+use Laminas\Db\Adapter\AdapterInterface;
 use SionModel\Problem\ProblemTable;
-use Zend\Db\Sql\Where;
+use Laminas\Db\Sql\Where;
 use JUser\Model\UserTable;
-use Zend\Stdlib\StringUtils;
+use Laminas\Stdlib\StringUtils;
 use SionModel\Problem\EntityProblem;
-use Zend\Db\ResultSet\ResultSet;
-use Zend\Db\Sql\Select;
-use Zend\Db\Sql\Expression;
+use Laminas\Db\ResultSet\ResultSet;
+use Laminas\Db\Sql\Select;
+use Laminas\Db\Sql\Expression;
 use SionModel\Db\GeoPoint;
-use Zend\Db\Sql\Predicate\In;
-use Zend\Db\Sql\Predicate\Operator;
-use Zend\Db\Sql\Predicate\PredicateInterface;
-use Zend\Db\Sql\Predicate\PredicateSet;
-use Zend\ServiceManager\ServiceLocatorInterface;
-use Zend\Db\ResultSet\ResultSetInterface;
+use Laminas\Db\Sql\Predicate\In;
+use Laminas\Db\Sql\Predicate\Operator;
+use Laminas\Db\Sql\Predicate\PredicateInterface;
+use Laminas\Db\Sql\Predicate\PredicateSet;
+use Laminas\ServiceManager\ServiceLocatorInterface;
+use Laminas\Db\ResultSet\ResultSetInterface;
 use Matriphe\ISO639\ISO639;
-use Zend\Crypt\Hash;
+use Laminas\Crypt\Hash;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
-use Zend\Db\Sql\Predicate\IsNull;
+use Laminas\Db\Sql\Predicate\IsNull;
 use SionModel\I18n\LanguageSupport;
-use Zend\Log\LoggerAwareTrait;
+use Laminas\Log\LoggerAwareTrait;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -51,7 +51,7 @@ use Zend\Log\LoggerAwareTrait;
  * combine all that code along with the table specs in a SionDB Module, maybe even
  * including the User login stuff there. That would have to have its own bitbucket.
  *
- * Ok, I just read the intro to Zend\Permissions\Acl.  I think the solution is pretty
+ * Ok, I just read the intro to Laminas\Permissions\Acl.  I think the solution is pretty
  * simple.
  * Table: role, resource, permission, allow/deny
  * ex: "user_77", "event_98", "read,update,delete", "allow"
@@ -700,7 +700,7 @@ class SionTable
             'PastMonthVisits' => new Expression('COUNT(*)'),
         ]);
         $where->addPredicate(
-            new \Zend\Db\Sql\Predicate\Expression('`VisitedAt` >= DATE_ADD(NOW(), INTERVAL -1 MONTH)')
+            new \Laminas\Db\Sql\Predicate\Expression('`VisitedAt` >= DATE_ADD(NOW(), INTERVAL -1 MONTH)')
         );
         $select->where($where)
         ->group(['EntityId']);
@@ -1299,7 +1299,7 @@ class SionTable
      * Get a TableGateway instance for a given entity name
      * @param string $entity
      * @throws \Exception
-     * @return \Zend\Db\TableGateway\TableGateway
+     * @return \Laminas\Db\TableGateway\TableGateway
      */
     protected function getTableGatewayForEntity($entity)
     {
@@ -2112,7 +2112,7 @@ class SionTable
 
     /**
      *
-     * @return \Zend\Db\Adapter\Adapter
+     * @return \Laminas\Db\Adapter\Adapter
      */
     public function getAdapter()
     {
@@ -2121,7 +2121,7 @@ class SionTable
 
     /**
      *
-     * @param \Zend\Db\Adapter\Adapter $adapter
+     * @param \Laminas\Db\Adapter\Adapter $adapter
      */
     public function setAdapter($adapter)
     {

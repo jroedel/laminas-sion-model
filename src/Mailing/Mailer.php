@@ -1,13 +1,13 @@
 <?php
 namespace SionModel\Mailing;
 
-use Zend\I18n\Translator\TranslatorInterface;
-use Zend\I18n\Translator\TranslatorAwareInterface;
+use Laminas\I18n\Translator\TranslatorInterface;
+use Laminas\I18n\Translator\TranslatorAwareInterface;
 use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
-use Zend\Math\Rand;
+use Laminas\Math\Rand;
 use voku\Html2Text\Html2Text;
-use Zend\Mail\Message;
-use Zend\Mail\AddressList;
+use Laminas\Mail\Message;
+use Laminas\Mail\AddressList;
 use SionModel\Db\Model\SionTable;
 
 class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,

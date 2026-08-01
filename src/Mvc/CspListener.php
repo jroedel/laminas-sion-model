@@ -9,10 +9,10 @@
 
 namespace SionModel\Mvc;
 
-use Zend\EventManager\EventManagerInterface;
-use Zend\EventManager\ListenerAggregateInterface;
-use Zend\Mvc\MvcEvent;
-use Zend\Math\Rand;
+use Laminas\EventManager\EventManagerInterface;
+use Laminas\EventManager\ListenerAggregateInterface;
+use Laminas\Mvc\MvcEvent;
+use Laminas\Math\Rand;
 
 class CspListener implements ListenerAggregateInterface
 {

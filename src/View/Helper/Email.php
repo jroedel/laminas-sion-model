@@ -4,9 +4,9 @@
 
 namespace SionModel\View\Helper;
 
-use Zend\View\Helper\AbstractHelper;
-use Zend\Validator\EmailAddress;
-use Zend\Filter\StringTrim;
+use Laminas\View\Helper\AbstractHelper;
+use Laminas\Validator\EmailAddress;
+use Laminas\Filter\StringTrim;
 
 class Email extends AbstractHelper
 {
