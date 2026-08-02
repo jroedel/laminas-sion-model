@@ -134,9 +134,19 @@ class SionTable
     protected $entityProblemPrototype;
 
     /**
+     * Resolved on first use by getUserTable(), never in the constructor.
      * @var UserTable $userTable
      */
     protected $userTable;
+
+    /**
+     * Kept so optional collaborators can be resolved on first use instead of
+     * during construction. Eager service location in a constructor is what
+     * produced the UserTable/ProblemService/ProblemTable/AuthService cycle that
+     * only ocramius/proxy-manager's lazy proxies were hiding.
+     * @var ServiceLocatorInterface $serviceLocator
+     */
+    protected $serviceLocator;
 
     /**
      * Class to get language information
@@ -202,6 +212,8 @@ class SionTable
      */
     public function __construct(AdapterInterface $dbAdapter, $serviceLocator, $actingUserId)
     {
+        $this->serviceLocator = $serviceLocator;
+
         /**
          * @var EntitiesService $entities
          */
@@ -257,19 +269,11 @@ class SionTable
             $this->setLogger($logger);
         }
 
-        //if we have it, use it; careful because UserTable is itself a SionTable
-        // ProblemTable is excluded for the same reason as in the block below: UserTable's
-        // own constructor asks for ProblemService, which builds ProblemTable, which would
-        // land back here asking for the half-built UserTable. ProblemTable is read-only
-        // and never calls getUserTable(), so it loses nothing by skipping this.
-        if (
-            ! $this instanceof UserTable &&
-            ! $this instanceof ProblemTable &&
-            $serviceLocator->has(UserTable::class)
-        ) {
-            $userTable = $serviceLocator->get(UserTable::class);
-            $this->setUserTable($userTable);
-        }
+        // The UserTable is NOT resolved here. Asking the container for it while a
+        // SionTable is still being constructed is what closed the dependency cycle
+        // that ocramius/proxy-manager's lazy proxies used to defer past. It is now
+        // resolved on first use in getUserTable(), by which point construction has
+        // finished and the container can hand back a fully built instance.
 
         if (
             ! $this instanceof ProblemTable && // prevent circular dependency
@@ -1730,10 +1734,31 @@ class SionTable
     }
 
     /**
-     * @return UserTable
+     * Resolves the UserTable from the container on first use.
+     *
+     * Doing this lazily rather than in the constructor is what keeps SionTable out
+     * of dependency cycles: UserTable is itself a SionTable, and its construction
+     * reaches ProblemService and ProblemTable, so asking for it mid-construction
+     * can lead straight back to the half-built table that asked. By the time
+     * anything calls this getter, construction has finished and the container
+     * returns a complete instance.
+     *
+     * Returns null for UserTable itself (a table has no use for a handle on
+     * itself) and whenever the container has no UserTable registered — both of
+     * which match the behaviour of the previous constructor-time lookup.
+     *
+     * @return UserTable|null
      */
     public function getUserTable()
     {
+        if (
+            null === $this->userTable &&
+            null !== $this->serviceLocator &&
+            ! $this instanceof UserTable &&
+            $this->serviceLocator->has(UserTable::class)
+        ) {
+            $this->userTable = $this->serviceLocator->get(UserTable::class);
+        }
         return $this->userTable;
     }
 
