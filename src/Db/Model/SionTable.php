@@ -258,7 +258,15 @@ class SionTable
         }
 
         //if we have it, use it; careful because UserTable is itself a SionTable
-        if (UserTable::class !== get_class($this) && $serviceLocator->has(UserTable::class)) {
+        // ProblemTable is excluded for the same reason as in the block below: UserTable's
+        // own constructor asks for ProblemService, which builds ProblemTable, which would
+        // land back here asking for the half-built UserTable. ProblemTable is read-only
+        // and never calls getUserTable(), so it loses nothing by skipping this.
+        if (
+            ! $this instanceof UserTable &&
+            ! $this instanceof ProblemTable &&
+            $serviceLocator->has(UserTable::class)
+        ) {
             $userTable = $serviceLocator->get(UserTable::class);
             $this->setUserTable($userTable);
         }

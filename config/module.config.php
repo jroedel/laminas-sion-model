@@ -6,7 +6,6 @@ use SionModel\Controller\LazyControllerFactory;
 use SionModel\Form\Element\Phone;
 use Laminas\Router\Http\Literal;
 use Laminas\Router\Http\Segment;
-use Laminas\ServiceManager\Proxy\LazyServiceFactory;
 use Laminas\View\Helper\InlineScript;
 
 return [
@@ -89,42 +88,6 @@ return [
             Service\ErrorHandling::class    => Service\ErrorHandlingFactory::class,
             'ExceptionsLogger'              => Service\ExceptionsLoggerFactory::class,
             'SionModel\Logger'              => Service\LoggerFactory::class,
-        ],
-        'lazy_services' => [
-            // Mapping services to their class names is required
-            // since the ServiceManager is not a declarative DIC.
-            'class_map' => [
-                Db\Model\FilesTable::class => Db\Model\FilesTable::class,
-                Mailing\Mailer::class => Mailing\Mailer::class,
-                Service\ProblemService::class => Service\ProblemService::class,
-                Problem\ProblemTable::class => Problem\ProblemTable::class,
-                Form\SuggestForm::class => Form\SuggestForm::class,
-                Db\Model\PredicatesTable::class => Db\Model\PredicatesTable::class,
-                Service\ChangesCollector::class => Service\ChangesCollector::class,
-            ],
-        ],
-        'delegators' => [
-            Db\Model\FilesTable::class => [
-                LazyServiceFactory::class,
-            ],
-            Mailing\Mailer::class => [
-                LazyServiceFactory::class,
-            ],
-            Service\ProblemService::class => [
-                LazyServiceFactory::class,
-            ],
-            Problem\ProblemTable::class => [
-                LazyServiceFactory::class,
-            ],
-            Form\SuggestForm::class => [
-                LazyServiceFactory::class,
-            ],
-            Db\Model\PredicatesTable::class => [
-                LazyServiceFactory::class,
-            ],
-            Service\ChangesCollector::class => [
-                LazyServiceFactory::class,
-            ],
         ],
     ],
     'sion_model' => [
