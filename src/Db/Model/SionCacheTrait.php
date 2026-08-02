@@ -76,12 +76,24 @@ trait SionCacheTrait
         if (! in_array($fullyQualifiedCacheKey, $this->newPersistentCacheItems, true)) {
             $this->newPersistentCacheItems[] = $fullyQualifiedCacheKey;
         }
-        //we suppose that the dependencies for a given cacheKey will not change
         if (! isset($this->cacheDependencies[$fullyQualifiedCacheKey])) {
             $this->cacheDependencies[$fullyQualifiedCacheKey] = $entityDependencies;
             //don't wait till the end of the call, because sometimes we get short circuited
             if (is_object($this->persistentCache)) {
                 $this->persistentCache->setItem($this->getClassIdentifier() . '-cachedependencies', $this->cacheDependencies);
+            }
+        } else {
+            //dependencies may have been reloaded from the persistent cache before this call;
+            //if we hear of any new dependencies, we want to know about them
+            $newDependencies = array_diff($entityDependencies, $this->cacheDependencies[$fullyQualifiedCacheKey]);
+            if (! empty($newDependencies)) {
+                $this->cacheDependencies[$fullyQualifiedCacheKey] = array_merge(
+                    $this->cacheDependencies[$fullyQualifiedCacheKey],
+                    $newDependencies
+                );
+                if (is_object($this->persistentCache)) {
+                    $this->persistentCache->setItem($this->getClassIdentifier() . '-cachedependencies', $this->cacheDependencies);
+                }
             }
         }
         return true;
