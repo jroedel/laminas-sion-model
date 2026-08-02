@@ -3,6 +3,7 @@
 namespace SionModel\Db\Model;
 
 use Laminas\Db\Adapter\AdapterInterface;
+use SionModel\Service\ActingUserProviderInterface;
 
 class FilesTable extends SionTable
 {
@@ -11,9 +12,9 @@ class FilesTable extends SionTable
     */
     protected $sionModelConfig;
 
-    public function __construct(AdapterInterface $dbAdapter, $serviceLocator, $actingUserId, $sionModelConfig)
+    public function __construct(AdapterInterface $dbAdapter, $serviceLocator, ?ActingUserProviderInterface $actingUserProvider, $sionModelConfig)
     {
-        parent::__construct($dbAdapter, $serviceLocator, $actingUserId);
+        parent::__construct($dbAdapter, $serviceLocator, $actingUserProvider);
         $this->sionModelConfig = $sionModelConfig;
     }
 

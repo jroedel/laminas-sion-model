@@ -28,10 +28,11 @@ class PredicatesTableFactory implements FactoryInterface
     {
         $dbAdapter = $container->get(Adapter::class);
 
-        $user = $container->get('JUser\AuthService')->getIdentity();
-        $actingUserId = $user ? $user->id : null;
+        $actingUserProvider = $container->has(ActingUserProviderInterface::class)
+            ? $container->get(ActingUserProviderInterface::class)
+            : null;
 
-        $table = new PredicatesTable($dbAdapter, $container, $actingUserId);
+        $table = new PredicatesTable($dbAdapter, $container, $actingUserProvider);
 
         return $table;
     }

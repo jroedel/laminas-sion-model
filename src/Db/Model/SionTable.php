@@ -28,6 +28,7 @@ use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Db\ResultSet\ResultSetInterface;
 use Matriphe\ISO639\ISO639;
 use Laminas\Crypt\Hash;
+use SionModel\Service\ActingUserProviderInterface;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
 use Laminas\Db\Sql\Predicate\IsNull;
@@ -123,9 +124,20 @@ class SionTable
      */
     protected $selectPrototypes = [];
     /**
-     * @var int $actingUserId
+     * Resolves the acting user id at write time. Never consult it during
+     * construction — see ActingUserProviderInterface.
+     * @var ActingUserProviderInterface|null $actingUserProvider
      */
-    protected $actingUserId;
+    protected $actingUserProvider;
+
+    /**
+     * Explicit acting user id, taking precedence over the provider. Only for
+     * requests authenticated outside the session (API token auth), where the
+     * caller already knows the user; everything else should rely on the
+     * provider so a mid-request login is observed.
+     * @var int|null $actingUserIdOverride
+     */
+    protected $actingUserIdOverride;
 
     /**
      * A prototype of an EntityProblem to clone
@@ -208,9 +220,9 @@ class SionTable
      *
      * @param AdapterInterface $dbAdapter
      * @param ServiceLocatorInterface $serviceLocator
-     * @param int $actingUserId
+     * @param ActingUserProviderInterface|null $actingUserProvider
      */
-    public function __construct(AdapterInterface $dbAdapter, $serviceLocator, $actingUserId)
+    public function __construct(AdapterInterface $dbAdapter, $serviceLocator, ?ActingUserProviderInterface $actingUserProvider)
     {
         $this->serviceLocator = $serviceLocator;
 
@@ -236,7 +248,7 @@ class SionTable
         $this->tableGateway     = new TableGateway('', $dbAdapter);
         $this->adapter          = $dbAdapter;
         $this->entitySpecifications = $entities->getEntities();
-        $this->actingUserId     = $actingUserId;
+        $this->actingUserProvider = $actingUserProvider;
         $this->changeTableName  = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
 
@@ -1060,6 +1072,7 @@ class SionTable
             throw new \Exception('No table key provided');
         }
         $now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        $actingUserId = $this->getActingUserId();
         $updateVals = [];
         $changes = [];
         foreach ($referenceEntity as $field => $value) {
@@ -1094,9 +1107,9 @@ class SionTable
             }
             if (
                 key_exists($field . 'UpdatedBy', $updateCols) && ! key_exists($field . 'UpdatedBy', $data) &&
-                null !== $this->actingUserId
+                null !== $actingUserId
             ) { //check if this column has updatedBy column
-                $updateVals[$updateCols[$field . 'UpdatedBy']] = $this->actingUserId;
+                $updateVals[$updateCols[$field . 'UpdatedBy']] = $actingUserId;
             }
             if (is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$field])) {
                 if (
@@ -1108,9 +1121,9 @@ class SionTable
                 if (
                     key_exists($manyToOneUpdateColumns[$field] . 'UpdatedBy', $updateCols) &&
                     ! key_exists($manyToOneUpdateColumns[$field] . 'UpdatedBy', $data) &&
-                    null !== $this->actingUserId
+                    null !== $actingUserId
                 ) { //check if this column  maps to some other updatedBy column
-                    $updateVals[$updateCols[$manyToOneUpdateColumns[$field] . 'UpdatedBy']] = $this->actingUserId;
+                    $updateVals[$updateCols[$manyToOneUpdateColumns[$field] . 'UpdatedBy']] = $actingUserId;
                 }
             }
 
@@ -1128,9 +1141,9 @@ class SionTable
             }
             if (
                 isset($updateCols['updatedBy']) && ! isset($updateVals[$updateCols['updatedBy']]) &&
-                isset($this->actingUserId)
+                null !== $actingUserId
             ) {
-                $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
+                $updateVals[$updateCols['updatedBy']] = $actingUserId;
             }
             //@todo shouldn't we try to catch an error and log it?
             $result = $tableGateway->update($updateVals, [$tableKey => $id]);
@@ -1216,6 +1229,7 @@ class SionTable
         }
 
         $now = (new \DateTime(null, new \DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        $actingUserId = $this->getActingUserId();
         $updateVals = [];
         foreach ($data as $col => $value) {
             if (! isset($updateCols[$col])) {
@@ -1236,9 +1250,9 @@ class SionTable
             }
             if (
                 null !== $value && isset($updateCols[$col . 'UpdatedBy']) && ! isset($data[$col . 'UpdatedBy']) &&
-                null !== $this->actingUserId
+                null !== $actingUserId
             ) { //check if this column has updatedOn column
-                $updateVals[$updateCols[$col . 'UpdatedBy']] = $this->actingUserId;
+                $updateVals[$updateCols[$col . 'UpdatedBy']] = $actingUserId;
             }
             if (null !== $value && is_array($manyToOneUpdateColumns) && isset($manyToOneUpdateColumns[$col])) {
                 if (
@@ -1252,9 +1266,9 @@ class SionTable
                     isset($manyToOneUpdateColumns[$col]) &&
                     isset($updateCols[$manyToOneUpdateColumns[$col] . 'UpdatedBy']) &&
                     ! isset($data[$manyToOneUpdateColumns[$col] . 'UpdatedBy']) &&
-                    null !== $this->actingUserId
+                    null !== $actingUserId
                 ) { //check if this column  maps to some other updatedBy column
-                    $updateVals[$updateCols[$manyToOneUpdateColumns[$col] . 'UpdatedBy']] = $this->actingUserId;
+                    $updateVals[$updateCols[$manyToOneUpdateColumns[$col] . 'UpdatedBy']] = $actingUserId;
                 }
             }
         }
@@ -1263,18 +1277,18 @@ class SionTable
         }
         if (
             isset($updateCols['updatedBy']) && ! isset($updateVals[$updateCols['updatedBy']]) &&
-            null !== $this->actingUserId
+            null !== $actingUserId
         ) {
-            $updateVals[$updateCols['updatedBy']] = $this->actingUserId;
+            $updateVals[$updateCols['updatedBy']] = $actingUserId;
         }
         if (isset($updateCols['createdOn']) && ! isset($data['createdOn'])) { //check if this column has updatedOn column
             $updateVals[$updateCols['createdOn']] = $now;
         }
         if (
             isset($updateCols['createdBy']) && ! isset($data['createdBy']) &&
-            null !== $this->actingUserId
+            null !== $actingUserId
         ) { //check if this column has updatedOn column
-            $updateVals[$updateCols['createdBy']] = $this->actingUserId;
+            $updateVals[$updateCols['createdBy']] = $actingUserId;
         }
         if (count($updateVals) > 0) {
             $tableGateway->insert($updateVals);
@@ -1441,6 +1455,7 @@ class SionTable
         }
         $i = 0;
         $date = new \DateTime(null, new \DateTimeZone('utc'));
+        $actingUserId = $this->getActingUserId();
         foreach ($data as $row) {
             if (isset($row['entity']) && isset($row['field']) && isset($row['id'])) {
                 if (isset($row['oldValue']) && $row['oldValue'] instanceof \DateTime) {
@@ -1484,7 +1499,7 @@ class SionTable
                     'NewValue'         => isset($row['newValue']) ? $row['newValue'] : null,
                     'OldValue'         => isset($row['oldValue']) ? $row['oldValue'] : null,
                     'UpdatedOn'        => $date->format('Y-m-d H:i:s'),
-                    'UpdatedBy'        => $this->actingUserId,
+                    'UpdatedBy'        => $actingUserId,
                     'IpAddress'        => $_SERVER['REMOTE_ADDR'], //@todo there should be a better way to do this
                 ];
                 $changesTableGateway->insert($params);
@@ -1704,10 +1719,11 @@ class SionTable
     public function registerVisit($entity, $entityId = null)
     {
         $date = new \DateTime(null, new \DateTimeZone('UTC'));
+        $actingUserId = $this->getActingUserId();
         $params = [
             'Entity' => $entity,
             'EntityId' => $entityId,
-            'UserId' => $this->actingUserId,
+            'UserId' => $actingUserId,
             'IpAddress' => $this->privacyHash($_SERVER['REMOTE_ADDR']),
             'UserAgent' => $this->privacyHash($_SERVER['HTTP_USER_AGENT']),
             'VisitedAt' => $date->format('Y-m-d H:i:s'),
@@ -1731,6 +1747,35 @@ class SionTable
             return Hash::compute($this->privacyHashAlgorithm, $data);
         }
         return $data;
+    }
+
+    /**
+     * The id of the user performing the current request, or null when no one
+     * is authenticated. Resolved per call so that a mid-request login (e.g.
+     * magic-link redemption) is observed instead of an id frozen at
+     * construction time. An explicit override set via setActingUserId() wins
+     * over the provider.
+     */
+    public function getActingUserId(): ?int
+    {
+        if (null !== $this->actingUserIdOverride) {
+            return $this->actingUserIdOverride;
+        }
+        if (null === $this->actingUserProvider) {
+            return null;
+        }
+        return $this->actingUserProvider->getActingUserId();
+    }
+
+    /**
+     * Force the acting user id for this table instance, bypassing the
+     * provider. Only for requests authenticated outside the session — the
+     * Books API controllers set the id from their token payload. Pass null
+     * to clear the override and fall back to the provider.
+     */
+    public function setActingUserId(?int $actingUserId): void
+    {
+        $this->actingUserIdOverride = $actingUserId;
     }
 
     /**
@@ -2159,26 +2204,6 @@ class SionTable
     public function setAdapter($adapter)
     {
         $this->adapter = $adapter;
-    }
-
-    /**
-     *
-     * @return int
-     */
-    public function getActingUserId()
-    {
-        return $this->actingUserId;
-    }
-
-    /**
-     *
-     * @param int $actingUserId
-     * @return self
-     */
-    public function setActingUserId($actingUserId)
-    {
-        $this->actingUserId = $actingUserId;
-        return $this;
     }
 
     /**
