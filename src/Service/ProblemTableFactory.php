@@ -27,9 +27,7 @@ class ProblemTableFactory implements FactoryInterface
     {
         $dbAdapter = $container->get('Laminas\Db\Adapter\Adapter');
 
-        /** @var  User $userService **/
-        $userService = $container->get('zfcuser_user_service');
-        $user = $userService->getAuthService()->getIdentity();
+        $user = $container->get('JUser\AuthService')->getIdentity();
         $userId = $user ? $user->id : null;
 //      $userTable = $serviceLocator->get('JUser\Model\UserTable');
         $table = new ProblemTable($dbAdapter, $container, $userId);

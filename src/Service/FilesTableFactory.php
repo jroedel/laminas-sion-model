@@ -32,9 +32,7 @@ class FilesTableFactory implements FactoryInterface
 
         $dbAdapter = $container->get(\Laminas\Db\Adapter\Adapter::class);
 
-        /** @var  User $userService **/
-        $userService = $container->get('zfcuser_user_service');
-        $user = $userService->getAuthService()->getIdentity();
+        $user = $container->get('JUser\AuthService')->getIdentity();
         $actingUserId = $user ? $user->id : null;
 
         $table = new FilesTable($dbAdapter, $container, $actingUserId, $sionModelConfig);

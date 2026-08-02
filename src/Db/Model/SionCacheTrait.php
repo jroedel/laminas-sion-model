@@ -265,8 +265,12 @@ trait SionCacheTrait
                             ]);
                         }
                     } catch (\Exception $e) {
-                        //This probably means we've used up all the memory. Free some and continue gracefully
-                        unset($this->memoryCache);
+                        //This probably means we've used up all the memory. Free some and continue gracefully.
+                        //Assign [] rather than unset(): unset() destroys the declared property, so later
+                        //$this->memoryCache reads fall through to AbstractTableGateway::__get() and fatal
+                        //("Call to a member function canCallMagicGet() on null") on every request until
+                        //APCu is cleared — the production fatal-200 bug.
+                        $this->memoryCache = [];
                         $memorySpike = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
                         $timeElapsedSecs = microtime(true) - $start;
                         if (isset($this->logger)) {
