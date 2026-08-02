@@ -190,8 +190,11 @@ class SionCacheService
                         'memorySpike' => $memorySpike . " MiB",
                     ]);
                 } catch (Exception $e) {
-                    //This probably means we've used up all the memory. Free some and continue gracefully
-                    unset($this->memoryCache);
+                    //This probably means we've used up all the memory. Free some and continue gracefully.
+                    //Assign [] rather than unset(): unset() on a typed property leaves it uninitialized,
+                    //so the next $this->memoryCache access throws an Error on every request until the
+                    //process cache is cleared (the schoenstatt.link production fatal-under-200 bug).
+                    $this->memoryCache = [];
                     $memorySpike     = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
                     $timeElapsedSecs = microtime(true) - $start;
                     $this->logger->err("Error writing cache.", [
