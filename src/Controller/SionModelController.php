@@ -30,15 +30,7 @@ class SionModelController extends AbstractActionController
 
     public function clearPersistentCacheAction()
     {
-        $key = $this->params()->fromQuery('key', null);
-        if (is_null($key)) {
-            throw new UnAuthorizedException();
-        }
-        $config = $this->getSionModelConfig();
-        $apiKeys = isset($config['api_keys']) && is_array($config['api_keys']) ? $config['api_keys'] : [];
-        if (! in_array($key, $apiKeys)) {
-            throw new UnAuthorizedException();
-        }
+        $this->assertApiKey();
         $cache = $this->getPersistentCache();
         if (! is_object($cache)) {
             throw new \Exception('Please configure the persistent cache to clear the cache.');
@@ -53,6 +45,37 @@ class SionModelController extends AbstractActionController
             $message = 'Success';
         }
         return new JsonModel(['message' => $message]);
+    }
+
+    /**
+     * Report APCu occupancy as JSON. The persistent cache degrades to misses
+     * once the shared segment fills (apc.shm_size), and only the web SAPI
+     * can see its own segment — CLI probes look at a different one.
+     */
+    public function cacheStatusAction()
+    {
+        $this->assertApiKey();
+        if (! function_exists('apcu_enabled') || ! apcu_enabled()) {
+            return new JsonModel(['apcuEnabled' => false]);
+        }
+        $sma = apcu_sma_info(true);
+        $cache = apcu_cache_info(true);
+        $totalBytes = (int)($sma['num_seg'] * $sma['seg_size']);
+        $availBytes = (int)$sma['avail_mem'];
+        $usedBytes = $totalBytes - $availBytes;
+        return new JsonModel([
+            'apcuEnabled' => true,
+            'totalBytes' => $totalBytes,
+            'usedBytes' => $usedBytes,
+            'availBytes' => $availBytes,
+            'percentUsed' => $totalBytes > 0 ? round($usedBytes * 100 / $totalBytes, 1) : null,
+            'entries' => isset($cache['num_entries']) ? (int)$cache['num_entries'] : null,
+            'hits' => isset($cache['num_hits']) ? (int)$cache['num_hits'] : null,
+            'misses' => isset($cache['num_misses']) ? (int)$cache['num_misses'] : null,
+            'expunges' => isset($cache['expunges']) ? (int)$cache['expunges'] : null,
+            'uptimeSeconds' => isset($cache['start_time']) ? time() - (int)$cache['start_time'] : null,
+            'phpVersion' => PHP_VERSION,
+        ]);
     }
 
     /**
@@ -135,6 +158,25 @@ class SionModelController extends AbstractActionController
     public function phpInfoAction()
     {
         return [];
+    }
+
+    /**
+     * Gate a maintenance endpoint behind the sion_model.api_keys config,
+     * so deploy hooks can call it without a session.
+     *
+     * @throws UnAuthorizedException
+     */
+    protected function assertApiKey()
+    {
+        $key = $this->params()->fromQuery('key', null);
+        if (is_null($key)) {
+            throw new UnAuthorizedException();
+        }
+        $config = $this->getSionModelConfig();
+        $apiKeys = isset($config['api_keys']) && is_array($config['api_keys']) ? $config['api_keys'] : [];
+        if (! in_array($key, $apiKeys)) {
+            throw new UnAuthorizedException();
+        }
     }
 
     protected function getSionModelConfig()

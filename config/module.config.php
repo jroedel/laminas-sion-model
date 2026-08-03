@@ -646,6 +646,15 @@ return [
                             ],
                         ],
                     ],
+                    'cache-status' => [
+                        'type'    => Literal::class,
+                        'options' => [
+                            'route'    => '/cache-status',
+                            'defaults' => [
+                                'action'     => 'cacheStatus',
+                            ],
+                        ],
+                    ],
                     'data-problems' => [
                         'type'    => Literal::class,
                         'options' => [
