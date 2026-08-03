@@ -25,7 +25,7 @@ class Phone extends Tel implements InputProviderInterface
      *
      * @return ValidatorInterface
      */
-    protected function getValidator()
+    protected function getValidator(): ValidatorInterface
     {
         if (null === $this->validator) {
             $this->validator = new PhoneValidator();
@@ -38,7 +38,7 @@ class Phone extends Tel implements InputProviderInterface
      *
      * @return array
      */
-    public function getInputSpecification()
+    public function getInputSpecification(): array
     {
         return [
             'name' => $this->getName(),

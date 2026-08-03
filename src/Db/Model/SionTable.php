@@ -245,7 +245,8 @@ class SionTable
             }
         }
 
-        $this->tableGateway     = new TableGateway('', $dbAdapter);
+        //laminas-db 2.22 refuses a TableGateway with an empty table name, so
+        //the old generic '' gateway is gone; raw queries go through the adapter
         $this->adapter          = $dbAdapter;
         $this->entitySpecifications = $entities->getEntities();
         $this->actingUserProvider = $actingUserProvider;
@@ -794,9 +795,14 @@ class SionTable
             if (null === $sqlArgs) {
                 $sqlArgs = Adapter::QUERY_MODE_EXECUTE; //make sure query executes
             }
-            $result = $this->tableGateway->getAdapter()->query($sql, $sqlArgs);
+            $result = $this->adapter->query($sql, $sqlArgs);
         } else {
-            $result = $this->tableGateway->select($where);
+            //the '' gateway this used to select() through never had a table,
+            //so this path could only ever produce invalid SQL
+            throw new \InvalidArgumentException(
+                'fetchSome() needs $sql; a bare $where has no table to select from. '
+                . 'Use getTableGateway($tableName)->select($where) instead.'
+            );
         }
 
         $return = [];

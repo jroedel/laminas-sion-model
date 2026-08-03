@@ -2,9 +2,10 @@
 
 namespace SionModel\Service;
 
+use Laminas\Cache\Service\StorageAdapterFactoryInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
-use Laminas\Cache\StorageFactory;
+use Psr\Container\ContainerInterface;
+use SionModel\Cache\LegacyCacheConfig;
 
 class PersistentCacheFactory implements FactoryInterface
 {
@@ -17,6 +18,7 @@ class PersistentCacheFactory implements FactoryInterface
     {
         $config = $container->get('SionModel\Config');
 
-        return StorageFactory::factory($config['persistent_cache_config']);
+        return $container->get(StorageAdapterFactoryInterface::class)
+            ->createFromArrayConfiguration(LegacyCacheConfig::translate($config['persistent_cache_config']));
     }
 }
