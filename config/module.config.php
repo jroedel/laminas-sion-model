@@ -88,11 +88,88 @@ return [
             Service\ErrorHandling::class    => Service\ErrorHandlingFactory::class,
             'ExceptionsLogger'              => Service\ExceptionsLoggerFactory::class,
             'SionModel\Logger'              => Service\LoggerFactory::class,
+            //exception reporting: recorder, notifier and the dispatch/render
+            //error listener Module::onBootstrap() attaches
+            Error\Fingerprinter::class      => Service\FingerprinterFactory::class,
+            Error\ExceptionStore::class     => Service\ExceptionStoreFactory::class,
+            Error\RequestContext::class     => Service\RequestContextFactory::class,
+            Error\ExceptionNotifier::class  => Service\ExceptionNotifierFactory::class,
+            Error\ErrorListener::class      => Service\ErrorListenerFactory::class,
+            //a literal, not ExceptionNotifierFactory::TRANSPORT_SERVICE: a
+            //class constant here makes this config file unloadable without an
+            //autoloader, which breaks any tooling that just includes it
+            'SionModel\ExceptionMailTransport' => Service\ExceptionMailTransportFactory::class,
         ],
     ],
     'sion_model' => [
         'application_log_path'      => 'data/logs/application_{monthString}.log',
         'exceptions_log_path'       => 'data/logs/exceptions_{monthString}.log',
+        /**
+         * Exception reporting. Every exception that reaches dispatch.error or
+         * render.error is logged as before and additionally recorded in a
+         * per-failure directory under store_path; the first occurrence of each
+         * distinct failure is emailed.
+         *
+         * A "distinct failure" is keyed on the exception class chain, the
+         * matched route name and the enclosing function of the root cause —
+         * never the request URI, which would make every request to a variable
+         * URL look like a brand new bug and mail accordingly.
+         *
+         * Recipients are intentionally empty here: a project that has not
+         * configured them records without mailing.
+         */
+        'exception_notifications'   => [
+            'enabled'    => true,
+            'store_path' => 'data/exceptions',
+            /** Email recipients. Set these per project, e.g. in a *.global.php. */
+            'to'         => [],
+            /** Envelope sender; defaults to the SMTP account when left null. */
+            'from'       => null,
+            'from_name'  => null,
+            /** Subject prefix; defaults to the request's host in brackets. */
+            'subject_prefix' => null,
+            /**
+             * Exception classes that are recorded and logged but never mailed.
+             * Exact class names, or a namespace prefix ending in `*`.
+             *
+             * dispatch.error is not a bug channel: an unauthenticated visitor
+             * touching a guarded route raises UnAuthorizedException through the
+             * very same event. That is ordinary traffic, and mailing it would
+             * bury every real failure. Matched as strings so nothing is
+             * autoloaded while the application is mid-failure.
+             */
+            'ignore_classes' => [
+                'BjyAuthorize\Exception\UnAuthorizedException',
+            ],
+            /**
+             * Occurrence counts that earn a second look after the first email:
+             * a rare annoyance becoming an outage is worth hearing about.
+             */
+            'spike_counts' => [10, 100, 1000],
+            /** Ceiling on distinct fingerprints, so a storm cannot fill the disk. */
+            'max_fingerprints' => 500,
+            /** Ceiling on notifications per hour, so a storm cannot flood the inbox. */
+            'max_emails_per_hour' => 20,
+            /** Truncation ceiling for a single write-up. */
+            'max_write_up_bytes' => 262144,
+            /** How many recent write-ups to keep besides first and last. */
+            'ring_size' => 3,
+            /** How long to stop trying after the mail transport fails. */
+            'breaker_seconds' => 900,
+            /**
+             * What request state to keep. The store gets copied off the server
+             * and its contents get mailed, so these default to the least data
+             * that still lets you reproduce a failure:
+             *   ip:       truncate (IPv4 /24, IPv6 /48) | full | none
+             *   identity: id (user id only, never the address) | none
+             *   params:   keys (names kept, values redacted) | full | none
+             */
+            'capture' => [
+                'ip'       => 'truncate',
+                'identity' => 'id',
+                'params'   => 'keys',
+            ],
+        ],
         'file_directory'            => 'data/files',
         'public_file_directory'     => 'public/files',
         'max_items_to_cache'        => 2,
