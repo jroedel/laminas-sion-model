@@ -10,7 +10,7 @@
         "voku/html2text": "^5.0",
         "tijsverkoyen/css-to-inline-styles": "^2.2",
         "neilime/zf2-twb-bundle": "^3.0",
-    	"acelaya/zf2-acmailer": "5.*",
+        "symfony/mailer": "^7.0",
         "matriphe/iso-639": "^1.2",
         "ext-intl": "*"
     },
