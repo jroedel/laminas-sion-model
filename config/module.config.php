@@ -173,6 +173,24 @@ return [
         'file_directory'            => 'data/files',
         'public_file_directory'     => 'public/files',
         'max_items_to_cache'        => 2,
+        /**
+         * Bytes. A single persistent cache item bigger than this is skipped
+         * rather than written. APCu clears its whole segment when an allocation
+         * fails (apc.ttl is 0), so one oversized write costs every other cached
+         * item site-wide — refusing it locally is cheaper. 0 disables the check.
+         *
+         * 4 MiB was picked from the measured size distribution rather than by
+         * feel. Warming the main routes against production-scale data gives a
+         * long tail of legitimate items topping out at ~2.5 MiB
+         * (query-objects-association 2.44, publication-navigation-data 1.84,
+         * unlinked-persons 0.88) and then one outlier at 29.21 MiB
+         * (query-objects-publication, the full 10k-row 80-field table). The gap
+         * between those two groups is where this belongs: everything real keeps
+         * caching with headroom to grow, and only the table-sized blob is
+         * refused. /sm/cache-status reports largestEntries so the number can be
+         * re-checked against production instead of assumed.
+         */
+        'max_cached_item_size'      => 4194304, //4 MiB
         'changes_max_rows'          => 500,
         'changes_show_all'          => true,
         'api_keys'                  => [], //users should specify long, random authentication keys here

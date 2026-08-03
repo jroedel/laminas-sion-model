@@ -34,6 +34,15 @@ trait SionCacheTrait
     protected $maxItemsToCache = 2;
 
     /**
+     * Maximum serialized size, in bytes, of a single persistent cache item.
+     * Items above this are skipped instead of written; see
+     * exceedsItemSizeBudget() for why an oversized write is worse than no
+     * write at all. Zero or less disables the check.
+     * @var int $maxItemSize
+     */
+    protected $maxItemSize = 2097152; //2 MiB
+
+    /**
      * For each cache key, the list of entities they depend on.
      * For example:
      * [
@@ -79,9 +88,7 @@ trait SionCacheTrait
         if (! isset($this->cacheDependencies[$fullyQualifiedCacheKey])) {
             $this->cacheDependencies[$fullyQualifiedCacheKey] = $entityDependencies;
             //don't wait till the end of the call, because sometimes we get short circuited
-            if (is_object($this->persistentCache)) {
-                $this->persistentCache->setItem($this->getClassIdentifier() . '-cachedependencies', $this->cacheDependencies);
-            }
+            $this->persistCacheDependencies();
         } else {
             //dependencies may have been reloaded from the persistent cache before this call;
             //if we hear of any new dependencies, we want to know about them
@@ -91,12 +98,37 @@ trait SionCacheTrait
                     $this->cacheDependencies[$fullyQualifiedCacheKey],
                     $newDependencies
                 );
-                if (is_object($this->persistentCache)) {
-                    $this->persistentCache->setItem($this->getClassIdentifier() . '-cachedependencies', $this->cacheDependencies);
-                }
+                $this->persistCacheDependencies();
             }
         }
         return true;
+    }
+
+    /**
+     * Write the dependency map through to the persistent cache.
+     *
+     * This runs mid-request, deep inside query paths, so a full cache must not
+     * be allowed to surface as an exception: Laminas' APCu adapter throws when
+     * apcu_store() fails, which would turn a full segment into a 500 on any
+     * page that happens to register a cache key.
+     */
+    protected function persistCacheDependencies()
+    {
+        if (! is_object($this->persistentCache)) {
+            return;
+        }
+        try {
+            $this->persistentCache->setItem(
+                $this->getClassIdentifier() . '-cachedependencies',
+                $this->cacheDependencies
+            );
+        } catch (\Exception $e) {
+            if (isset($this->logger)) {
+                $this->logger->err("Error writing cache dependencies.", [
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
@@ -204,6 +236,65 @@ trait SionCacheTrait
     }
 
     /**
+     * Get the maxItemSize value in bytes
+     * @return int
+     */
+    public function getMaxItemSize()
+    {
+        return $this->maxItemSize;
+    }
+
+    /**
+     *
+     * @param int $maxItemSize Bytes; zero or less disables the size check
+     * @return self
+     */
+    public function setMaxItemSize($maxItemSize)
+    {
+        $this->maxItemSize = (int) $maxItemSize;
+        return $this;
+    }
+
+    /**
+     * Decide whether an item is too big to hand to the persistent cache.
+     *
+     * APCu lives in a fixed shared segment (apc.shm_size, 32M in production).
+     * An item bigger than the free space fails to allocate, and because
+     * apc.ttl defaults to 0 that failure makes APCu clear the *entire* cache
+     * instead of evicting selectively — so one oversized write throws away
+     * every other cached item, for every user. Refusing the write here is
+     * strictly better than learning the limit from the adapter's exception,
+     * by which time the segment is already gone.
+     *
+     * strlen(serialize()) is a proxy: APCu serializes with its own routine, so
+     * the stored size differs somewhat. It is the right order of magnitude,
+     * which is all a guardrail needs.
+     *
+     * @param string $fullyQualifiedCacheKey
+     * @param mixed $value
+     * @return bool
+     */
+    protected function exceedsItemSizeBudget($fullyQualifiedCacheKey, &$value)
+    {
+        $budget = $this->getMaxItemSize();
+        if ($budget <= 0) {
+            return false;
+        }
+        $size = strlen(serialize($value));
+        if ($size <= $budget) {
+            return false;
+        }
+        if (isset($this->logger)) {
+            $this->logger->warn("Refusing to cache an oversized item.", [
+                'cacheKey' => $fullyQualifiedCacheKey,
+                'size' => $size,
+                'budget' => $budget,
+            ]);
+        }
+        return true;
+    }
+
+    /**
      * Get the cache value
      * @return StorageInterface
      */
@@ -253,54 +344,64 @@ trait SionCacheTrait
     {
         $maxObjects = $this->getMaxItemsToCache();
         $count = 0;
-        if (is_object($this->persistentCache)) {
-            foreach ($this->newPersistentCacheItems as $fullyQualifiedCacheKey) {
-                if (key_exists($fullyQualifiedCacheKey, $this->memoryCache)) {
-                    if (isset($this->logger)) {
-                        $this->logger->debug("Writing cache.", ['cacheKey' => $fullyQualifiedCacheKey]);
-                    }
-                    try {
-                        //add some debugging information since it's often difficult to cache really large objects
-                        $start = microtime(true);
-                        $startMemory = memory_get_peak_usage(false);
-                        $this->persistentCache->setItem(
-                            $fullyQualifiedCacheKey,
-                            $this->memoryCache[$fullyQualifiedCacheKey]
-                        );
-                        $memorySpike = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
-                        $timeElapsedSecs = microtime(true) - $start;
-                        if (isset($this->logger)) {
-                            $this->logger->debug("Successfully wrote cache.", [
-                                'cacheKey' => $fullyQualifiedCacheKey,
-                                'elapsedTime' => $timeElapsedSecs,
-                                'memorySpike' => $memorySpike . " MiB",
-                            ]);
-                        }
-                    } catch (\Exception $e) {
-                        //This probably means we've used up all the memory. Free some and continue gracefully.
-                        //Assign [] rather than unset(): unset() destroys the declared property, so later
-                        //$this->memoryCache reads fall through to AbstractTableGateway::__get() and fatal
-                        //("Call to a member function canCallMagicGet() on null") on every request until
-                        //APCu is cleared — the production fatal-200 bug.
-                        $this->memoryCache = [];
-                        $memorySpike = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
-                        $timeElapsedSecs = microtime(true) - $start;
-                        if (isset($this->logger)) {
-                            $this->logger->err("Error writing cache.", [
-                                'cacheKey' => $fullyQualifiedCacheKey,
-                                'elapsedTime' => $timeElapsedSecs,
-                                'memorySpike' => $memorySpike . " MiB",
-                                'exception' => $e->getMessage(),
-                            ]);
-                        }
-                        return;
-                    }
-                    $count++;
-                }
-                if ($count >= $maxObjects) {
-                    break;
-                }
+        if (! is_object($this->persistentCache)) {
+            return;
+        }
+        foreach ($this->newPersistentCacheItems as $fullyQualifiedCacheKey) {
+            if ($count >= $maxObjects) {
+                break;
             }
+            if (! key_exists($fullyQualifiedCacheKey, $this->memoryCache)) {
+                continue;
+            }
+            //an item we refuse on size never occupied a slot, so it doesn't
+            //cost the items queued behind it their chance to be written
+            if ($this->exceedsItemSizeBudget($fullyQualifiedCacheKey, $this->memoryCache[$fullyQualifiedCacheKey])) {
+                continue;
+            }
+            if (isset($this->logger)) {
+                $this->logger->debug("Writing cache.", ['cacheKey' => $fullyQualifiedCacheKey]);
+            }
+            //add some debugging information since it's often difficult to cache really large objects
+            $start = microtime(true);
+            $startMemory = memory_get_peak_usage(false);
+            try {
+                $this->persistentCache->setItem(
+                    $fullyQualifiedCacheKey,
+                    $this->memoryCache[$fullyQualifiedCacheKey]
+                );
+            } catch (\Exception $e) {
+                //Laminas' APCu adapter throws when apcu_store() fails, which mostly means
+                //the segment is full. Log it and carry on with the queue: the failed
+                //allocation has already triggered APCu's expunge, so the next item stands
+                //a good chance of fitting, and abandoning the rest guarantees a cold cache.
+                //Never unset() $this->memoryCache here: unset() destroys the declared
+                //property, so later $this->memoryCache reads fall through to
+                //AbstractTableGateway::__get() and fatal ("Call to a member function
+                //canCallMagicGet() on null") on every request until APCu is cleared —
+                //the production fatal-200 bug.
+                $memorySpike = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
+                $timeElapsedSecs = microtime(true) - $start;
+                if (isset($this->logger)) {
+                    $this->logger->err("Error writing cache.", [
+                        'cacheKey' => $fullyQualifiedCacheKey,
+                        'elapsedTime' => $timeElapsedSecs,
+                        'memorySpike' => $memorySpike . " MiB",
+                        'exception' => $e->getMessage(),
+                    ]);
+                }
+                continue;
+            }
+            $memorySpike = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
+            $timeElapsedSecs = microtime(true) - $start;
+            if (isset($this->logger)) {
+                $this->logger->debug("Successfully wrote cache.", [
+                    'cacheKey' => $fullyQualifiedCacheKey,
+                    'elapsedTime' => $timeElapsedSecs,
+                    'memorySpike' => $memorySpike . " MiB",
+                ]);
+            }
+            $count++;
         }
     }
 }
