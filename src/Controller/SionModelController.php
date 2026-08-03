@@ -75,7 +75,40 @@ class SionModelController extends AbstractActionController
             'expunges' => isset($cache['expunges']) ? (int)$cache['expunges'] : null,
             'uptimeSeconds' => isset($cache['start_time']) ? time() - (int)$cache['start_time'] : null,
             'phpVersion' => PHP_VERSION,
+            'largestEntries' => $this->getLargestApcuEntries(),
         ]);
+    }
+
+    /**
+     * The biggest cache entries, largest first, as [key => bytes].
+     *
+     * Aggregate occupancy says the segment is full; it does not say which key
+     * filled it. That distinction is what decides whether the fix is a bigger
+     * segment or a narrower query, and it is also how the
+     * sion_model.max_cached_item_size budget gets tuned against real data
+     * rather than a guess. `mem_size` is what APCu actually allocated for the
+     * entry, so unlike a serialize() estimate it needs no interpretation.
+     *
+     * @param int $limit
+     * @return array<string, int>
+     */
+    protected function getLargestApcuEntries($limit = 15)
+    {
+        //the `true` variant of apcu_cache_info() omits the entry list, so this
+        //is the one call in this action that has to walk every entry
+        $info = apcu_cache_info();
+        if (! isset($info['cache_list']) || ! is_array($info['cache_list'])) {
+            return [];
+        }
+        $sizes = [];
+        foreach ($info['cache_list'] as $entry) {
+            if (! isset($entry['info'])) {
+                continue;
+            }
+            $sizes[$entry['info']] = isset($entry['mem_size']) ? (int)$entry['mem_size'] : 0;
+        }
+        arsort($sizes);
+        return array_slice($sizes, 0, $limit, true);
     }
 
     /**

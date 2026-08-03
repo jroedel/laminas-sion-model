@@ -243,6 +243,9 @@ class SionTable
             if (isset($config['max_items_to_cache'])) {
                 $this->setMaxItemsToCache($config['max_items_to_cache']);
             }
+            if (isset($config['max_cached_item_size'])) {
+                $this->setMaxItemSize($config['max_cached_item_size']);
+            }
         }
 
         //laminas-db 2.22 refuses a TableGateway with an empty table name, so
