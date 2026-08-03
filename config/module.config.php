@@ -95,10 +95,15 @@ return [
             Error\RequestContext::class     => Service\RequestContextFactory::class,
             Error\ExceptionNotifier::class  => Service\ExceptionNotifierFactory::class,
             Error\ErrorListener::class      => Service\ErrorListenerFactory::class,
+            'SionModel\MailTransport'       => Service\MailTransportFactory::class,
+        ],
+        'aliases' => [
             //a literal, not ExceptionNotifierFactory::TRANSPORT_SERVICE: a
             //class constant here makes this config file unloadable without an
-            //autoloader, which breaks any tooling that just includes it
-            'SionModel\ExceptionMailTransport' => Service\ExceptionMailTransportFactory::class,
+            //autoloader, which breaks any tooling that just includes it.
+            //An alias so a project can point exception mail at a different
+            //transport without touching the notifier.
+            'SionModel\ExceptionMailTransport' => 'SionModel\MailTransport',
         ],
     ],
     'sion_model' => [

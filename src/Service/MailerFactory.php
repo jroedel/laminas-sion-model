@@ -24,11 +24,13 @@ class MailerFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $translator = $container->get('translator');
-        $mailService = $container->get('acmailer.mailservice.default');
-        $config = $container->get('Config');
-
-        $mailer = new Mailer($mailService, $translator, $config);
-        return $mailer;
+        //no SionTable is passed: the base mailer sends without reporting to
+        //the mailings table; subclasses wire in their own table
+        return new Mailer(
+            $container->get('SionModel\MailTransport'),
+            $container->get('ViewRenderer'),
+            $container->get('translator'),
+            $container->get('Config')
+        );
     }
 }

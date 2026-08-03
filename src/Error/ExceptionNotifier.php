@@ -2,8 +2,9 @@
 
 namespace SionModel\Error;
 
-use Laminas\Mail\Message;
-use Laminas\Mail\Transport\TransportInterface;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 use Throwable;
 
 /**
@@ -13,10 +14,11 @@ use Throwable;
  * Two things here are defensive rather than decorative:
  *
  * - The fingerprint is marked notified *before* the send is attempted.
- *   Laminas\Mail hard-codes a 30 second connection timeout, so a mail host that
- *   has stopped answering would otherwise cost every subsequent visitor 30
- *   seconds on a request that has already failed. Marking first means at most
- *   one request pays that price; the failure is written into meta.json, where
+ *   The SMTP transport waits up to 30 seconds for a connection (the socket
+ *   timeout MailTransportFactory sets), so a mail host that has stopped
+ *   answering would otherwise cost every subsequent visitor 30 seconds on a
+ *   request that has already failed. Marking first means at most one request
+ *   pays that price; the failure is written into meta.json, where
  *   fetch-exceptions.sh reports it.
  *
  * - A failed send opens a circuit breaker. A host refusing connections now will
@@ -108,7 +110,7 @@ class ExceptionNotifier
      * @param RecordOutcome   $outcome
      * @param array           $decision
      * @param string[]        $recipients
-     * @return Message
+     * @return Email
      */
     private function buildMessage(
         ExceptionRecord $record,
@@ -116,14 +118,13 @@ class ExceptionNotifier
         array $decision,
         array $recipients
     ) {
-        $message = new Message();
-        $message->setEncoding('UTF-8');
-        $message->setFrom($this->config['from'], $this->config['from_name']);
+        $message = new Email();
+        $message->from(new Address($this->config['from'], (string) $this->config['from_name']));
         foreach ($recipients as $recipient) {
             $message->addTo($recipient);
         }
-        $message->setSubject($this->subject($record, $decision));
-        $message->setBody($this->body($record, $outcome, $decision));
+        $message->subject($this->subject($record, $decision));
+        $message->text($this->body($record, $outcome, $decision));
 
         return $message;
     }

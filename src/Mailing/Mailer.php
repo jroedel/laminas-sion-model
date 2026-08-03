@@ -3,23 +3,43 @@ namespace SionModel\Mailing;
 
 use Laminas\I18n\Translator\TranslatorInterface;
 use Laminas\I18n\Translator\TranslatorAwareInterface;
-use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
 use Laminas\Math\Rand;
-use voku\Html2Text\Html2Text;
-use Laminas\Mail\Message;
-use Laminas\Mail\AddressList;
+use Laminas\View\Model\ViewModel;
+use Laminas\View\Renderer\RendererInterface;
 use SionModel\Db\Model\SionTable;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
+use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
+use voku\Html2Text\Html2Text;
 
-class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
+/**
+ * Base class for application mailers: builds messages stamped with the
+ * application's mail identity, renders their bodies from view templates, and
+ * records every attempt in the mailings table.
+ */
+class Mailer implements TranslatorAwareInterface
 {
-    const CSS_PATH_DEFAULT = '/../../../public/css/email-default.css';
+    /**
+     * Relative to the application root, where laminas-mvc entry points chdir()
+     * to. The old module-relative default ('/../../../public/css/…' from this
+     * file) pointed inside the SionModel package, where the file has never
+     * existed since the module was vendored into applications — every mail
+     * went out unstyled, with only a PHP warning to show for it.
+     */
+    const CSS_PATH_DEFAULT = 'public/css/email-default.css';
 
     const TOKEN_LENGTH = 24;
 
     /**
-     * @var MailServiceInterface $mailService
+     * @var TransportInterface $transport
      */
-    protected $mailService;
+    protected $transport;
+
+    /**
+     * @var RendererInterface $renderer
+     */
+    protected $renderer;
 
     /**
      * @var TranslatorInterface $translator
@@ -27,7 +47,6 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
     protected $translator;
 
     /**
-     * @todo implement or delete
      * @var string $textDomain
      */
     protected $textDomain;
@@ -43,20 +62,63 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
     protected $config;
 
     /**
-    * @var SionTable $sionTable
+    * @var SionTable|null $sionTable
     */
     protected $sionTable;
 
-    public function __construct($mailService, $translator, $config, $sionTable)
-    {
-        $this->mailService  = $mailService;
-        $this->translator   = $translator;
-        $this->config       = $config;
+    public function __construct(
+        TransportInterface $transport,
+        RendererInterface $renderer,
+        $translator,
+        array $config,
+        ?SionTable $sionTable = null
+    ) {
+        $this->transport = $transport;
+        $this->renderer  = $renderer;
+        $this->translator = $translator;
+        $this->config    = $config;
         $this->sionTable = $sionTable;
     }
 
+    /**
+     * A message pre-addressed with the application's mail identity, taken from
+     * the `sion_model.mail` config block (from, from_name, bcc).
+     *
+     * @return Email
+     */
+    public function createEmail()
+    {
+        $mailConfig = isset($this->config['sion_model']['mail']) && is_array($this->config['sion_model']['mail'])
+            ? $this->config['sion_model']['mail']
+            : [];
+        $email = new Email();
+        if (isset($mailConfig['from']) && '' !== $mailConfig['from']) {
+            $fromName = isset($mailConfig['from_name']) ? (string) $mailConfig['from_name'] : '';
+            $email->from(new Address($mailConfig['from'], $fromName));
+        }
+        $bcc = isset($mailConfig['bcc']) ? (array) $mailConfig['bcc'] : [];
+        foreach ($bcc as $address) {
+            $email->addBcc($address);
+        }
+        return $email;
+    }
+
+    /**
+     * Render a view template to an HTML string, for use as a message body.
+     *
+     * @param string $template
+     * @param array $params
+     * @return string
+     */
+    public function renderTemplate($template, array $params)
+    {
+        $model = new ViewModel($params);
+        $model->setTemplate($template);
+        return $this->renderer->render($model);
+    }
+
     public function reportMailing(
-        Message $message,
+        Email $message,
         $attempt = 1,
         $maxAttempts = 3,
         $exception = null,
@@ -65,22 +127,30 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
         $trackingToken = null,
         $tags = null
     ) {
+        $table = $this->getSionTable();
+        if (! isset($table)) {
+            //a mailer without a table sends without reporting
+            return;
+        }
         static $timeZone;
         if (!isset($timeZone)) {
             $timeZone = new \DateTimeZone('UTC');
         }
-        $table = $this->getSionTable();
         $actingUser = $table->getActingUserId();
-        $body = $message->getBodyText();
-        $html = new Html2Text($body);
+        $body = $message->getHtmlBody();
+        if (null === $body) {
+            $body = $message->getTextBody();
+        }
+        $html = new Html2Text((string) $body);
+        $sender = $message->getSender();
         //report email
         $report = [
-            'toAddresses' => self::AddressListToString($message->getTo()),
-            'mailingOn' => new \DateTime(null, $timeZone),
+            'toAddresses' => self::addressListToString($message->getTo()),
+            'mailingOn' => new \DateTime('now', $timeZone),
             'mailingBy' => $actingUser,
             'subject' => $message->getSubject(),
             'body' => $body,
-            'sender' => !is_null($message->getSender()) ? $message->getSender()->toString() : null,
+            'sender' => isset($sender) ? $sender->toString() : null,
             'text' => $html->getText(),
             'tags' => $tags,
             'trackingToken' => $trackingToken,
@@ -96,7 +166,11 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
         $table->createEntity('mailing', $report);
     }
 
-    protected static function AddressListToString(AddressList $list)
+    /**
+     * @param Address[] $list
+     * @return string
+     */
+    protected static function addressListToString(array $list)
     {
         $addresses = [];
         foreach ($list as $address) {
@@ -106,31 +180,28 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
     }
 
     /**
-     * @todo this
-     */
-    public function processQueue()
-    {
-    }
-
-    /**
      * Inlines CSS rules in an HTML document
      * @todo Add a little caching so we don't have to read the same
      *      CSS file several times in the same PHP instance
      * @param string $body
-     * @param string $cssPath
+     * @param string $cssPath path to the stylesheet, relative to the
+     *      application root (or absolute)
+     * @return string
+     * @throws \RuntimeException when the stylesheet cannot be read: a missing
+     *      file used to degrade silently to unstyled mail
      */
     public static function inlineEmailStyles($body, $cssPath = Mailer::CSS_PATH_DEFAULT)
     {
-        // create instance
-        $cssToInlineStyles = new CssToInlineStyles();
+        $css = @file_get_contents($cssPath);
+        if (false === $css) {
+            throw new \RuntimeException(sprintf(
+                'Email stylesheet not readable: %s (cwd: %s)',
+                $cssPath,
+                getcwd()
+            ));
+        }
 
-        $css = file_get_contents(__DIR__ . $cssPath);
-
-        // output
-        return $cssToInlineStyles->convert(
-            $body,
-            $css
-        );
+        return (new CssToInlineStyles())->convert($body, $css);
     }
 
     protected static function getNewTrackingToken()
@@ -140,22 +211,21 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
     }
 
     /**
-     * @param MailServiceInterface $mailService
-     * @return $this
+     * @return TransportInterface
      */
-//    public function setMailService(MailServiceInterface $mailService)
-    public function setMailService($mailService)
+    public function getTransport()
     {
-        $this->mailService = $mailService;
-        return $this;
+        return $this->transport;
     }
 
     /**
-     * @return MailServiceInterface
+     * @param TransportInterface $transport
+     * @return $this
      */
-    public function getMailService()
+    public function setTransport(TransportInterface $transport)
     {
-        return $this->mailService;
+        $this->transport = $transport;
+        return $this;
     }
 
     /**
@@ -243,7 +313,7 @@ class Mailer implements TranslatorAwareInterface //MailServiceAwareInterface,
 
     /**
      * Get the sionTable value
-     * @return SionTable
+     * @return SionTable|null
      */
     public function getSionTable()
     {
