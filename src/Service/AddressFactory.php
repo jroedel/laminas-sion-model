@@ -20,8 +20,7 @@ class AddressFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $parentLocator = $container->getServiceLocator();
-        $config = $parentLocator->get('SionModel\Config');
+        $config = $container->get('SionModel\Config');
         $viewHelper = new Address($config);
         return $viewHelper;
     }

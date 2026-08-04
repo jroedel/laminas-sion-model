@@ -40,7 +40,6 @@ class LazyControllerFactory implements AbstractFactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $class = new \ReflectionClass($requestedName);
-        $parentLocator = $container->getServiceLocator();
         if ($constructor = $class->getConstructor()) {
             if ($params = $constructor->getParameters()) {
                 $parameter_instances = [];
@@ -52,7 +51,7 @@ class LazyControllerFactory implements AbstractFactoryInterface
                         }
 
                         try {
-                            $parameter_instances[] = $parentLocator->get($cn);
+                            $parameter_instances[] = $container->get($cn);
                         } catch (\Exception $x) {
                             echo __CLASS__
                             . " couldn't create an instance of $cn to satisfy the constructor for $requestedName.";
@@ -60,7 +59,7 @@ class LazyControllerFactory implements AbstractFactoryInterface
                         }
                     } else {
                         if ($p->isArray() && $p->getName() == 'config') {
-                            $parameter_instances[] = $parentLocator->get('config');
+                            $parameter_instances[] = $container->get('config');
                         }
                     }
                 }
