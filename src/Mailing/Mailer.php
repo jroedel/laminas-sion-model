@@ -237,7 +237,7 @@ class Mailer implements TranslatorAwareInterface
      *                                           Default is null, which skips setTranslatorTextDomain
      * @return TranslatorAwareInterface
      */
-    public function setTranslator(TranslatorInterface $translator = null, $textDomain = null)
+    public function setTranslator(?TranslatorInterface $translator = null, $textDomain = null)
     {
         $this->translator =  $translator;
         if (isset($textDomain)) {

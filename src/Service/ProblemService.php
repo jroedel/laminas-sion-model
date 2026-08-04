@@ -81,7 +81,7 @@ class ProblemService
      * @param string[] $entityKeys
      * @todo integrate the db stored problems
      */
-    public function getProblems(array $entityKeys = null)
+    public function getProblems(?array $entityKeys = null)
     {
         $problems = $this->getCurrentProblems($entityKeys);
         return $problems;
@@ -92,7 +92,7 @@ class ProblemService
      * @param string[] $entityKeys
      * @return EntityProblem[]
      */
-    public function getCurrentProblems(array $entityKeys = null)
+    public function getCurrentProblems(?array $entityKeys = null)
     {
         if (! is_null($this->sortedProblems)) {
             $problems = $this->sortedProblems;

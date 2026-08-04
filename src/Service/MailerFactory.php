@@ -22,7 +22,7 @@ class MailerFactory implements FactoryInterface
      *
      * @inheritdoc
      */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         //no SionTable is passed: the base mailer sends without reporting to
         //the mailings table; subclasses wire in their own table

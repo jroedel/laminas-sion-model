@@ -14,7 +14,7 @@ class FlushPersistentCacheCommandFactory implements FactoryInterface
      *
      * @inheritdoc
      */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $config = $container->has('SionModel\Config') ? $container->get('SionModel\Config') : [];
         if (! is_array($config)) {

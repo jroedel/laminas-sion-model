@@ -16,7 +16,7 @@ class RouteNameFactory implements FactoryInterface
      *
      * @inheritdoc
      */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $routeMatch = $container->get('application')->getMvcEvent()->getRouteMatch();
         $viewHelper = new RouteName($routeMatch);
