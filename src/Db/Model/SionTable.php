@@ -99,7 +99,14 @@ class SionTable
     protected $entitySpecifications = [];
 
     /**
-     * @var string $changesTableName
+     * Name of the changes table, or null when the consumer configures none.
+     *
+     * Until 2026-08-05 the constructor assigned a *singular* `$changeTableName`,
+     * creating a dynamic property (deprecated in 8.2, removed in PHP 9) while
+     * this declared one sat dead. The five readers used the singular name too,
+     * so the rename is behaviour-preserving.
+     *
+     * @var string|null $changesTableName
      */
     protected $changesTableName;
 
@@ -252,7 +259,7 @@ class SionTable
         $this->adapter          = $dbAdapter;
         $this->entitySpecifications = $entities->getEntities();
         $this->actingUserProvider = $actingUserProvider;
-        $this->changeTableName  = isset($config['changes_table']) ? $config['changes_table'] : null;
+        $this->changesTableName = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
 
         if (
@@ -1526,7 +1533,7 @@ class SionTable
         $tableEntities = $this->getTableEntities();
         $predicate = new Where();
         $gateway = $this->getChangesTableGateway();
-        $select = new Select($this->changeTableName);
+        $select = new Select($this->changesTableName);
         $select->columns(['TheMonth' => new Expression('MONTH(`UpdatedOn`)'), 'TheYear' => new Expression('YEAR(`UpdatedOn`)'), 'Count' => new Expression('Count(*)')]);
         $select->group(['TheMonth', 'TheYear']);
         $select->where($predicate->in('ChangedEntity', $tableEntities));
@@ -1573,7 +1580,7 @@ class SionTable
     public function getEntityChanges($entity, $entityId)
     {
         $gateway = $this->getChangesTableGateway();
-        $select = new Select($this->changeTableName);
+        $select = new Select($this->changesTableName);
         $select->where([
             'ChangedEntity' => $entity,
             'ChangedIDValue' => $entityId,
@@ -1602,7 +1609,7 @@ class SionTable
     {
         $entityTypes = $this->getTableEntities();
         $gateway = $this->getChangesTableGateway();
-        $select = new Select($this->changeTableName);
+        $select = new Select($this->changesTableName);
         $select->where(['ChangedEntity' => $entityTypes]);
         $select->order(['UpdatedOn' => 'DESC']);
         $select->limit($maxRows);
@@ -2228,10 +2235,10 @@ class SionTable
     public function getChangesTableGateway()
     {
         if (null === $this->changesTableGateway) {
-            if (null === $this->changeTableName) {
+            if (null === $this->changesTableName) {
                 return null;
             }
-            $this->changesTableGateway = new TableGateway($this->changeTableName, $this->adapter);
+            $this->changesTableGateway = new TableGateway($this->changesTableName, $this->adapter);
         }
         return $this->changesTableGateway;
     }
