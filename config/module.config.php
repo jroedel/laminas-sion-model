@@ -9,6 +9,17 @@ use Laminas\Router\Http\Segment;
 use Laminas\View\Helper\InlineScript;
 
 return [
+    /**
+     * Commands bin/console exposes, as name => service id. The entry point
+     * resolves each from the service manager only when it is the command being
+     * run, so registering one here costs nothing until it is invoked.
+     */
+    'console' => [
+        'commands' => [
+            'cache:clear-config'     => Console\Command\ClearConfigCacheCommand::class,
+            'cache:flush-persistent' => Console\Command\FlushPersistentCacheCommand::class,
+        ],
+    ],
     'view_helpers' => [
         'factories' => [
             'inlineScript'          => Service\InlineScriptFactory::class,
@@ -96,6 +107,10 @@ return [
             Error\ExceptionNotifier::class  => Service\ExceptionNotifierFactory::class,
             Error\ErrorListener::class      => Service\ErrorListenerFactory::class,
             'SionModel\MailTransport'       => Service\MailTransportFactory::class,
+            Console\Command\ClearConfigCacheCommand::class
+                                            => Service\ClearConfigCacheCommandFactory::class,
+            Console\Command\FlushPersistentCacheCommand::class
+                                            => Service\FlushPersistentCacheCommandFactory::class,
         ],
         'aliases' => [
             //a literal, not ExceptionNotifierFactory::TRANSPORT_SERVICE: a
@@ -109,6 +124,13 @@ return [
     'sion_model' => [
         'application_log_path'      => 'data/logs/application_{monthString}.log',
         'exceptions_log_path'       => 'data/logs/exceptions_{monthString}.log',
+        /**
+         * Public base URL of this site, no trailing slash. Only console
+         * commands use it, because a CLI process has no request to infer the
+         * host from. Empty here so a project must state its own; the
+         * cache:flush-persistent command takes --url when it is unset.
+         */
+        'canonical_base_url'        => '',
         /**
          * Exception reporting. Every exception that reaches dispatch.error or
          * render.error is logged as before and additionally recorded in a

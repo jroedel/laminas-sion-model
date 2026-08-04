@@ -21,6 +21,8 @@ use SionModel\Service\ChangesCollector;
 
 class SionModelController extends AbstractActionController
 {
+    use MaintenanceKeyTrait;
+
     protected $services = [];
 
     public function __construct($services)
@@ -201,15 +203,10 @@ class SionModelController extends AbstractActionController
      */
     protected function assertApiKey()
     {
-        $key = $this->params()->fromQuery('key', null);
-        if (is_null($key)) {
-            throw new UnAuthorizedException();
-        }
         $config = $this->getSionModelConfig();
-        $apiKeys = isset($config['api_keys']) && is_array($config['api_keys']) ? $config['api_keys'] : [];
-        if (! in_array($key, $apiKeys)) {
-            throw new UnAuthorizedException();
-        }
+        $this->assertApiKeyIn(
+            isset($config['api_keys']) && is_array($config['api_keys']) ? $config['api_keys'] : []
+        );
     }
 
     protected function getSionModelConfig()
