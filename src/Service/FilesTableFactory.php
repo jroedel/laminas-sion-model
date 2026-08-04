@@ -23,7 +23,7 @@ class FilesTableFactory implements FactoryInterface
      *
      * @inheritdoc
      */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $sionModelConfig = $container->get('SionModel\Config');
         if (! isset($sionModelConfig['files_directory']) || empty($sionModelConfig['public_files_directory'])) {

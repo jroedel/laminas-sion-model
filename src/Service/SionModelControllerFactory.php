@@ -18,7 +18,7 @@ class SionModelControllerFactory implements FactoryInterface
      *
      * @inheritdoc
      */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $sionModelConfig = $container->get('SionModel\Config');
         $serviceNames = $sionModelConfig['sion_controller_services'];

@@ -14,7 +14,7 @@ class ClearConfigCacheCommandFactory implements FactoryInterface
      *
      * @inheritdoc
      */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $appConfig = $container->has('ApplicationConfig') ? $container->get('ApplicationConfig') : [];
         $listenerOptions = new ListenerOptions(

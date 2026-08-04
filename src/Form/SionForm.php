@@ -99,7 +99,7 @@ class SionForm extends Form
      */
     public function prepareForSuggestion(
         AuthenticationServiceInterface $authService,
-        PersonProviderInterface $personProvider = null
+        ?PersonProviderInterface $personProvider = null
     ) {
         $name = $this->getName();
         if (false !== ($lastUnderscore = strrpos($name, '_'))) {
