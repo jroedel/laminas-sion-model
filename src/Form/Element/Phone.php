@@ -15,11 +15,35 @@ use Laminas\Filter\StripNewlines;
 use Laminas\InputFilter\InputProviderInterface;
 use SionModel\Validator\Phone as PhoneValidator;
 use Laminas\Validator\ValidatorInterface;
-use Laminas\Form\Element\Tel;
+use Laminas\Form\Element;
 use Laminas\Filter\ToNull;
 
-class Phone extends Tel implements InputProviderInterface
+/**
+ * A telephone input backed by SionModel's own phone-number validator.
+ *
+ * Extends Laminas\Form\Element rather than Laminas\Form\Element\Tel, which
+ * laminas marked `@final`. Tel contributed nothing but the type="tel"
+ * attribute — this element already replaced Tel's input specification and
+ * validator wholesale — so that attribute is simply declared here.
+ */
+class Phone extends Element implements InputProviderInterface
 {
+    /**
+     * @var array<string, string>
+     */
+    protected $attributes = [
+        'type' => 'tel',
+    ];
+
+    /**
+     * The memoized validator. Declared here because it is no longer inherited;
+     * getInputSpecification() is called on every form bind and must not build a
+     * new validator each time.
+     *
+     * @var ValidatorInterface|null
+     */
+    protected $validator;
+
     /**
      * Get validator
      *

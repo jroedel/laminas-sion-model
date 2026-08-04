@@ -1,32 +1,23 @@
 <?php
 
-/**
- * Zend Framework (http://framework.zend.com/)
- *
- * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
- * @license   http://framework.zend.com/license/new-bsd New BSD License
- */
-
 namespace SionModel\Validator;
 
-use Laminas\Validator\Regex;
-
-class Slack extends Regex
+/**
+ * Validates a Slack user name.
+ *
+ * Extends AbstractPatternValidator rather than Laminas\Validator\Regex, which
+ * laminas marked `@final`; the pattern and message are unchanged.
+ */
+class Slack extends AbstractPatternValidator
 {
     public const SLACK_REGEX = "/^[a-z0-9][a-z0-9._-]*$/";
-    /**
-     * Sets validator options
-     *
-     */
+
     public function __construct()
     {
-        $pattern = self::SLACK_REGEX;
-        $newMessage = 'Slack user names should begin with a letter or number, '
-            . 'and contain only letters, numbers, \'.\', \'-\', or \'_\'.';
-        $this->messageTemplates[self::INVALID] = $newMessage;
-        $this->messageTemplates[self::NOT_MATCH] = $newMessage;
-        $this->messageTemplates[self::ERROROUS] = $newMessage;
-        parent::__construct($pattern);
+        parent::__construct(
+            self::SLACK_REGEX,
+            'Slack user names should begin with a letter or number, '
+            . 'and contain only letters, numbers, \'.\', \'-\', or \'_\'.'
+        );
     }
 }
