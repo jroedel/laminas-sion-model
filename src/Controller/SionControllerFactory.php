@@ -17,9 +17,8 @@ class SionControllerFactory implements AbstractFactoryInterface
     public function canCreate(ContainerInterface $container, $requestedName)
     {
         if (! isset($this->entitiesService)) {
-            $parentLocator = $container->getServiceLocator();
             /** @var EntitiesService $entitiesService */
-            $this->entitiesService = $parentLocator->get(EntitiesService::class);
+            $this->entitiesService = $container->get(EntitiesService::class);
         }
         $controllers = $this->entitiesService->getEntityControllers();
         return array_key_exists($requestedName, $controllers);
@@ -49,10 +48,9 @@ class SionControllerFactory implements AbstractFactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $parentLocator = $container->getServiceLocator();
         if (! isset($this->entitiesService)) {
             /** @var EntitiesService $entitiesService */
-            $this->entitiesService = $parentLocator->get(EntitiesService::class);
+            $this->entitiesService = $container->get(EntitiesService::class);
         }
         //figure out what entity we're dealing with
         $entitiesSpecs = $this->entitiesService->getEntities();
@@ -63,18 +61,18 @@ class SionControllerFactory implements AbstractFactoryInterface
         //get sionTable
         //null guards: laminas-servicemanager type-errors on has(null),
         //unlike zend-servicemanager which tolerated it
-        if (null === $entitySpec->sionModelClass || ! $parentLocator->has($entitySpec->sionModelClass)) {
+        if (null === $entitySpec->sionModelClass || ! $container->has($entitySpec->sionModelClass)) {
             throw new \Exception('Invalid SionModel class set for entity \'' . $entity . '\'');
         }
-        $sionTable = $parentLocator->get($entitySpec->sionModelClass);
+        $sionTable = $container->get($entitySpec->sionModelClass);
 
-        $predicateTable = $parentLocator->get(PredicatesTable::class);
+        $predicateTable = $container->get(PredicatesTable::class);
 
         //get createActionForm
         /** @var \SionModel\Form\SionForm $createActionForm **/
         $createActionForm = null;
-        if (null !== $entitySpec->createActionForm && $parentLocator->has($entitySpec->createActionForm)) {
-            $createActionForm = $parentLocator->get($entitySpec->createActionForm);
+        if (null !== $entitySpec->createActionForm && $container->has($entitySpec->createActionForm)) {
+            $createActionForm = $container->get($entitySpec->createActionForm);
         } elseif (class_exists($entitySpec->createActionForm)) {
             $createActionForm = new $entitySpec->createActionForm();
         }
@@ -82,15 +80,15 @@ class SionControllerFactory implements AbstractFactoryInterface
         //get editActionForm
         /** @var \SionModel\Form\SionForm $editActionForm **/
         $editActionForm = null;
-        if (null !== $entitySpec->editActionForm && $parentLocator->has($entitySpec->editActionForm)) {
-            $editActionForm = $parentLocator->get($entitySpec->editActionForm);
+        if (null !== $entitySpec->editActionForm && $container->has($entitySpec->editActionForm)) {
+            $editActionForm = $container->get($entitySpec->editActionForm);
         } elseif (class_exists($entitySpec->editActionForm)) {
             $className = $entitySpec->editActionForm;
             $editActionForm = new $className();
         }
 
         //get sionModelConfig
-        $config = $parentLocator->get('Config');
+        $config = $container->get('Config');
 
         //get other requested services
         $services = [];

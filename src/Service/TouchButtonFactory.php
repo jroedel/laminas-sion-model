@@ -15,11 +15,10 @@ class TouchButtonFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $parentLocator = $container->getServiceLocator();
         /**
          * @var EntitiesService $entities
          */
-        $entities = $parentLocator->get('SionModel\Service\EntitiesService');
+        $entities = $container->get('SionModel\Service\EntitiesService');
         $viewHelper = new TouchButton($entities->getEntities());
         return $viewHelper;
     }
