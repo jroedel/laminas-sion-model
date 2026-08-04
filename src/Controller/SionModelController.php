@@ -15,6 +15,7 @@ use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\Cache\Storage\FlushableInterface;
 use Laminas\View\Model\JsonModel;
 use BjyAuthorize\Exception\UnAuthorizedException;
+use SionModel\Cache\OpcacheStatus;
 use SionModel\Form\ConfirmForm;
 use SionModel\Service\ProblemService;
 use SionModel\Service\ChangesCollector;
@@ -50,22 +51,50 @@ class SionModelController extends AbstractActionController
     }
 
     /**
-     * Report APCu occupancy as JSON. The persistent cache degrades to misses
-     * once the shared segment fills (apc.shm_size), and only the web SAPI
-     * can see its own segment — CLI probes look at a different one.
+     * Report both shared caches as JSON, because neither can be inspected from
+     * anywhere else: an APCu *and* an OPcache segment belong to the SAPI that
+     * created it, so a CLI probe reads its own empty copy and learns nothing
+     * about what the web server is serving.
+     *
+     * The two failure modes this exists to catch are quiet ones. The persistent
+     * cache degrades to misses once apc.shm_size fills; OPcache does not degrade
+     * at all but *restarts*, discarding every compiled script, leaving only a
+     * counter behind. tools/smoke-prod.sh polls this and warns on both.
+     *
+     * The APCu keys stay top-level and unchanged — smoke-prod.sh and the smoke
+     * suite read them by name — with OPcache added alongside under its own key.
      */
     public function cacheStatusAction()
     {
         $this->assertApiKey();
+
+        return new JsonModel($this->getApcuStatus() + [
+            'phpVersion' => PHP_VERSION,
+            'opcache' => OpcacheStatus::summarize(
+                function_exists('opcache_get_status') ? opcache_get_status(false) : null,
+                [
+                    'opcache.validate_timestamps' => ini_get('opcache.validate_timestamps'),
+                    'opcache.revalidate_freq' => ini_get('opcache.revalidate_freq'),
+                    'opcache.max_accelerated_files' => ini_get('opcache.max_accelerated_files'),
+                ]
+            ),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function getApcuStatus()
+    {
         if (! function_exists('apcu_enabled') || ! apcu_enabled()) {
-            return new JsonModel(['apcuEnabled' => false]);
+            return ['apcuEnabled' => false];
         }
         $sma = apcu_sma_info(true);
         $cache = apcu_cache_info(true);
         $totalBytes = (int)($sma['num_seg'] * $sma['seg_size']);
         $availBytes = (int)$sma['avail_mem'];
         $usedBytes = $totalBytes - $availBytes;
-        return new JsonModel([
+        return [
             'apcuEnabled' => true,
             'totalBytes' => $totalBytes,
             'usedBytes' => $usedBytes,
@@ -76,9 +105,8 @@ class SionModelController extends AbstractActionController
             'misses' => isset($cache['num_misses']) ? (int)$cache['num_misses'] : null,
             'expunges' => isset($cache['expunges']) ? (int)$cache['expunges'] : null,
             'uptimeSeconds' => isset($cache['start_time']) ? time() - (int)$cache['start_time'] : null,
-            'phpVersion' => PHP_VERSION,
             'largestEntries' => $this->getLargestApcuEntries(),
-        ]);
+        ];
     }
 
     /**
