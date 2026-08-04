@@ -27,13 +27,12 @@ use Laminas\Db\Sql\Predicate\PredicateSet;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Db\ResultSet\ResultSetInterface;
 use Matriphe\ISO639\ISO639;
-use Laminas\Crypt\Hash;
 use SionModel\Service\ActingUserProviderInterface;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
 use Laminas\Db\Sql\Predicate\IsNull;
 use SionModel\I18n\LanguageSupport;
-use Laminas\Log\LoggerAwareTrait;
+use Psr\Log\LoggerAwareTrait;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -256,7 +255,10 @@ class SionTable
         $this->changeTableName  = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
 
-        if (isset($config['privacy_hash_algorithm']) && Hash::isSupported($config['privacy_hash_algorithm'])) {
+        if (
+            isset($config['privacy_hash_algorithm'])
+            && in_array(strtolower((string) $config['privacy_hash_algorithm']), hash_algos(), true)
+        ) {
             $this->privacyHashAlgorithm = $config['privacy_hash_algorithm'];
         } elseif (array_key_exists('privacy_hash_algorithm', $config) && null === $config['privacy_hash_algorithm']) {
             $this->privacyHashAlgorithm = null;
@@ -1753,7 +1755,12 @@ class SionTable
             if (isset($this->privacyHashSalt)) {
                 $data = $this->privacyHashSalt . $data;
             }
-            return Hash::compute($this->privacyHashAlgorithm, $data);
+            //hash() with the algorithm name and no $binary flag is byte-for-byte
+            //what Laminas\Crypt\Hash::compute() returned: it was a wrapper around
+            //this call, defaulting to OUTPUT_STRING (hex). Stored hashes are
+            //unaffected — the constructor has already checked the algorithm is
+            //one hash_algos() knows.
+            return hash($this->privacyHashAlgorithm, $data);
         }
         return $data;
     }

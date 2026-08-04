@@ -26,7 +26,7 @@ use Laminas\Form\FormInterface;
 use SionModel\Db\Model\PredicatesTable;
 use SionModel\Form\CommentForm;
 use Laminas\Stdlib\ResponseInterface;
-use Laminas\Log\LoggerAwareTrait;
+use Psr\Log\LoggerAwareTrait;
 
 class SionController extends AbstractActionController
 {
