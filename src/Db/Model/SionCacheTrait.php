@@ -124,7 +124,7 @@ trait SionCacheTrait
             );
         } catch (\Exception $e) {
             if (isset($this->logger)) {
-                $this->logger->err("Error writing cache dependencies.", [
+                $this->logger->error("Error writing cache dependencies.", [
                     'exception' => $e->getMessage(),
                 ]);
             }
@@ -285,7 +285,7 @@ trait SionCacheTrait
             return false;
         }
         if (isset($this->logger)) {
-            $this->logger->warn("Refusing to cache an oversized item.", [
+            $this->logger->warning("Refusing to cache an oversized item.", [
                 'cacheKey' => $fullyQualifiedCacheKey,
                 'size' => $size,
                 'budget' => $budget,
@@ -383,7 +383,7 @@ trait SionCacheTrait
                 $memorySpike = (memory_get_peak_usage(false) - $startMemory) / 1024 / 1024;
                 $timeElapsedSecs = microtime(true) - $start;
                 if (isset($this->logger)) {
-                    $this->logger->err("Error writing cache.", [
+                    $this->logger->error("Error writing cache.", [
                         'cacheKey' => $fullyQualifiedCacheKey,
                         'elapsedTime' => $timeElapsedSecs,
                         'memorySpike' => $memorySpike . " MiB",
