@@ -25,7 +25,7 @@ use Throwable;
  */
 class ErrorHandling
 {
-    /** @var \Laminas\Log\LoggerInterface */
+    /** @var \Psr\Log\LoggerInterface */
     protected $logger;
 
     /** @var Fingerprinter|null */
@@ -38,7 +38,7 @@ class ErrorHandling
     protected $notifier;
 
     /**
-     * @param \Laminas\Log\LoggerInterface $logger
+     * @param \Psr\Log\LoggerInterface $logger
      * @param Fingerprinter|null           $fingerprinter
      * @param ExceptionStore|null          $store
      * @param ExceptionNotifier|null       $notifier
@@ -77,7 +77,7 @@ class ErrorHandling
         $log = "Exception:\n" . implode("\n", $messages);
         $log .= "\nTrace:\n" . $trace;
 
-        $this->logger->err($log);
+        $this->logger->error($log);
     }
 
     /**
@@ -135,7 +135,7 @@ class ErrorHandling
     private function note($message)
     {
         try {
-            $this->logger->err($message);
+            $this->logger->error($message);
         } catch (Throwable $e) {
             //see handle(): there is nothing left to report with
         }

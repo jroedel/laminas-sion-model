@@ -33,7 +33,7 @@ use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
 use Laminas\Db\Sql\Predicate\IsNull;
 use SionModel\I18n\LanguageSupport;
-use Laminas\Log\LoggerAwareTrait;
+use Psr\Log\LoggerAwareTrait;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
