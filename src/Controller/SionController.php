@@ -19,7 +19,6 @@ use SionModel\Entity\Entity;
 use SionModel\Form\DeleteEntityForm;
 use Laminas\Mvc\Plugin\FlashMessenger\FlashMessenger;
 use JTranslate\Controller\Plugin\NowMessenger;
-use SionModel\Form\TouchForm;
 use Laminas\View\Model\JsonModel;
 use Laminas\Form\Form;
 use Laminas\Form\FormInterface;
@@ -682,130 +681,6 @@ class SionController extends AbstractActionController
     }
 
     /**
-     * @todo test!
-     * @throws \Exception
-     * @return \Laminas\View\Model\ViewModel|\Laminas\Stdlib\ResponseInterface
-     */
-    public function touchAction()
-    {
-        $entity = $this->getEntity();
-        $entitySpec = $this->getEntitySpecification();
-        $id = $this->getEntityIdParam('touch');
-        //if the entity doesn't exist, redirect to the index or the default route
-        if (! $id) {
-            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
-                ->addMessage(ucfirst($entity) . ' not found.');
-            $redirectRoute = $entitySpec->indexRoute
-                ? $entitySpec->indexRoute
-                : $this->getDefaultRedirectRoute();
-            return $this->redirect()->toRoute($redirectRoute);
-        }
-        $entityObject = $this->getEntityObject($id);
-        //if the entity doesn't exist, redirect to the index or the default route
-        if (! isset($entityObject)) {
-            $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_ERROR)
-                ->addMessage(ucfirst($entity) . ' not found.');
-            $redirectRoute = $entitySpec->indexRoute
-                ? $entitySpec->indexRoute
-                : $this->getDefaultRedirectRoute();
-            return $this->redirect()->toRoute($redirectRoute);
-        }
-
-        $form = new TouchForm();
-
-        $request = $this->getRequest();
-        if ($request->isPost()) {
-            $data = $request->getPost()->toArray();
-            $form->setData($data);
-            if ($form->isValid()) {
-                $data = $form->getData();
-                /** @var SionTable $table **/
-                $table = $this->getSionTable();
-                $fieldToTouch = $this->whichFieldToTouch();
-                $table->touchEntity($entity, $id, $fieldToTouch);
-                $this->flashMessenger()->setNamespace(FlashMessenger::NAMESPACE_SUCCESS)
-                    ->addMessage(ucfirst($entity) . ' successfully marked up-to-date.');
-                if (
-                    $entitySpec->showRouteKey && $entitySpec->showRouteKey &&
-                    $entitySpec->showRouteKeyField
-                ) {
-                    if (! isset($entityObject[$entitySpec->showRouteKeyField])) {
-                        throw new \Exception(
-                            "show_route_key_field config for entity '"
-                            .$entity
-                            ."' refers to a key that doesn't exist"
-                            );
-                    }
-                    return $this->redirect()->toRoute(
-                        $entitySpec->showRoute,
-                        [$entitySpec->showRouteKey => $entityObject[$entitySpec->showRouteKeyField]]
-                    );
-                } else {
-                    return $this->redirect()->toRoute($this->getDefaultRedirectRoute());
-                }
-            } else {
-                $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)
-                    ->addMessage('Error in form submission, please review.');
-            }
-        } else {
-            $form->setData($entityObject);
-        }
-        return new ViewModel([
-            'entity'    => $entityObject,
-            'entityId'  => $id,
-            'form'      => $form,
-        ]);
-    }
-
-    /**
-     * Touch the entity, and return the status through the HTTP code
-     * @return \Laminas\Stdlib\ResponseInterface|JsonModel
-     */
-    public function touchJsonAction()
-    {
-        $entity = $this->getEntity();
-
-        $id = $this->getEntityIdParam('touchJson');
-        if (! isset($id)) {
-            return $this->sendFailedMessage('Invalid id passed.');
-        }
-        $callback = $this->params()->fromQuery('callback', null);
-        if (! isset($callback)) {
-            return $this->sendFailedMessage(
-                'All requests must include a callback function set as a query parameter \'callback\'.'
-                );
-        }
-
-        $form = new TouchForm();
-
-        $request = $this->getRequest();
-        if (! $request->isPost()) {
-            return $this->sendFailedMessage('Please use post method.');
-        }
-        //$data = Json::decode($request->getContent(), Json::TYPE_ARRAY);
-        $data = $request->getPost()->toArray();
-        $form->setData($data);
-        if (! $form->isValid()) {
-            return $this->sendFailedMessage('The following fields are invalid: ' .
-                implode(', ', array_keys($form->getInputFilter()->getInvalidInput())) .
-                    $request->getContent());
-        }
-
-        /** @var SionTable $table */
-        $table = $this->getSionTable();
-        $fieldToTouch = $this->whichFieldToTouch();
-        $return = $table->touchEntity($entity, $id, $fieldToTouch);
-
-        $view = new JsonModel([
-            'return'    => $return,
-            'field'     => $fieldToTouch,
-            'message'   => 'Success',
-        ]);
-        $view->setJsonpCallback($callback);
-        return $view;
-    }
-
-    /**
      * If the form has been posted, confirm the CSRF. If all is well, delete the entity.
      * If the request is a GET, ask the user to confirm the deletion
      * @return \Laminas\View\Model\ViewModel|\Laminas\Stdlib\ResponseInterface
@@ -1055,36 +930,6 @@ class SionController extends AbstractActionController
         $response->sendHeaders();
         $response->setContent($message);
         return $response;
-    }
-
-    /**
-     * Election rules:
-     * 1. If there is a route parameter to specify the field, and the field exists, use it.
-     * 2. Else, if the touchDefaultField exists, use it.
-     * 3. Else, touch the entityKeyField if it exists
-     */
-    protected function whichFieldToTouch()
-    {
-        $entity = $this->getEntity();
-        $entitySpec = $this->getEntitySpecification();
-        $touchField = null;
-        if (isset($entitySpec->touchFieldRouteKey)) {
-            $touchField = $this->params()->fromRoute($entitySpec->touchFieldRouteKey);
-            if (isset($entitySpec->updateColumns[$touchField])) {
-                return $touchField;
-            }
-        }
-        if (isset($entitySpec->touchDefaultField)
-            && isset($entitySpec->updateColumns[$entitySpec->touchDefaultField])
-        ) {
-            return $entitySpec->touchDefaultField;
-        }
-        if (isset($entitySpec->entityKeyField)
-            && isset($entitySpec->updateColumns[$entitySpec->entityKeyField])
-        ) {
-            return $entitySpec->entityKeyField;
-        }
-        throw new \Exception("Cannot find a field to touch for entity '$entity'");
     }
 
     /**
