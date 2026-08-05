@@ -113,6 +113,12 @@ final class FlushPersistentCacheCommand extends Command
         //no redirect following: an unauthenticated request is answered with a
         //302 to the sign-in page, and that redirect is how a rejected key
         //announces itself. Following it would turn a 401 into a cheerful 200.
+        //no redirect following, and it is the laminas front controller this
+        //guards against: it answers a rejected key with a 302 to the sign-in
+        //page. The Symfony kernel serves this route with a JSON 401 instead
+        //(App\Controller\ClearPersistentCacheController), so both shapes are
+        //handled below — which one you get depends on SYMFONY_KERNEL on the
+        //target host, not on anything here.
         $this->client->setOptions(['maxredirects' => 0, 'timeout' => 30]);
         $this->client->setHeaders([
             'X-Api-Key' => $key,
@@ -131,7 +137,16 @@ final class FlushPersistentCacheCommand extends Command
 
         if (302 === $status || 301 === $status) {
             $io->error([
-                'The site redirected instead of answering, which is how it rejects an unknown key.',
+                'The site redirected instead of answering, which is how the laminas front controller '
+                . 'rejects an unknown key.',
+                'Check that the key matches an entry in the target site\'s sion_model.api_keys.',
+            ]);
+            return Command::FAILURE;
+        }
+
+        if (401 === $status) {
+            $io->error([
+                'The site refused the key (HTTP 401) — how the Symfony front controller rejects one.',
                 'Check that the key matches an entry in the target site\'s sion_model.api_keys.',
             ]);
             return Command::FAILURE;
