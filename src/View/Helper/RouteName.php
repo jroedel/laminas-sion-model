@@ -1,6 +1,6 @@
 <?php
 
-// SionModel/View/Helper/ControllerName.php
+// SionModel/View/Helper/RouteName.php
 
 namespace SionModel\View\Helper;
 
