@@ -49,11 +49,12 @@ return [
     ],
     'validators' => [
         'invokables' => [
-            'Skype'     => Validator\Skype::class,
-            'Twitter'   => Validator\Twitter::class,
-            'Instagram' => Validator\Instagram::class,
-            'Phone'     => Validator\Phone::class,
-            'Slack'     => Validator\Slack::class,
+            'Skype'         => Validator\Skype::class,
+            'Twitter'       => Validator\Twitter::class,
+            'Instagram'     => Validator\Instagram::class,
+            'Phone'         => Validator\Phone::class,
+            'Slack'         => Validator\Slack::class,
+            'ParseableDate' => Validator\ParseableDate::class,
          ],
     ],
     'form_elements' => [
