@@ -12,8 +12,6 @@ namespace SionModel\Filter;
 
 use Laminas\Filter\AbstractFilter;
 
-use function is_scalar;
-
 class ToDateTime extends AbstractFilter
 {
     /**
@@ -40,30 +38,13 @@ class ToDateTime extends AbstractFilter
      */
     public function filter($value)
     {
-        static $tz;
-        if (! $tz) {
-            $tz = new \DateTimeZone('UTC');
-        }
-        if ($value instanceof \DateTimeInterface) {
-            return $value;
-        }
-        if (! is_scalar($value)) {
-            return $value;
-        }
-        // (string) covers int/float/bool inputs; false and null both mean
-        // "nothing was entered". Note the cast is needed before the emptiness
-        // test: new \DateTime('') is *now*, not an error.
-        $string = (string) $value;
-        if ($string === '') {
-            return null;
-        }
-        try {
-            return new \DateTime($string, $tz);
-        } catch (\Exception $e) {
-            // \DateMalformedStringException on 8.3+, plain \Exception before
-            // it — caught by base class so this file keeps working on every
-            // PHP rung the capsule can be switched to.
-            return $value;
-        }
+        $parsed = DateTimeParser::parse($value);
+
+        // false means "not a storable date". Hand the value back rather than
+        // nulling it, so SionModel\Validator\ParseableDate can see it and
+        // report it — a null here would be indistinguishable from a blank field
+        // and would discard bad input in silence. sanitizeRejected() strips the
+        // one thing that is not safe to pass on; see its docblock.
+        return false === $parsed ? DateTimeParser::sanitizeRejected($value) : $parsed;
     }
 }

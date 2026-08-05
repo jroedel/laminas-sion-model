@@ -2,11 +2,8 @@
 
 namespace SionModel\Validator;
 
-use DateTime;
-use DateTimeInterface;
-use DateTimeZone;
-use Exception;
 use Laminas\Validator\AbstractValidator;
+use SionModel\Filter\DateTimeParser;
 
 use function is_scalar;
 
@@ -66,36 +63,31 @@ class ParseableDate extends AbstractValidator
      */
     public function isValid($value)
     {
-        if ($value instanceof DateTimeInterface) {
-            return true;
-        }
+        // One shared decision, in SionModel\Filter\DateTimeParser, rather than
+        // a second parse written out here. When this class retried the parse
+        // itself the two halves disagreed, and the disagreements all landed on
+        // the permissive side: \DateTime stops at a NUL byte, so "a\0b" and a
+        // whitespace-only value both came back as *now* and a NUL in a birth
+        // date stored today, while 0000-00-00 came back as year -1. The filter
+        // rejected none of those either, because it was running the same naive
+        // parse. Sharing the rule is what makes them agree by construction.
+        $parsed = DateTimeParser::parse($value);
 
-        if (! is_scalar($value)) {
-            // null lands here too, and is empty rather than invalid.
-            if (null === $value) {
-                return true;
-            }
-            $this->error(self::INVALID);
-            return false;
-        }
-
-        // Cast first: new \DateTime('') is *now*, so '' has to be caught before
-        // any parse is attempted. false casts to '' and means "nothing entered".
-        $string = (string) $value;
-        if ($string === '') {
+        if (false !== $parsed) {
+            // A \DateTime, or null for "nothing entered" — emptiness is
+            // `required`/NotEmpty's business, not ours. Saying otherwise here
+            // would make every optional date mandatory.
             return true;
         }
 
         $this->setValue($value);
 
-        try {
-            new DateTime($string, new DateTimeZone('UTC'));
-        } catch (Exception $e) {
-            // \DateMalformedStringException on 8.3+, plain \Exception before it.
-            $this->error(self::NOT_PARSEABLE);
+        if (! is_scalar($value)) {
+            $this->error(self::INVALID);
             return false;
         }
 
-        return true;
+        $this->error(self::NOT_PARSEABLE);
+        return false;
     }
 }
