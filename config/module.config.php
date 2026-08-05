@@ -33,6 +33,7 @@ return [
             'editPencilNew'         => View\Helper\EditPencilNew::class,
             'formRow'               => Form\View\Helper\SionFormRow::class,
             'dayFormat'             => I18n\View\Helper\DayFormat::class,
+            'datePrecisionFormat'   => I18n\View\Helper\DatePrecisionFormat::class,
             'diffForHumans'         => View\Helper\DiffForHumans::class,
             'email'                 => View\Helper\Email::class,
             'formatUrlObject'       => View\Helper\FormatUrlObject::class,
