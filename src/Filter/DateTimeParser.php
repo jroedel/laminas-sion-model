@@ -2,10 +2,12 @@
 
 namespace SionModel\Filter;
 
+use function date_parse;
 use function is_scalar;
 use function is_string;
 use function str_contains;
 use function str_replace;
+use function str_starts_with;
 use function trim;
 
 /**
@@ -15,11 +17,11 @@ use function trim;
  * halves of one rule — the filter converts, the validator reports what the
  * filter could not convert — and they are only correct if they agree exactly.
  * When each implemented the rule itself they did not: the validator retried the
- * parse with plain `new \DateTime($string)` and so accepted three families of
- * value the filter had no business storing. That is why the decision lives here
- * and nowhere else.
+ * parse with plain `new \DateTime($string)` and so accepted values the filter had
+ * no business storing. That is why the decision lives here and nowhere else.
  *
- * What \DateTime accepts that a date column must not, all measured on PHP 8.4:
+ * What \DateTime accepts that a date column must not, every case measured rather
+ * than assumed:
  *
  *  - **A NUL byte ends the parse.** `"\0"` and `"a\0b"` both yield *now*, so a
  *    NUL in a birth-date field silently stored today's date. This is the worst
@@ -29,14 +31,28 @@ use function trim;
  *  - **`0000-00-00` yields year -1** (specifically -0001-11-30, by overflow).
  *    MySQL's DATE range is 1000-01-01 to 9999-12-31, so the value cannot round
  *    trip: it either errors on write or lands as a zero date.
+ *  - **A bare year is a time, not a year.** `new \DateTime('1952')` is *today
+ *    at 19:52*. Now that year precision is offered on these fields, typing just
+ *    a year is the obvious thing to try, and storing today for it is the worst
+ *    outcome available.
+ *  - **Relative expressions store a concrete date whose meaning depended on when
+ *    the form was submitted** — `tomorrow`, `+500 years`, `next monday`.
+ *  - **Overflow is silent.** `2020-02-30` becomes 1 March, `2019-02-29` becomes
+ *    1 March.
  *
- * Deliberately *not* decided here: whether a storable date is a *plausible*
- * one. `tomorrow`, `+500 years` and the year 9999 all pass, and `2020-02-30`
- * still becomes 2020-03-01 by \DateTime's own overflow rules. Bounding a date
- * is a per-field question about what this database records — a birth date and a
- * library checkout want different answers — so it belongs in that field's
- * specification. The line drawn here is only "can this be stored in a date
- * column at all", which is a property of the column, not a business rule.
+ * The last three — bare year, relative expression, silent overflow — all fall to
+ * one call to date_parse(), which is both shorter and harder to get wrong than
+ * the keyword list they first seemed to need: an input with no year component is
+ * not a date at all, and a warning from the parser means the date it did find was
+ * not real.
+ *
+ * Deliberately *not* decided here: whether a storable date is a *plausible* one.
+ * The year 9999 passes. Bounding a date is a per-field question about what this
+ * database records — a birth date and a library checkout want different answers —
+ * so it belongs in that field's specification, which is what
+ * SionModel\Validator\DateWithinRange is for. The line drawn here is only "is
+ * this a real date that can be stored at all", which is a property of the column
+ * and the calendar, not a business rule.
  */
 final class DateTimeParser
 {
@@ -133,6 +149,37 @@ final class DateTimeParser
         //Checked explicitly because \DateTime would not fail on it — it stops
         //at the NUL and parses the empty remainder as now.
         if (str_contains($string, "\0")) {
+            return false;
+        }
+
+        //A unix timestamp is a machine format. '@99999999999' parses to a real
+        //date, but nobody types it into a date field and its meaning is opaque
+        //to the person who would have to check it later.
+        if (str_starts_with($string, '@')) {
+            return false;
+        }
+
+        //date_parse() reports what it actually found, which decides two things
+        //at once that would otherwise need separate rules and a keyword list:
+        //
+        //**The input must contain a date.** year === false means it did not, and
+        //\DateTime then falls back to *now*. That covers relative expressions —
+        //'tomorrow', '+3 days', '+500 years', 'next monday', all of which stored
+        //a concrete date whose meaning depended on when the form was submitted —
+        //and it covers a trap worth naming on its own: `new \DateTime('1952')`
+        //is **today at 19:52**, because a bare four digits is read as a time.
+        //With year precision now offered on these fields, entering just a year
+        //is exactly what someone would try, and silently storing today for it
+        //is the worst outcome available.
+        //
+        //**The date must be real.** A warning here is 'The parsed date was
+        //invalid': 2020-02-30 becomes 1 March and 2019-02-29 becomes 1 March,
+        //silently. This does not disturb the precision convention, whose
+        //year-only values are 1 January and month-only values day 1 — both real
+        //dates. '1952-06' is likewise fine and yields day 1, which is what
+        //month precision means.
+        $parts = date_parse($string);
+        if (false === $parts['year'] || $parts['warning_count'] > 0 || $parts['error_count'] > 0) {
             return false;
         }
 

@@ -51,6 +51,12 @@ return [
             'Phone'         => Validator\Phone::class,
             'Slack'         => Validator\Slack::class,
             'ParseableDate' => Validator\ParseableDate::class,
+            //Not an invokable in practice — every use passes min/max options, so
+            //the plugin manager builds it with them — but registered by short
+            //name for the same reason as its neighbours: the input filter
+            //specifications name validators by string.
+            'DateWithinRange' => Validator\DateWithinRange::class,
+            'DateNotBefore' => Validator\DateNotBefore::class,
          ],
     ],
     'form_elements' => [
