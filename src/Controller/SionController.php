@@ -252,20 +252,6 @@ class SionController extends AbstractActionController
             ];
         }
 
-        //@todo enable suggest form
-//         $sm = $this->getServiceLocator ();
-//         /** @var SionModel\Form\SionForm $suggestForm **/
-//         if (!isset($entitySpec->suggestForm)) {
-//             $suggestForm = $sm->get('SionModel\Form\SuggestForm');
-//         } elseif ($sm->has($entitySpec->suggestForm)) {
-//             $suggestForm = $sm->get($entitySpec->suggestForm);
-//         } elseif (class_exists($entitySpec->suggestForm)) {
-//             $suggestFormName = $entitySpec->suggestForm;
-//             $suggestForm = new $suggestFormName;
-//         } else {
-//             throw new \InvalidArgumentException(
-//                 'Invalid suggest_form specified for \''.$entity.'\' entity.');
-//         }
         $view = new ViewModel([
             'entityId'      => $id,
             'entity'        => $entityObject,
@@ -273,7 +259,6 @@ class SionController extends AbstractActionController
             'comments'      => $comments,
             'commentForm'   => $commentForm,
             'visits'        => $visits,
-//             'suggestForm'   => $suggestForm,
 //             'deviceType'    => $deviceType,
         ]);
 

@@ -88,7 +88,6 @@ return [
             'CountryValueOptions'           => Service\CountryValueOptionsFactory::class,
             'SionModel\Config'              => Service\ConfigServiceFactory::class,
             Db\Model\FilesTable::class      => Service\FilesTableFactory::class,
-            Form\SuggestForm::class         => Service\SuggestFormFactory::class,
             'SionModel\PersistentCache'     => Service\PersistentCacheFactory::class,
             Problem\ProblemTable::class     => Service\ProblemTableFactory::class,
             Service\EntitiesService::class  => Service\EntitiesServiceFactory::class,
