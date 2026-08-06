@@ -15,7 +15,7 @@ use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\Cache\Storage\FlushableInterface;
 use Laminas\View\Model\JsonModel;
 use BjyAuthorize\Exception\UnAuthorizedException;
-use SionModel\Cache\OpcacheStatus;
+use SionModel\Cache\CacheStatusPayload;
 use SionModel\Form\ConfirmForm;
 use SionModel\Service\ProblemService;
 use SionModel\Service\ChangesCollector;
@@ -63,82 +63,18 @@ class SionModelController extends AbstractActionController
      *
      * The APCu keys stay top-level and unchanged — smoke-prod.sh and the smoke
      * suite read them by name — with OPcache added alongside under its own key.
+     *
+     * The payload itself is built by SionModel\Cache\CacheStatusPayload, not
+     * here, because this action is no longer the only thing that answers this
+     * URL: App\Controller\CacheStatusController serves it under the Symfony
+     * kernel (which the capsule runs and production does not, yet). Both must
+     * emit the same document, so neither owns it.
      */
     public function cacheStatusAction()
     {
         $this->assertApiKey();
 
-        return new JsonModel($this->getApcuStatus() + [
-            'phpVersion' => PHP_VERSION,
-            'opcache' => OpcacheStatus::summarize(
-                function_exists('opcache_get_status') ? opcache_get_status(false) : null,
-                [
-                    'opcache.validate_timestamps' => ini_get('opcache.validate_timestamps'),
-                    'opcache.revalidate_freq' => ini_get('opcache.revalidate_freq'),
-                    'opcache.max_accelerated_files' => ini_get('opcache.max_accelerated_files'),
-                ]
-            ),
-        ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function getApcuStatus()
-    {
-        if (! function_exists('apcu_enabled') || ! apcu_enabled()) {
-            return ['apcuEnabled' => false];
-        }
-        $sma = apcu_sma_info(true);
-        $cache = apcu_cache_info(true);
-        $totalBytes = (int)($sma['num_seg'] * $sma['seg_size']);
-        $availBytes = (int)$sma['avail_mem'];
-        $usedBytes = $totalBytes - $availBytes;
-        return [
-            'apcuEnabled' => true,
-            'totalBytes' => $totalBytes,
-            'usedBytes' => $usedBytes,
-            'availBytes' => $availBytes,
-            'percentUsed' => $totalBytes > 0 ? round($usedBytes * 100 / $totalBytes, 1) : null,
-            'entries' => isset($cache['num_entries']) ? (int)$cache['num_entries'] : null,
-            'hits' => isset($cache['num_hits']) ? (int)$cache['num_hits'] : null,
-            'misses' => isset($cache['num_misses']) ? (int)$cache['num_misses'] : null,
-            'expunges' => isset($cache['expunges']) ? (int)$cache['expunges'] : null,
-            'uptimeSeconds' => isset($cache['start_time']) ? time() - (int)$cache['start_time'] : null,
-            'largestEntries' => $this->getLargestApcuEntries(),
-        ];
-    }
-
-    /**
-     * The biggest cache entries, largest first, as [key => bytes].
-     *
-     * Aggregate occupancy says the segment is full; it does not say which key
-     * filled it. That distinction is what decides whether the fix is a bigger
-     * segment or a narrower query, and it is also how the
-     * sion_model.max_cached_item_size budget gets tuned against real data
-     * rather than a guess. `mem_size` is what APCu actually allocated for the
-     * entry, so unlike a serialize() estimate it needs no interpretation.
-     *
-     * @param int $limit
-     * @return array<string, int>
-     */
-    protected function getLargestApcuEntries($limit = 15)
-    {
-        //the `true` variant of apcu_cache_info() omits the entry list, so this
-        //is the one call in this action that has to walk every entry
-        $info = apcu_cache_info();
-        if (! isset($info['cache_list']) || ! is_array($info['cache_list'])) {
-            return [];
-        }
-        $sizes = [];
-        foreach ($info['cache_list'] as $entry) {
-            if (! isset($entry['info'])) {
-                continue;
-            }
-            $sizes[$entry['info']] = isset($entry['mem_size']) ? (int)$entry['mem_size'] : 0;
-        }
-        arsort($sizes);
-        return array_slice($sizes, 0, $limit, true);
+        return new JsonModel(CacheStatusPayload::build());
     }
 
     /**

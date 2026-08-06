@@ -2,23 +2,16 @@
 
 namespace SionModel\Form;
 
+use SionModel\Filter\DateTimeParser;
+use Laminas\Form\Element\DateSelect;
 use Laminas\Form\Form;
-use Laminas\Form\Element\Select;
 use Laminas\Filter\ToNull;
-use Laminas\Authentication\AuthenticationServiceInterface;
-use SionModel\Person\PersonProviderInterface;
 use Laminas\Validator\StringLength;
 use SionModel\Validator\Phone;
 use Laminas\Filter\StripTags;
 use Laminas\Filter\StripNewlines;
 use Laminas\Filter\StringTrim;
 use Laminas\Form\Element\Csrf;
-use Laminas\Form\Element\Textarea;
-use Laminas\Form\Element\Email;
-use Laminas\Filter\ToInt;
-use Laminas\Form\Element\Hidden;
-use Laminas\Form\Element\Submit;
-use Laminas\Validator\EmailAddress;
 
 class SionForm extends Form
 {
@@ -91,173 +84,6 @@ class SionForm extends Form
     }
 
     /**
-     * Primes the form for a suggestion. If user is a multi-person-user,
-     * it fetches records for the value options of suggestionByPersonId.
-     *
-     * @param AuthenticationServiceInterface $authService
-     * @param PersonProviderInterface $personProvider
-     */
-    public function prepareForSuggestion(
-        AuthenticationServiceInterface $authService,
-        ?PersonProviderInterface $personProvider = null
-    ) {
-        $name = $this->getName();
-        if (false !== ($lastUnderscore = strrpos($name, '_'))) {
-            $name = substr($name, $lastUnderscore + 1);
-        }
-        $this->setName('suggest_' . $name);
-        $this->add([
-            'name' => 'suggestionNotes',
-            'type' => Textarea::class,
-            'options' => [
-                'label' => 'Notes to the reviewer of your suggestion',
-                'required' => false,
-            ],
-            'attributes' => [
-                'required' => false,
-                'rows' => 5,
-            ],
-        ]);
-        $this->add([ //only for users with the multiPersonUser bit
-            'name' => 'suggestionByPersonId',
-            'type' => Select::class,
-            'options' => [
-                'label' => 'Your name',
-                'empty_option' => '',
-                'unselected_value' => '',
-            ],
-            'attributes' => [
-                'required' => true, //no requirement enforced on server-side, only client
-            ],
-        ]);
-        $this->add([ //only for users with the multiPersonUser bit
-            'name' => 'suggestionByEmail',
-            'type' => Email::class,
-            'options' => [
-                'label' => 'Your email',
-            ],
-            'attributes' => [
-                'required' => true, //no requirement enforced on server-side, only client
-                'maxlength' => '70',
-            ],
-        ]);
-
-        $inputSpec = $this->getInputFilterSpecification();
-        $inputSpec['suggestionNotes'] = [
-            'required' => false,
-            'filters' => [
-                ['name' => StripTags::class],
-                ['name' => ToNull::class],
-            ],
-        ];
-        $inputSpec['suggestionByPersonId'] = [
-            'required' => false,
-            'filters' => [
-                ['name' => ToInt::class],
-                ['name' => ToNull::class,
-                    'options' => [
-                        'type' => ToNull::TYPE_INTEGER,
-                    ],
-                ],
-            ],
-        ];
-        $inputSpec['suggestionByEmail'] = [
-            'required' => false,
-            'filters' => [
-                ['name' => StringTrim::class],
-                ['name' => ToNull::class,
-                    'options' => [
-                        'type' => ToNull::TYPE_STRING,
-                    ]
-                ],
-            ],
-            'validators' => [
-                ['name' => EmailAddress::class],
-            ],
-        ];
-        $this->setInputFilterSpecification($inputSpec);
-
-        //prime the suggestionByPersonId if user is multi-person
-        if ($authService->hasIdentity() && $authService->getIdentity()->multiPersonUser) {
-            $this->setIsMultiPersonUser(true);
-            if (! isset($personProvider)) {
-                /*
-                 * Only throw an exception if we actually have a multi-person user as
-                 * many apps won't allow them to exist.
-                 */
-                throw new \Exception(
-                    'We have a multi-person user, but no `multi_person_user_person_provider` was given'
-                    );
-            }
-            $persons = $personProvider->getPersonValueOptions(false, false);
-            $this->get('suggestionByPersonId')->setValueOptions($persons);
-        }
-    }
-
-    public function prepareForModeration($oldData)
-    {
-        $name = $this->getName();
-        if (false !== ($lastUnderscore = strrpos($name, '_'))) {
-            $name = substr($name, $lastUnderscore + 1);
-        }
-        $this->setName('moderate_' . $name);
-        $this->get('submit')->setAttribute('value', 'Accept');
-        $this->get('submit')->setAttribute('class', 'btn-success');
-        //set the help block to show the old values
-        foreach ($oldData as $field => $value) {
-            if ($this->has($field)) {
-                if (($element = $this->get($field)) instanceof Select) {
-                    $lookup = $element->getValueOptions();
-                    if (key_exists($value, $lookup)) {
-                        $helpBlock = "The old value was: " . $lookup[$value] .
-                           ' (' . $value . ')';
-                    } else {
-                        $helpBlock = "The old value was: " . $value;
-                    }
-                } else {
-                    $helpBlock = "The old value was: " . $value;
-                }
-                $this->get($field)
-                   ->setOption('help-block', $helpBlock)
-                   ->setOption('validation-state', 'warning');
-            }
-        }
-        $this->add([
-            'name' => 'suggestionResponse',
-            'type' => Textarea::class,
-            'options' => [
-                'label' => 'Response to the contributor of this suggestion',
-                'required' => false,
-            ],
-            'attributes' => [
-                'required' => false,
-                'rows' => 10,
-            ],
-        ]);
-        $this->add([
-            'name' => 'suggestionId',
-            'type' => Hidden::class,
-        ]);
-        $this->add([
-            'name' => 'deny',
-            'type' => Submit::class,
-            'attributes' => [
-                'value' => 'Deny',
-                'class' => 'btn-danger'
-            ],
-        ]);
-        $inputSpec = $this->getInputFilterSpecification();
-        $inputSpec['suggestionResponse'] = [
-            'required' => false,
-            'filters' => [
-                ['name' => 'StripTags'],
-                ['name' => 'ToNull'],
-            ],
-        ];
-        $this->setInputFilterSpecification($inputSpec);
-    }
-
-    /**
      * Normally setData is called on an edit action. This will automatically decode html
      * entity fields to prevent entities from being double-encoded.
      * {@inheritDoc}
@@ -267,6 +93,8 @@ class SionForm extends Form
      */
     public function setData($data)
     {
+        $data = $this->blankUnusableDateSelectValues($data);
+
         $filterSpec = $this->getInputFilterSpecification();
         $htmlEntitiesElements = [];
         foreach ($filterSpec as $key => $value) {
@@ -280,11 +108,92 @@ class SionForm extends Form
             }
         }
         foreach ($htmlEntitiesElements as $element) {
-            if (isset($data[$element]) && $this->has($element)) {
+            //is_string, not isset: html_entity_decode() has a string parameter
+            //type, so an array reaching it is a TypeError — and this runs in
+            //setData(), before isValid(), so no validator could reject the value
+            //first and no controller could guard it by checking isValid(). A
+            //request sending `contactNotes[]=x` was a 500 with the whole
+            //submission lost. A non-string is left alone here and rejected
+            //downstream by the field's own validators.
+            if (isset($data[$element]) && is_string($data[$element]) && $this->has($element)) {
                 $data[$element] = html_entity_decode($data[$element]);
             }
         }
         return parent::setData($data);
+    }
+
+    /**
+     * Replace anything a DateSelect element cannot swallow with an empty value.
+     *
+     * These elements are the one place where hostile input escapes *before*
+     * isValid() can answer, so nothing downstream can catch it — not a validator,
+     * not a controller checking isValid(). Laminas\Form\Element\DateSelect::setValue()
+     * is reached from Fieldset::setValue() inside Form::setData(), and it throws
+     * three different ways: InvalidArgumentException ("Value should be a parsable
+     * string or an instance of DateTime") for 'asdf'; ValueError from
+     * DateTime::createFromFormat() for a value carrying a NUL byte; and
+     * Laminas\Filter\Exception\RuntimeException ("There are not enough values in
+     * the array to filter this date") for an array missing year/month/day. Each
+     * was a 500 with the user's whole submission lost.
+     *
+     * Blanking rather than reporting is the right trade specifically for these
+     * elements: the widget is three selects, so a value it cannot parse cannot
+     * have been produced by using the form — only by a crafted request. There is
+     * no user to show a message to, and `required` still reports the field as
+     * missing if it was mandatory.
+     *
+     * Done here rather than in one form so that adding a DateSelect anywhere does
+     * not reintroduce the same 500.
+     *
+     * @param  array<string, mixed>|\Traversable $data
+     * @return array<string, mixed>|\Traversable
+     */
+    private function blankUnusableDateSelectValues($data)
+    {
+        if (! is_array($data)) {
+            return $data;
+        }
+
+        foreach ($data as $name => $value) {
+            if (! is_string($name) || ! $this->has($name)) {
+                continue;
+            }
+            if (! $this->get($name) instanceof DateSelect) {
+                continue;
+            }
+            if ($this->isUsableDateSelectValue($value)) {
+                continue;
+            }
+            $data[$name] = '';
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  mixed $value
+     * @return bool
+     */
+    private function isUsableDateSelectValue($value)
+    {
+        if (null === $value || '' === $value || $value instanceof \DateTimeInterface) {
+            return true;
+        }
+
+        //The element's own shape: the three selects post year/month/day. Laminas
+        //throws when one is missing rather than treating it as empty.
+        if (is_array($value)) {
+            return isset($value['year'], $value['month'], $value['day'])
+                && is_scalar($value['year'])
+                && is_scalar($value['month'])
+                && is_scalar($value['day']);
+        }
+
+        //Anything else has to be a string the application would accept as a date
+        //anywhere else, which is exactly what DateTimeParser decides — reused so
+        //that a value rejected here and a value rejected by a date field's
+        //validators cannot disagree.
+        return DateTimeParser::parse($value) instanceof \DateTimeInterface;
     }
 
     public function getIsMultiPersonUser()
