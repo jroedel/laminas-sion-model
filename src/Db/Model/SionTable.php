@@ -1602,7 +1602,38 @@ class SionTable
         return $changes;
     }
     /**
+     * The entity *field* name whose updateColumns entry is the entity's tableKey.
+     *
+     * queryObjects() matches a query key against `$entitySpec->updateColumns`, which is
+     * keyed by entity field name ('textId'), while `tableKey` is the database column
+     * ('TextId'). Handing it the column silently skips the predicate — `continue` on the
+     * `! isset($fieldMap[$key])` test — and the query comes back **unfiltered**.
+     *
+     * That was the /sm/view-changes memory exhaustion: getChanges() asked for the 250
+     * changed texts by column name, got all 2,757 rows of a table whose rows average
+     * 85 KB, and blew a 512 MB limit before rendering anything. Measured 2026-08-07.
+     *
+     * Falls back to tableKey when no field maps to it, which preserves the old behaviour
+     * for a spec whose updateColumns do not mention its own key rather than turning that
+     * into a fatal.
+     *
+     * @param string $entity
+     * @return string
+     */
+    protected function entityFieldForTableKey($entity)
+    {
+        $entitySpec = $this->entitySpecifications[$entity];
+        $field = array_search($entitySpec->tableKey, (array)$entitySpec->updateColumns, true);
+
+        return false === $field ? $entitySpec->tableKey : $field;
+    }
+
+    /**
      * Get list of changes from database
+     *
+     * @param int $maxRows how many change rows to read. Each one may pull in an entity
+     *      row for display, so this bounds the memory the page needs — see
+     *      entityFieldForTableKey() for what happened when it did not.
      * @return mixed[]
      */
     public function getChanges($maxRows = 250)
@@ -1641,7 +1672,7 @@ class SionTable
         foreach ($objectKeyList as $entity => $entityIds) {
             $objects[$entity] = $this->getObjects(
                 $entity,
-                [$this->entitySpecifications[$entity]->tableKey => $entityIds],
+                [$this->entityFieldForTableKey($entity) => $entityIds],
                 ['failSilently' => true]
             );
         }

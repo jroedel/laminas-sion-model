@@ -133,19 +133,23 @@ class SionModelController extends AbstractActionController
         $maxRows = (isset($config['changes_max_rows']) &&
             (is_numeric($config['changes_max_rows']) || ! isset($config['changes_max_rows']))) ?
             (int)$config['changes_max_rows'] : 500;
+        //$maxRows bounds the *fetch* as well as the display. It did neither before:
+        //the collector was called with no argument, so every table returned its own
+        //hard-coded 250 while the view truncated to this number — and the single-table
+        //branch below passed the changes_show_all *flag* where an int row count was
+        //expected, i.e. `limit(false)`. One number now governs both, which is the only
+        //way the page's cost is knowable from its configuration.
         if (! isset($config['changes_show_all']) || $config['changes_show_all']) {
             /** @var ChangesCollector $collector */
             $collector = $this->services[ChangesCollector::class];
-            $results = $collector->getAllChanges();
+            $results = $collector->getAllChanges($maxRows);
         } else {
             if (! isset($this->services[$config['changes_model']])) {
                 throw new \InvalidArgumentException('The \'changes_model\' configuration is incorrect.');
             }
             /** @var \SionModel\Db\Model\SionTable $table */
             $table = $this->services[$config['changes_model']];
-            $getAllChanges = key_exists('changes_show_all', $config) && ! is_null($config['changes_show_all']) ?
-                (bool)$config['changes_show_all'] : false;
-            $results = $table->getChanges($getAllChanges);
+            $results = $table->getChanges($maxRows);
         }
         return new ViewModel([
             'changes'       => $results,

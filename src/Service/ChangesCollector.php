@@ -11,7 +11,23 @@ class ChangesCollector
         $this->container = $container;
     }
 
-    public function getAllChanges()
+    /**
+     * Every registered table's newest changes, merged newest-first.
+     *
+     * $maxRows is applied **per table**, not to the merged result, and that is the
+     * correct place for it: the caller wants the newest N overall, and which table those
+     * come from is not known until they are merged. Asking each table for fewer than N
+     * could therefore drop a change that belongs in the answer.
+     *
+     * It is a real bound rather than decoration. Each change row may pull in the entity
+     * row it describes, so an unbounded fetch is an unbounded page — /sm/view-changes
+     * exhausted a 512 MB limit before this parameter existed. See
+     * SionTable::entityFieldForTableKey() for the other half of that failure.
+     *
+     * @param int $maxRows per table
+     * @return mixed[]
+     */
+    public function getAllChanges($maxRows = 250)
     {
         $container = $this->container;
         /** @var EntitiesService $entitiesService */
@@ -32,7 +48,7 @@ class ChangesCollector
         }
         $changes = [];
         foreach ($sionModelsToQuery as $table) {
-            $changes[] = $table->getChanges();
+            $changes[] = $table->getChanges($maxRows);
         }
         //@todo fix bug where duplicate array keys between different changes arrays provoke unexpected results
         if (! empty($changes)) {
