@@ -980,13 +980,20 @@ class SionTable
     }
 
     /**
+     * Update an entity and return its refreshed row.
+     *
      * @todo group $fieldsToTouch, $refreshCache into $options and add an option to not registerChange
      * @param string $entity
      * @param number $id
      * @param array $data
      * @param array $fieldsToTouch
      * @throws \InvalidArgumentException
-     * @return boolean
+     * @return mixed[] the entity as it now stands, which is what callers use:
+     *      SionController::redirectAfterEdit() reads $updatedObject['identifier'] out
+     *      of it. Documented as `boolean` until 2026-08-09 — a copy-paste from
+     *      updateHelper(), whose return really is the affected-row count — which
+     *      static analysis resolved as the imported Laminas\Filter\Boolean class and
+     *      then reported every honest use of the result as dead code.
      */
     public function updateEntity($entity, $id, $data, array $fieldsToTouch = [], $refreshCache = true)
     {
