@@ -8,3 +8,17 @@ vendor/
 phploy.ini
 phploy.log
 .phploy
+
+# Compiled translation catalogs. JTranslate writes these from the phrase table
+# (TranslationsTable::writePhpTranslationArrays), so they are build output, not
+# source: `jtranslate:export-catalogs` rebuilds them and a hand edit is discarded
+# on the next write.
+#
+# They also must not be committed here for a reason specific to a *shared* library.
+# The phrase table is shared between the applications that install this module, and
+# the catalogs that used to sit here were exported from patres, not from
+# schoenstatt.link — the four files removed alongside this line were `project =
+# Patres` rows, so this repository was carrying one installation's data to every
+# other installation. Phrases are arbitrary text taken from whatever an application
+# renders and can carry things its users never agreed to publish elsewhere.
+/language/
