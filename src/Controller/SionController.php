@@ -350,13 +350,12 @@ class SionController extends AbstractActionController
      */
     public function doWorkWhenFormInvalidForCreateAction(ViewModel $view)
     {
-        /** @var SionModel\Form\SionForm $form */
-        $form = $view->getVariable('form');
-        $messages = $form->getMessages();
+        //NOTE: the message must be a fixed literal. NowMessenger's view helper passes whatever
+        //it is given to the translator, so a message built by concatenating the invalid field
+        //names is untranslatable and registers a new phrase for every combination of fields.
+        //The re-rendered form already marks each invalid field with its own message.
         $this->nowMessenger()->setNamespace(NowMessenger::NAMESPACE_ERROR)
-            ->addMessage(
-                'Error in form submission, please review: ' . implode(', ', array_keys($messages))
-                );
+            ->addMessage('Error in form submission, please review.');
     }
 
     /**
