@@ -14,4 +14,4 @@ CREATE TABLE `project_problems`
 `CreatedOn` DATETIME NULL DEFAULT NULL , 
 `CreatedBy` INT NULL DEFAULT NULL , 
 PRIMARY KEY (`ProblemId`)) 
-ENGINE = InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;
+ENGINE = InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci;
