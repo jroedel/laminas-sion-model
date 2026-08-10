@@ -13,7 +13,7 @@ CREATE TABLE `project_changes` (
   `user_id` int(11) NOT NULL,
   `UpdateDateTime` datetime NOT NULL,
   `IpAddress` varchar(36) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
 
 --
 -- Indexes for dumped tables

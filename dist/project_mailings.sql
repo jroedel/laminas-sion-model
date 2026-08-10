@@ -25,7 +25,7 @@ CREATE TABLE `project_mailings` (
   `MaxAttempts` int(11) NOT NULL DEFAULT '3',
   `ErrorMessage` varchar(255) DEFAULT NULL,
   `StackTrace` text
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
 
 --
 -- Indexes for dumped tables

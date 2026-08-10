@@ -7,7 +7,7 @@ CREATE TABLE `project_visits` (
   `IpAddress` varchar(255) DEFAULT NULL,
   `UserAgent` varchar(255) DEFAULT NULL,
   `VisitedAt` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
 
 ALTER TABLE `project_visits`
   ADD PRIMARY KEY (`VisitId`);
