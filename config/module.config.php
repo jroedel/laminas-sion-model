@@ -312,7 +312,19 @@ return [
                 'table_name' => 'mailings',
                 'table_key' => 'MailingId',
                 'entity_key_field' => 'mailingId',
-                'get_object_function' => 'getMailing',
+                /**
+                 * No `get_object_function`, deliberately. It named `getMailing`, which
+                 * delegated to a `getMailings` whose hardcoded SQL selected `FROM
+                 * a_data_mailing` — a table that does not exist — and which then called
+                 * `$this->getEmailAddress()`, a method that exists nowhere either. Two
+                 * guaranteed fatals in one read path, and nothing ever took it: the only
+                 * use of this entity is `Mailer::sendMailingReport()`'s
+                 * `createEntity('mailing', …)`, and createEntity's read-back is gated on
+                 * a `databaseBoundDataPostprocessor` this spec does not define. Both
+                 * methods are deleted; without the key `getObject('mailing', $id)` falls
+                 * through to `tryGettingObject()`, which reads `table_name` and
+                 * `update_columns` below and therefore works — for the first time.
+                 */
                 'required_columns_for_creation' => [
                     'toAddresses',
                     'status',

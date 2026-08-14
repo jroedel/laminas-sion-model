@@ -313,62 +313,6 @@ class SionTable
         }
     }
 
-    /**
-     * Get all records from the mailings table
-     * @deprecated
-     * @return mixed[][]
-     */
-    public function getMailings()
-    {
-        $sql = "SELECT `MailingId`, `ToAddresses`, `MailingOn`, `MailingBy`, `Subject`,
-`Body`, `Sender`, `MailingText`, `MailingTags`, `TrackingToken`, `OpenedFromIpAddress`,
-`OpenedFromHeaders`, `OpenedOn`, `EmailTemplate`, `EmailLocale`, `Status`, `QueueUntil`,
-`Attempt`, `MaxAttempts`, `ErrorMessage`, `StackTrace` FROM `a_data_mailing` WHERE 1";
-
-        $results = $this->fetchSome(null, $sql, null);
-        $entities = [];
-        foreach ($results as $row) {
-            $id = $this->filterDbId($row['MailingId']);
-            $subject = $this->filterDbString($row['Subject']);
-            $email = $this->filterDbString($row['ToAddresses']);
-            $entities[$id] = [
-                'mailingId'             => $id,
-                'mailingName'           => 'Mail ' . $id . ': ' . $subject,
-                'emailAddress'          => $this->getEmailAddress($email),
-                'mailingOn'             => $this->filterDbDate($row['MailingOn']),
-                'mailingBy'             => $this->filterDbId($row['MailingBy']),
-                'subject'               => $subject,
-                'body'                  => $this->filterDbString($row['Body']),
-                'sender'                => $this->filterDbString($row['Sender']),
-                'text'                  => $this->filterDbString($row['MailingText']),
-                'tags'                  => $this->filterDbArray($row['MailingTags']),
-                'trackingToken'         => $this->filterDbString($row['TrackingToken']),
-                'openedFromIpAddress'   => $this->filterDbString($row['OpenedFromIpAddress']),
-                'openedFromHeaders'     => $row['OpenedFromHeaders'], //@todo process as JSON
-                'openedOn'              => $this->filterDbDate($row['OpenedOn']),
-                'emailTemplate'         => $this->filterDbString($row['EmailTemplate']),
-                'emailLocale'           => $this->filterDbString($row['EmailLocale']),
-                'status'                => $this->filterDbString($row['Status']),
-                'attempt'               => $this->filterDbInt($row['Attempt']),
-                'maxAttempts'           => $this->filterDbInt($row['MaxAttempts']),
-                'queueUntil'            => $this->filterDbDate($row['QueueUntil']),
-                'errorMessage'          => $this->filterDbString($row['ErrorMessage']),
-                'stackTrace'            => $this->filterDbString($row['StackTrace']),
-            ];
-        }
-        return $entities;
-    }
-
-    public function getMailing($id)
-    {
-        $mailings = $this->getMailings();
-
-        if (! isset($mailings[$id]) || ! ($mailing = $mailings[$id])) {
-            return null;
-        }
-        return $mailing;
-    }
-
 
     /**
      * Get entity data for the specified entity and id
