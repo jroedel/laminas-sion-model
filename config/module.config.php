@@ -696,19 +696,6 @@ return [
                             ],
                         ],
                     ],
-                    'delete-entity' => [
-                        'type'    => Segment::class,
-                        'options' => [
-                            'route'    => '/delete/:entity/:entity_id',
-                            'defaults' => [
-                                'action' => 'deleteEntity',
-                            ],
-                            'constraints' => [
-                                'entity_id' => '[0-9]{1,5}',
-                                'entity' => '[a-zA-Z_-]{1,25}',
-                            ],
-                        ],
-                    ],
                 ],
             ],
         ],
