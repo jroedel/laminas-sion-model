@@ -739,6 +739,19 @@ class SionController extends AbstractActionController
         $form = new DeleteEntityForm();
         if ($request->isPost()) {
             $data = $request->getPost();
+            //A submission naming the cancel button deletes nothing, and this check comes
+            //before the CSRF validation on purpose: a cancellation is a no-op, so a stale
+            //token on it should send the visitor back to the index rather than show them a
+            //form error about a thing they asked not to do.
+            //
+            //The browser no longer submits Cancel at all — DeleteEntityForm renders it as
+            //`type="button"` since 2026-08-14, and its docblock has the history — so this
+            //is the second lock on the same door: a hand-crafted POST, or a page cached
+            //from before that fix, must not be able to destroy a record by naming the
+            //button that says Cancel.
+            if (null !== $data->get('cancel')) {
+                return $this->redirectAfterDelete(false);
+            }
             $form->setData($data);
             if ($form->isValid()) {
                 $table->deleteEntity($entity, $id);
