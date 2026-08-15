@@ -43,8 +43,16 @@ use function count;
  *
  *     'spousePersonId' => [
  *         'required'   => false,
- *         'validators' => [ChoiceDomain::inArray($this->get('spousePersonId'))],
+ *         'validators' => ChoiceDomain::validators($this->get('spousePersonId')),
  *     ],
+ *
+ * It answers a **list** rather than one validator specification, and that is what lets it
+ * decline. A caller that already has validators of its own spreads it,
+ *
+ *     'validators' => [...ChoiceDomain::validators($this->get('locale')), $somethingElse],
+ *
+ * and an empty list simply disappears. Returning a bare `[]` where a specification was expected
+ * would instead reach `ValidatorChain` as a validator with no name.
  *
  * ## Two things it deliberately does not do
  *
@@ -73,10 +81,10 @@ use function count;
 final class ChoiceDomain
 {
     /**
-     * @return array<string, mixed> a validator specification, or [] when the element has no
-     *                              options to constrain against
+     * @return list<array<string, mixed>> one validator specification, or none at all when the
+     *                                    element has no options to constrain against
      */
-    public static function inArray(ElementInterface $element): array
+    public static function validators(ElementInterface $element): array
     {
         if (! $element instanceof Select && ! $element instanceof MultiCheckbox) {
             return [];
@@ -95,7 +103,7 @@ final class ChoiceDomain
         //Laminas\Form\Element\Select::getInputSpecification() wraps it in for exactly this,
         //so the element's discarded input and this replacement have the same shape.
         if ($element instanceof MultiCheckbox || $element->getAttribute('multiple')) {
-            return [
+            return [[
                 'name'    => Explode::class,
                 'options' => [
                     'validator' => new InArray([
@@ -103,15 +111,15 @@ final class ChoiceDomain
                         'strict'   => InArray::COMPARE_NOT_STRICT_AND_PREVENT_STR_TO_INT_VULNERABILITY,
                     ]),
                 ],
-            ];
+            ]];
         }
 
-        return [
+        return [[
             'name'    => InArray::class,
             'options' => [
                 'haystack' => $haystack,
                 'strict'   => InArray::COMPARE_NOT_STRICT_AND_PREVENT_STR_TO_INT_VULNERABILITY,
             ],
-        ];
+        ]];
     }
 }
