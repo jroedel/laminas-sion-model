@@ -65,12 +65,23 @@ final class DatePrecision
                 //No empty_option, and an empty submitted value is rejected rather
                 //than coerced: the select always sends one of the three, so ''
                 //means something went wrong and silently turning it into 'day'
-                //would hide that. A field *absent* from the post is different and
-                //stays legal — required is false, so laminas skips it, it never
-                //reaches getData(), and SionTable::updateHelper() only writes
-                //keys that are present. On an edit that leaves the stored
-                //precision alone; on a create the column's own DEFAULT 'day'
-                //applies. Both are the right answer, and neither needs a filter.
+                //would hide that.
+                //
+                //A field *absent* from the post is a different case, and the two
+                //sentences that used to stand here about it were wrong — measured
+                //2026-08-15, by an insert that failed. They claimed an absent
+                //optional field "never reaches getData()", so an edit would leave
+                //the stored precision alone and a create would fall through to the
+                //column's own DEFAULT. Neither happens.
+                //`BaseInputFilter::setData()` gives every input it holds a value
+                //whether or not the data mentions it, so an absent field arrives in
+                //getData() as **null** and both createHelper() and updateHelper()
+                //write it. These four columns are NOT NULL, so the write fails:
+                //`Column 'PriestDatePrecision' cannot be null`. A template that
+                //does not render one of these selects must round-trip it in a
+                //hidden input — see templates/schoenstatt/_person-fields.html.twig,
+                //and test/Integration/PortedTemplatesRenderEveryNotNullFieldTest,
+                //which fails when one stops doing so.
                 //
                 //filterSpec() owns the domain check, so the Select's automatic
                 //one is turned off to leave exactly one. Normally this flag is a
