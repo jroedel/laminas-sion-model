@@ -193,6 +193,39 @@ class LanguageSupport
     ];
 
     /**
+     * The 184 codes above are ISO 639-1, which only ever assigned two-letter codes to the
+     * languages that had a standards body asking for one. That is a small fraction of the
+     * languages books get written in, and a field constrained to it cannot record the rest:
+     * Cebuano has no 639-1 code at all, so a book in Cebuano could only be stored by writing
+     * a value the select does not offer — which is exactly how `lib_books.lang` came to hold
+     * `ceb` against a list that never contained it.
+     *
+     * The 455 three-letter codes appended here close that. They are generated once from ICU
+     * and committed rather than read at runtime, because the capsule and production carry
+     * different ICU versions and a runtime lookup would make the set of storable languages
+     * differ between them; see tools/generate-iso639-2-languages.php in the schoenstatt.link
+     * repository for what is selected and why.
+     *
+     * Loaded lazily so that the common case — asking for one language's name — never pays for
+     * parsing a 455-entry table.
+     *
+     * @var array<string, array<string, string>>|null
+     */
+    private $extendedLanguages;
+
+    /**
+     * Every code this class knows, two-letter first.
+     * @return array<string, array<string, string>>
+     */
+    protected function allLanguages()
+    {
+        if (null === $this->extendedLanguages) {
+            $this->extendedLanguages = require __DIR__ . '/language-names-iso639-2.php';
+        }
+        return $this->languages + $this->extendedLanguages;
+    }
+
+    /**
      * Fetch value options for a Select form element
      * @param string $inLanguage
      * @return string[]
@@ -203,7 +236,7 @@ class LanguageSupport
             $inLanguage = 'en';
         }
         $result = [];
-        foreach ($this->languages as $language => $names) {
+        foreach ($this->allLanguages() as $language => $names) {
             $result[$language] = $names[$inLanguage];
         }
         return $result;
@@ -222,13 +255,14 @@ class LanguageSupport
         if (! isset($language) || ! is_string($language)) {
             throw new \InvalidArgumentException('Language parameter should be a string');
         }
-        if (! isset($this->languages[$language])) {
+        $all = $this->allLanguages();
+        if (! isset($all[$language])) {
             return null;
         }
         if (! isset($inLanguage) || ! in_array($inLanguage, $this->supportedLanguages, true)) {
             $inLanguage = 'en';
         }
-        return $this->languages[$language][$inLanguage];
+        return $all[$language][$inLanguage];
     }
 
     /**
@@ -237,7 +271,7 @@ class LanguageSupport
      */
     public function getValidLanguages()
     {
-        return array_keys($this->languages);
+        return array_keys($this->allLanguages());
     }
 
     /**
@@ -248,6 +282,6 @@ class LanguageSupport
      */
     public function getLanguageNamesData()
     {
-        return $this->languages;
+        return $this->allLanguages();
     }
 }

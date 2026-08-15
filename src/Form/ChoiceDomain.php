@@ -12,6 +12,7 @@ use Laminas\Validator\InArray;
 
 use function array_keys;
 use function array_map;
+use function array_values;
 use function count;
 
 /**
@@ -20,15 +21,32 @@ use function count;
  * ## Why a form has to restate it at all
  *
  * A `Select`, `Radio` or `MultiCheckbox` builds its own `InArray` from its value options —
- * `Laminas\Form\Element\Select::getInputSpecification()` does it — and naming that element in a
- * form's `getInputFilterSpecification()` **throws the element's input away**. The spec entry
- * replaces it rather than merging into it, so the moment a form declares
+ * `Laminas\Form\Element\Select::getInputSpecification()` does it — **unless the element sets
+ * `disable_inarray_validator => true`**. That option is the whole of it, and it is set on 35
+ * elements in the schoenstatt.link application. Where it is set, nothing constrains the field
+ * to its own list and any string at all reaches the column; this class is how a form puts the
+ * check back.
  *
- *     'categoryId' => ['required' => false],
+ * ## What this docblock said until 2026-08-15, and why it was wrong
  *
- * the option list stops constraining anything and any string at all reaches the column. In this
- * application that had happened to **88 choice fields**, measured 2026-08-15 by the fuzz
- * harness — the pattern is easy to write and its consequence is invisible in the source.
+ * It said that naming an element in `getInputFilterSpecification()` throws the element's input
+ * away, "replaces it rather than merging into it". `Laminas\InputFilter\BaseInputFilter::add()`
+ * does the opposite, and says so in a comment:
+ *
+ *     // The element already exists, so merge the config. Please note
+ *     // that this merges the new input into the original.
+ *     $original = $this->inputs[$name];
+ *     $original->merge($input);
+ *
+ * `Form::attachInputFilterDefaults()` adds the element's input first and the specification's
+ * second, so a field named in the spec keeps its element's validators *and* gains the spec's.
+ * Naming a select in a specification therefore costs it nothing.
+ *
+ * The consequence of believing otherwise was not a bug in this class — a redundant second
+ * `InArray` over the same haystack changes no outcome — but a measurement that reported 88
+ * fields as unprotected when 53 of them were already protected by their own element. Anything
+ * that reasons about which validators apply should read the assembled `getInputFilter()`, not
+ * the specification: the specification is half the answer, and the more attractive half.
  *
  * ## Why the haystack can come from the element
  *
@@ -54,15 +72,40 @@ use function count;
  * and an empty list simply disappears. Returning a bare `[]` where a specification was expected
  * would instead reach `ValidatorChain` as a validator with no name.
  *
+ * ## When the element's options are narrowed at request time: `$fallbackHaystack`
+ *
+ * Some selects hold *zero* options when the form is constructed and get them later — from a
+ * controller that has just learned which library is being viewed, from an HTTP gateway, or
+ * from the form's own `setData()` narrowing one field's options by another field's value.
+ * Because the specification is built lazily, whatever the element holds at `isValid()` time is
+ * what constrains, and for the narrowing cases that is *better* than a static list:
+ * `AssignmentForm::setData()` reduces `roleId` to the roles of the submitted association
+ * before validation runs, so the check is per-association rather than global.
+ *
+ * The problem is the request where the narrowing did not happen — a hostile `associationId`,
+ * a gateway that timed out — because then the element is still empty and, by the rule below,
+ * unconstrained. `$fallbackHaystack` is the answer: the widest domain that is still legitimate,
+ * used only when the element itself offers nothing.
+ *
+ *     'roleId' => [
+ *         'required'   => true,
+ *         'validators' => ChoiceDomain::validators($this->get('roleId'), $this->allRoleIds()),
+ *     ],
+ *
+ * It must be **derived from the same source the runtime population reads**, never hand-written.
+ * A literal list is a second copy of a domain that already exists somewhere, and the failure
+ * mode of a stale copy here is a form that refuses valid input — the exact thing this class
+ * warns about below.
+ *
  * ## Two things it deliberately does not do
  *
- * **An empty option list yields no validator.** A haystack of nothing would reject every
- * submission, which is a worse failure than the one this fixes and an easy one to ship: several
- * selects in this application are populated by JavaScript from another field's value and hold
- * *zero* options server-side — `AssignmentForm::roleId` is the example, and constraining it
- * would refuse all 170 assignments in the database. Returning nothing means the fuzz harness
- * reports the field as unconstrained again, which is the honest signal: a domain nobody can
- * enumerate cannot be enforced.
+ * **No options and no fallback yields no validator.** A haystack of nothing would reject every
+ * submission, which is a worse failure than the one this fixes and an easy one to ship: some
+ * selects are filled from a service that simply is not reachable in every environment —
+ * `ImportFatherForm::personId` comes from the patres HTTP gateway, which fails silently
+ * offline — and there is no wider list to fall back to. Returning nothing means the fuzz
+ * harness reports the field as unconstrained again, which is the honest signal: a domain
+ * nobody can enumerate cannot be enforced.
  *
  * **Comparison is not strict.** Value option keys arrive from the database as integers and a
  * browser posts strings, so `COMPARE_STRICT` would reject `'633'` against `633` — every id
@@ -81,10 +124,13 @@ use function count;
 final class ChoiceDomain
 {
     /**
+     * @param list<int|string> $fallbackHaystack the widest legitimate domain, used only when the
+     *                                           element itself offers no options; must be derived
+     *                                           from the same source that populates it at runtime
      * @return list<array<string, mixed>> one validator specification, or none at all when the
      *                                    element has no options to constrain against
      */
-    public static function validators(ElementInterface $element): array
+    public static function validators(ElementInterface $element, array $fallbackHaystack = []): array
     {
         if (! $element instanceof Select && ! $element instanceof MultiCheckbox) {
             return [];
@@ -94,6 +140,13 @@ final class ChoiceDomain
             static fn(int|string $value): string => (string) $value,
             array_keys($element->getValueOptions())
         );
+
+        if (0 === count($haystack)) {
+            $haystack = array_values(array_map(
+                static fn(int|string $value): string => (string) $value,
+                $fallbackHaystack
+            ));
+        }
 
         if (0 === count($haystack)) {
             return [];
