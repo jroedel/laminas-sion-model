@@ -39,16 +39,20 @@ trait MaintenanceKeyTrait
     }
 
     /**
-     * The key the caller presented: the X-Api-Key header, or failing that the
-     * legacy `?key=` query parameter.
+     * The key the caller presented, which must be in the X-Api-Key header.
      *
-     * The header is the supported channel because a query string is recorded
-     * verbatim in the web server's access log and kept in the shell history of
-     * whatever invoked it — for a key that never rotates, that is a leak by
-     * default. `?key=` still works on purpose: the deploy configuration that
-     * sends it lives in the gitignored phploy.ini on each machine, so it cannot
-     * be updated in the same commit as this code. Drop the fallback once every
-     * caller sends the header (see docs/BACKLOG.md).
+     * A query string is recorded verbatim in the web server's access log and kept
+     * in the shell history of whatever invoked it, so for a secret that never
+     * rotates `?key=` is a leak by default. It was accepted as a fallback until
+     * 2026-08-17 because the deploy configuration that sent it lived in a
+     * gitignored phploy.ini no commit here could reach. That is no longer true:
+     * phploy is retired, every caller now sends the header
+     * (FlushPersistentCacheCommand, tools/smoke-prod.sh, tools/deploy.sh), the
+     * overdue-notices cron became a console command needing no key at all, and
+     * the crontab was confirmed clean of `?key=`.
+     *
+     * Do not reintroduce it. An endpoint that accepts a secret in a URL cannot be
+     * made safe by preferring the header — the log entry is written either way.
      *
      * @return string|null
      */
@@ -58,11 +62,13 @@ trait MaintenanceKeyTrait
         if ($request instanceof HttpRequest) {
             $header = $request->getHeader('X-Api-Key');
             if ($header instanceof HeaderInterface) {
-                return $header->getFieldValue();
+                //a header value is a string, but assertApiKeyIn() hands whatever
+                //this returns to hash_equals(), so the type is checked here rather
+                //than assumed
+                $value = $header->getFieldValue();
+                return is_string($value) ? $value : null;
             }
         }
-        //an array (?key[]=…) must not reach hash_equals, which only takes strings
-        $fromQuery = $this->params()->fromQuery('key', null);
-        return is_string($fromQuery) ? $fromQuery : null;
+        return null;
     }
 }
