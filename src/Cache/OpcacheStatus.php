@@ -27,7 +27,7 @@ final class OpcacheStatus
      *        false is what the function returns when OPcache is disabled.
      * @param array<string, string|false> $ini Raw ini_get() values, keyed by
      *        directive name (opcache.validate_timestamps, opcache.revalidate_freq,
-     *        opcache.max_accelerated_files).
+     *        opcache.max_accelerated_files, opcache.interned_strings_buffer).
      * @return array<string, mixed>
      */
     public static function summarize($status, array $ini = []): array
@@ -46,6 +46,9 @@ final class OpcacheStatus
         $wasted = (int) ($mem['wasted_memory'] ?? 0);
         //OPcache reports no total: the segment is exactly the sum of the three
         $total = $used + $free + $wasted;
+
+        $internedUsed   = (int) ($interned['used_memory'] ?? 0);
+        $internedBuffer = (int) ($interned['buffer_size'] ?? 0);
 
         $cachedKeys = (int) ($stats['num_cached_keys'] ?? 0);
         //max_cached_keys is NOT opcache.max_accelerated_files. PHP rounds the
@@ -91,11 +94,26 @@ final class OpcacheStatus
             'hashRestarts' => (int) ($stats['hash_restarts'] ?? 0),
             'manualRestarts' => (int) ($stats['manual_restarts'] ?? 0),
 
-            'internedPercentUsed' => self::percent(
-                (int) ($interned['used_memory'] ?? 0),
-                (int) ($interned['buffer_size'] ?? 0)
-            ),
+            //Reported as three numbers rather than one ratio, because the
+            //interned buffer is **append-only**: nothing is ever evicted from it,
+            //so within one segment's life this percentage only ever rises, and a
+            //restart puts it back near zero. 84% at nine minutes and 84% at nine
+            //days are opposite readings, which is why uptimeSeconds has to be read
+            //beside it. And the denominator is exactly what an
+            //`opcache.interned_strings_buffer` change moves — a ratio cannot show
+            //its own denominator changing, so the ratio alone could never confirm
+            //the setting took effect.
+            'internedUsedBytes' => $internedUsed,
+            'internedFreeBytes' => (int) ($interned['free_memory'] ?? 0),
+            'internedBufferBytes' => $internedBuffer,
+            'internedPercentUsed' => self::percent($internedUsed, $internedBuffer),
             'internedStrings' => (int) ($interned['number_of_strings'] ?? 0),
+            //What the ini asked for, against what OPcache actually allocated above.
+            //Both, because they can disagree: this is a PHP_INI_SYSTEM directive
+            //read once at process start, so a running pool keeps the old buffer
+            //after the file changes, and because interned_strings_usage is absent
+            //on some builds — where this is then the only evidence of the size.
+            'internedBufferConfiguredMb' => (int) ($ini['opcache.interned_strings_buffer'] ?? 0),
 
             //surfaced because it decides whether a deploy needs a pool restart:
             //with timestamp validation off, changed files are never noticed
@@ -104,6 +122,14 @@ final class OpcacheStatus
             'maxAcceleratedFilesConfigured' => (int) ($ini['opcache.max_accelerated_files'] ?? 0),
             'jitEnabled' => (bool) ($jit['on'] ?? false),
 
+            //The only per-segment identity OPcache exposes, and the reason it is
+            //here rather than being left implicit in uptimeSeconds: this host runs
+            //three PHP pools, each with its own segment, and a request answers for
+            //whichever one served it. One reading therefore describes a third of
+            //production without saying which third. Grouping repeated polls by this
+            //value is what separates them; uptimeSeconds cannot do that job because
+            //it moves between two polls of the *same* segment.
+            'startTimeUnix' => $startTime > 0 ? $startTime : null,
             'uptimeSeconds' => $startTime > 0 ? max(0, self::now() - $startTime) : null,
         ];
     }

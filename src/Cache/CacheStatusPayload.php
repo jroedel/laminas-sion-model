@@ -41,6 +41,11 @@ final class CacheStatusPayload
                     'opcache.validate_timestamps' => ini_get('opcache.validate_timestamps'),
                     'opcache.revalidate_freq' => ini_get('opcache.revalidate_freq'),
                     'opcache.max_accelerated_files' => ini_get('opcache.max_accelerated_files'),
+                    //PHP_INI_SYSTEM, so this is what the pool booted with — not what
+                    //the ini file currently says. That difference is the whole point:
+                    //it is how a raise that has been written but not yet picked up by
+                    //a running pool becomes visible without SSH.
+                    'opcache.interned_strings_buffer' => ini_get('opcache.interned_strings_buffer'),
                 ]
             ),
         ];
