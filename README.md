@@ -71,6 +71,29 @@ included which shows all the collected problems.
 	],
 2. Implement the `ProblemProviderInterface` in the `Project\Model\ProjectTable` class. 
 
+## Twig form rendering
+
+`SionModel\Form\BootstrapFormRenderer` renders a `Laminas\Form` as Bootstrap 3 markup
+without a laminas-mvc view helper, and `SionModel\Twig\FormExtension` binds it to twelve
+Twig functions (`form_open`, `form_row`, `form_submit`, ...). Together they are what lets a
+Symfony-served -- or any non-MVC -- route render this package's forms.
+
+It is not "equivalent" markup: it emits the same bytes as
+`SionModel\Form\View\Helper\SionFormRow`, the TwbBundle-derived helper in this same
+package, because the CSS and the selectize/markdown JS bundles are written against that
+exact structure. The renderer's class docblock lists the details that are load-bearing.
+
+Wire it with any `callable(string): string` as the translator:
+
+```php
+$twig->addExtension(new SionModel\Twig\FormExtension(
+    new SionModel\Form\BootstrapFormRenderer($translate)
+));
+```
+
+Only the element types a ported form has needed are implemented; an unknown one throws
+rather than falling back to a text input.
+
 ## Coming soon
 
 * Integrated mailing support
