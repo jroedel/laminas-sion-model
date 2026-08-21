@@ -170,7 +170,11 @@ class PredicatesTable extends SionTable
     {
         static $usernames;
         if (! isset($usernames)) {
-            $usernames = $this->getUserTable()->getUsernames();
+            //Same unguarded dereference as SionTable::processChangeRow() had: the getter is
+            //documented to return null, so a host with no user directory fatalled on the
+            //comments list. A missing name renders blank, which is already what an
+            //unresolvable id does two lines below.
+            $usernames = $this->getUserDirectory()?->getUsernames() ?? [];
         }
         $reviewedBy = $this->filterDbId($row['ReviewedBy']);
         $createdBy = $this->filterDbId($row['CreatedBy']);
@@ -185,8 +189,16 @@ class PredicatesTable extends SionTable
             'createdOn'         => $this->filterDbDate($row['CreatedOn']),
             'createdBy'         => $createdBy,
 
-            'reviewedByUsername' => isset($usernames[$reviewedBy]) ? $usernames[$reviewedBy] : null,
-            'createdByUsername' => isset($usernames[$createdBy]) ? $usernames[$createdBy] : null,
+            //The `null !==` halves are not redundant with isset(): an unreviewed comment has
+            //a null ReviewedBy, and `isset($array[null])` is a deprecated null array offset
+            //in PHP 8.5 and an error in 9. Latent since this method was written — no test
+            //called getComments() until the one covering the directory seam did.
+            'reviewedByUsername' => null !== $reviewedBy && isset($usernames[$reviewedBy])
+                ? $usernames[$reviewedBy]
+                : null,
+            'createdByUsername' => null !== $createdBy && isset($usernames[$createdBy])
+                ? $usernames[$createdBy]
+                : null,
         ];
         return $data;
     }

@@ -13,7 +13,6 @@ use Laminas\Uri\Http;
 use Laminas\Db\Adapter\AdapterInterface;
 use SionModel\Problem\ProblemTable;
 use Laminas\Db\Sql\Where;
-use JUser\Model\UserTable;
 use Laminas\Stdlib\StringUtils;
 use SionModel\Problem\EntityProblem;
 use Laminas\Db\ResultSet\ResultSet;
@@ -28,6 +27,8 @@ use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Db\ResultSet\ResultSetInterface;
 use Matriphe\ISO639\ISO639;
 use SionModel\Service\ActingUserProviderInterface;
+use SionModel\Service\Adapter\CallableUserDirectory;
+use SionModel\Service\UserDirectoryInterface;
 use SionModel\Service\EntitiesService;
 use SionModel\Service\ProblemService;
 use Laminas\Db\Sql\Predicate\IsNull;
@@ -152,10 +153,34 @@ class SionTable
     protected $entityProblemPrototype;
 
     /**
-     * Resolved on first use by getUserTable(), never in the constructor.
-     * @var UserTable $userTable
+     * Resolved on first use by getUserDirectory(), never in the constructor.
+     * @var UserDirectoryInterface|null $userDirectory
      */
-    protected $userTable;
+    protected $userDirectory;
+
+    /**
+     * Container service id answering {@see UserDirectoryInterface}, or a plain object with
+     * `getUsers()` and `getUsernames()`, which {@see CallableUserDirectory} adapts.
+     *
+     * A **string**, from the `user_directory_service` config key, because naming the class
+     * is exactly what this indirection exists to stop doing: SionModel does not require the
+     * package that owns the default and must not name its types. Set it to null in a host
+     * that has no user directory — the two screens then render a blank column, which is what
+     * they already do for a user id nobody can resolve.
+     * @var string|null $userDirectoryServiceName
+     */
+    protected $userDirectoryServiceName = 'JUser\\Model\\UserTable';
+
+    /**
+     * Whether resolution has been attempted, so that "resolved to nothing" is remembered.
+     *
+     * Without this, `setUserDirectory(null)` would not stick — the getter tests the
+     * directory itself for null and would go back to the container on the very next call,
+     * which makes the setter useless for the one thing a host would use it for: saying
+     * this table has no directory.
+     * @var bool $userDirectoryResolved
+     */
+    protected $userDirectoryResolved = false;
 
     /**
      * Kept so optional collaborators can be resolved on first use instead of
@@ -262,6 +287,14 @@ class SionTable
         $this->changesTableName = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
 
+        //array_key_exists, not isset: null is a meaningful value here — it means "this host
+        //has no user directory", which is different from "this host said nothing" and must
+        //not fall back to the default.
+        if (array_key_exists('user_directory_service', $config)) {
+            $service = $config['user_directory_service'];
+            $this->userDirectoryServiceName = is_string($service) && '' !== $service ? $service : null;
+        }
+
         if (
             isset($config['privacy_hash_algorithm'])
             && in_array(strtolower((string) $config['privacy_hash_algorithm']), hash_algos(), true)
@@ -294,10 +327,10 @@ class SionTable
             $this->setLogger($logger);
         }
 
-        // The UserTable is NOT resolved here. Asking the container for it while a
+        // The user directory is NOT resolved here. Asking the container for it while a
         // SionTable is still being constructed is what closed the dependency cycle
         // that ocramius/proxy-manager's lazy proxies used to defer past. It is now
-        // resolved on first use in getUserTable(), by which point construction has
+        // resolved on first use in getUserDirectory(), by which point construction has
         // finished and the container can hand back a fully built instance.
 
         if (
@@ -1649,8 +1682,11 @@ class SionTable
         $user = null;
         if (isset($row['UpdatedBy']) && is_numeric($row['UpdatedBy'])) {
             if (! isset($users)) {
-                $userTable = $this->getUserTable();
-                $users = $userTable->getUsers();
+                //`?->` and `?? []`: getUserDirectory() is documented to return null and this
+                //line dereferenced it unguarded, so a host that registered no user directory
+                //fatalled on its own change log. Nothing here caught it because this
+                //application always registers one.
+                $users = $this->getUserDirectory()?->getUsers() ?? [];
             }
             if (isset($users[$row['UpdatedBy']])) {
                 $user = $users[$row['UpdatedBy']];
@@ -1784,43 +1820,110 @@ class SionTable
     }
 
     /**
-     * Resolves the UserTable from the container on first use.
+     * Resolves the user directory from the container on first use.
      *
      * Doing this lazily rather than in the constructor is what keeps SionTable out
-     * of dependency cycles: UserTable is itself a SionTable, and its construction
-     * reaches ProblemService and ProblemTable, so asking for it mid-construction
-     * can lead straight back to the half-built table that asked. By the time
-     * anything calls this getter, construction has finished and the container
-     * returns a complete instance.
+     * of dependency cycles: the host's user table is typically itself a SionTable,
+     * and its construction reaches ProblemService and ProblemTable, so asking for it
+     * mid-construction can lead straight back to the half-built table that asked. By
+     * the time anything calls this getter, construction has finished and the
+     * container returns a complete instance.
      *
-     * Returns null for UserTable itself (a table has no use for a handle on
-     * itself) and whenever the container has no UserTable registered — both of
-     * which match the behaviour of the previous constructor-time lookup.
+     * Returns null when the host named no service, when the container does not have
+     * it, and when the service resolves to **this very table** — the last of those is
+     * an identity check rather than an `instanceof`, which is the point: the old code
+     * spelled the same guard as `! $this instanceof UserTable` and that class name was
+     * the entire coupling between this package and JUser. A table has no use for a
+     * handle on itself, and asking the container for one mid-resolution is how the
+     * cycle used to close.
      *
-     * @return UserTable|null
+     * A service that does not implement {@see UserDirectoryInterface} but answers
+     * `getUsers()` and `getUsernames()` is wrapped in {@see CallableUserDirectory}, so
+     * a host needs no change to keep working.
      */
-    public function getUserTable()
+    public function getUserDirectory(): ?UserDirectoryInterface
     {
-        if (
-            null === $this->userTable &&
-            null !== $this->serviceLocator &&
-            ! $this instanceof UserTable &&
-            $this->serviceLocator->has(UserTable::class)
-        ) {
-            $this->userTable = $this->serviceLocator->get(UserTable::class);
+        if ($this->userDirectoryResolved) {
+            return $this->userDirectory;
         }
-        return $this->userTable;
+        //Set before the work, not after: every path below is a final answer, including the
+        //ones that answer null, and a second container lookup per call is what a flag
+        //spelled as "did we try" is for.
+        $this->userDirectoryResolved = true;
+
+        if (
+            null === $this->userDirectoryServiceName ||
+            null === $this->serviceLocator ||
+            ! $this->serviceLocator->has($this->userDirectoryServiceName)
+        ) {
+            return $this->userDirectory;
+        }
+
+        $service = $this->serviceLocator->get($this->userDirectoryServiceName);
+        if ($service === $this) {
+            //A table is never its own directory. Identity, not `instanceof`: the old code
+            //spelled this as `! $this instanceof UserTable` and that class name was the
+            //whole coupling between this package and JUser.
+            return $this->userDirectory;
+        }
+        if ($service instanceof UserDirectoryInterface) {
+            $this->userDirectory = $service;
+        } elseif (is_object($service)) {
+            $this->userDirectory = $this->adaptUserDirectory($service);
+        }
+        return $this->userDirectory;
     }
 
     /**
-     *
-     * @param UserTable $userTable
+     * @param UserDirectoryInterface|object|null $userDirectory
+     * @return self
+     */
+    public function setUserDirectory($userDirectory)
+    {
+        if (null === $userDirectory || $userDirectory instanceof UserDirectoryInterface) {
+            $this->userDirectory = $userDirectory;
+        } else {
+            $this->userDirectory = $this->adaptUserDirectory($userDirectory);
+        }
+        $this->userDirectoryResolved = true;
+        return $this;
+    }
+
+    /**
+     * Wraps a host object that answers `getUsers()`/`getUsernames()` without declaring
+     * the interface. A method this object does not have contributes an empty list rather
+     * than a fatal, for the same reason {@see CallableUserDirectory} tolerates a
+     * non-array answer: both consumers are display columns.
+     */
+    private function adaptUserDirectory(object $service): UserDirectoryInterface
+    {
+        return new CallableUserDirectory(
+            /** @return mixed */
+            static fn() => method_exists($service, 'getUsers') ? $service->getUsers() : [],
+            /** @return mixed */
+            static fn() => method_exists($service, 'getUsernames') ? $service->getUsernames() : []
+        );
+    }
+
+    /**
+     * @deprecated since the user-directory seam landed. Use {@see self::getUserDirectory()}.
+     *     Kept because it is public API and a consuming application may call it; it now
+     *     answers a {@see UserDirectoryInterface} rather than a JUser type.
+     * @return UserDirectoryInterface|null
+     */
+    public function getUserTable()
+    {
+        return $this->getUserDirectory();
+    }
+
+    /**
+     * @deprecated since the user-directory seam landed. Use {@see self::setUserDirectory()}.
+     * @param object|null $userTable
      * @return self
      */
     public function setUserTable($userTable)
     {
-        $this->userTable = $userTable;
-        return $this;
+        return $this->setUserDirectory($userTable);
     }
 
     /**
