@@ -32,6 +32,20 @@ return [
          */
         'changes_table' => 'project_changes',
         /**
+         * Container service id of the user directory: what puts a name on "who changed
+         * this" in the change log and "who wrote this" in the comments list.
+         *
+         * A **string**, not a class constant, because SionModel does not require the
+         * package that owns the default and must not name its types. The service may
+         * implement SionModel\Service\UserDirectoryInterface, or simply answer
+         * getUsers() and getUsernames(), in which case it is adapted automatically.
+         *
+         * Defaults to 'JUser\Model\UserTable'. Set it to null in an application that has
+         * no user directory: both screens then render a blank name column, which is
+         * already what they do for a user id nobody can resolve.
+         */
+        'user_directory_service' => 'JUser\Model\UserTable',
+        /**
          * This is the service name of a SionTable instance to call the getChanges() method if changes_show_all not set
          */
         'changes_model' => 'Project\Model\ProjectTable',

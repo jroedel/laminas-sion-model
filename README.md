@@ -71,6 +71,31 @@ included which shows all the collected problems.
 	],
 2. Implement the `ProblemProviderInterface` in the `Project\Model\ProjectTable` class. 
 
+## Attributing changes and comments to a user
+
+Two screens name a person: the change log renders "who changed this", the comments list
+renders "who wrote this". Both go through `SionModel\Service\UserDirectoryInterface`,
+resolved from the container by the **service id** in the `user_directory_service` config
+key (`dist/sionmodel.global.php` documents it).
+
+It is a string rather than a class constant on purpose. Until 2026-08-22 `SionTable`
+carried `use JUser\Model\UserTable`, naming a type from a package this one does not
+require -- an undeclared dependency, and a cycle, since that class extends `SionTable`.
+Both call sites also dereferenced the getter without a guard while its own docblock
+documented a null return, so a host that registered no user table fatalled on its own
+change log. Neither showed up here, because this application always registers one.
+
+A service that implements the interface is used directly. One that merely answers
+`getUsers()` and `getUsernames()` -- which is what a JUser `UserTable` does -- is wrapped
+in `SionModel\Service\Adapter\CallableUserDirectory` automatically, so **no consuming
+application has to change anything**. Set the key to `null` if there is no user directory:
+both screens then render a blank name, which is already what they do for a user id nobody
+can resolve.
+
+`getUserTable()` and `setUserTable()` remain as deprecated shims over
+`getUserDirectory()`/`setUserDirectory()`, because they are public API and a consuming
+application may still call them.
+
 ## Twig form rendering
 
 `SionModel\Form\BootstrapFormRenderer` renders a `Laminas\Form` as Bootstrap 3 markup
