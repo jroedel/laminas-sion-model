@@ -15,6 +15,9 @@
         "monolog/monolog": "^3.0",
         "psr/log": "^3.0",
         "matriphe/iso-639": "^1.2",
+        "twig/twig": "^3.0",
+        "laminas/laminas-form": "^3.24",
+        "laminas/laminas-escaper": "^2.18",
         "ext-intl": "*"
     },
     "license": "MIT",
