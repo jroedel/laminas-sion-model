@@ -1,0 +1,19 @@
+# Line endings. Every text file is LF in the repository and LF in the working
+# tree, on every platform. `text=auto` still lets git detect binary content and
+# leave it alone; the explicit `-text` entries are belt-and-braces for formats
+# where a single converted byte corrupts the file.
+#
+# Added 2026-08-21, together with the same file in the consuming application and
+# the two sibling modules. Measure with `git ls-files --eol` rather than grepping
+# for a carriage return.
+* text=auto eol=lf
+
+*.phar  -text
+*.png   -text
+*.jpg   -text
+*.ico   -text
+*.eot   -text
+*.otf   -text
+*.ttf   -text
+*.woff  -text
+*.woff2 -text
