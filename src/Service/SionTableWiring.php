@@ -7,6 +7,7 @@ namespace SionModel\Service;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use SionModel\Cache\CacheFlushQueue;
+use SionModel\Cache\EntityChangeListeners;
 use SionModel\Db\Model\SionTable;
 
 /**
@@ -18,9 +19,9 @@ use SionModel\Db\Model\SionTable;
  * class is not.** Everything here is framework-shaped, and none of it is reachable from
  * `SionTable` any more.
  *
- * Three things get wired, all of them genuinely optional — a table with none of them reads
- * and writes correctly, it just caches nothing, logs nothing, and renders a blank name in
- * the two columns that name a user:
+ * Four things get wired, all of them genuinely optional — a table with none of them reads
+ * and writes correctly, it just caches nothing, logs nothing, tells nobody when it
+ * invalidates, and renders a blank name in the two columns that name a user:
  *
  * 1. the persistent cache, and with it the flush point that drains its write queue at the
  *    end of the request — a {@see CacheFlushQueue} the host registered, or failing that a
@@ -28,7 +29,9 @@ use SionModel\Db\Model\SionTable;
  *    one laminas-mvc reach inside the data layer, and it is now here instead;
  * 2. the logger;
  * 3. the user directory — as a **resolver**, never resolved here. See
- *    {@see self::wireUserDirectory()}.
+ *    {@see self::wireUserDirectory()};
+ * 4. the host's {@see EntityChangeListeners}, told whenever this table invalidates an
+ *    entity, for a host cache derived from entity data that has to expire with ours.
  */
 final class SionTableWiring
 {
@@ -41,6 +44,25 @@ final class SionTableWiring
         self::wireCache($container, $table);
         self::wireLogger($container, $table);
         self::wireUserDirectory($container, $table);
+        self::wireEntityChangeListeners($container, $table);
+    }
+
+    /**
+     * Whoever the host wants told when this table invalidates an entity.
+     *
+     * Wired outside {@see wireCache()} on purpose, and it is not a tidiness point: a
+     * listener is about *writes*, not about caching, so a host that configures no
+     * persistent cache still gets told. Registering nothing costs nothing — the table
+     * holds null and never calls out.
+     */
+    public static function wireEntityChangeListeners(ContainerInterface $container, SionTable $table): void
+    {
+        if (! $container->has(EntityChangeListeners::class)) {
+            return;
+        }
+        /** @var EntityChangeListeners $listeners */
+        $listeners = $container->get(EntityChangeListeners::class);
+        $table->setEntityChangeListeners($listeners);
     }
 
     /**

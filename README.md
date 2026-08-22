@@ -166,6 +166,36 @@ declared and populated for the benefit of `ProblemProviderInterface` implementor
 it. Those subclasses take it in their own constructors now, and the parent's
 `ProblemService` lookup and its `! $this instanceof ProblemTable` cycle guard went with it.
 
+### Telling the host when an entity changes
+
+`SionCacheTrait::removeDependentCacheItems()` is the one place every create, update and
+delete in every module passes through. A host that keeps its own cache derived from entity
+data can be told at that exact moment: implement
+`SionModel\Cache\EntityChangeListenerInterface`, register a
+`SionModel\Cache\EntityChangeListeners` in the container under its class name, and add the
+listener to it.
+
+```php
+$listeners = new EntityChangeListeners();
+$listeners->add(new MyAclCacheInvalidator($cache));
+$container->setService(EntityChangeListeners::class, $listeners);   // before any table is built
+```
+
+An ordinary shared service, unlike `CacheFlushQueue` — it accumulates no per-request state.
+A host that registers none pays nothing: the tables hold null and never call out.
+
+The listener runs **inside the write**, so keep it small and let it not throw: an exception
+there takes the write with it. It may be called more than once per request, and once per
+entity written, and it is told only that the entity's items were removed — not that the
+write that removed them went on to succeed.
+
+This exists because the alternative does not survive contact with a real application. The
+first version of the schoenstatt.link ACL cache was going to call `clear()` from each write
+path — four of them, in two repositories — and a path that forgets the call does not produce
+a stale page: `Laminas\Permissions\Acl\Acl::addRole()` throws on a parent role it has never
+heard of, so an ACL that missed a role creation is a 500 on every request by whoever was
+granted that role, until the item expires.
+
 ### What bounds a cache write
 
 One thing, and it is a size: `sion_model.max_cached_item_size` (bytes, 4 MiB by default,
