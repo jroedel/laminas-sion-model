@@ -26,9 +26,19 @@ class SionModelController extends AbstractActionController
 
     protected $services = [];
 
-    public function __construct($services)
+    /** @var array<string, mixed> the merged `sion_model` config block */
+    protected $sionModelConfig = [];
+
+    /**
+     * @param array<string, mixed> $sionModelConfig only cacheStatusAction() reads it, and
+     *        it arrives as an array rather than through $services because it is config
+     *        rather than a service — $services is keyed by service name and every other
+     *        entry in it is an object.
+     */
+    public function __construct($services, array $sionModelConfig = [])
     {
         $this->services = $services;
+        $this->sionModelConfig = $sionModelConfig;
     }
 
     public function clearPersistentCacheAction()
@@ -74,7 +84,7 @@ class SionModelController extends AbstractActionController
     {
         $this->assertApiKey();
 
-        return new JsonModel(CacheStatusPayload::build());
+        return new JsonModel(CacheStatusPayload::build($this->sionModelConfig));
     }
 
     /**
