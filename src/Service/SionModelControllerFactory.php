@@ -32,7 +32,7 @@ class SionModelControllerFactory implements FactoryInterface
             }
         }
 
-        $controller = new SionModelController($services);
+        $controller = new SionModelController($services, $sionModelConfig);
 
         return $controller;
     }

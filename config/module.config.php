@@ -201,7 +201,6 @@ return [
         ],
         'file_directory'            => 'data/files',
         'public_file_directory'     => 'public/files',
-        'max_items_to_cache'        => 2,
         /**
          * Bytes. A single persistent cache item bigger than this is skipped
          * rather than written. APCu clears its whole segment when an allocation

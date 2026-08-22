@@ -98,11 +98,6 @@ trait SionCacheTrait
     protected $onFinishWired = false;
 
     /**
-     * @var int $maxItemsToCache
-     */
-    protected $maxItemsToCache = 2;
-
-    /**
      * Maximum serialized size, in bytes, of a single persistent cache item.
      * Items above this are skipped instead of written; see
      * exceedsItemSizeBudget() for why an oversized write is worse than no
@@ -141,8 +136,17 @@ trait SionCacheTrait
      * The wiring moved out of SionTable's constructor on 2026-08-22, together with the
      * container it needed to reach the MVC `Application` for an event manager. That was the
      * only laminas-mvc reach inside the data layer, and it is a factory's business now.
+     *
+     * **The default priority is below Laminas\\Mvc\\SendResponseListener's -10000**, and that
+     * is the whole point of the number. Both listeners sit on `MvcEvent::EVENT_FINISH`, so a
+     * higher priority means the cache is serialized and stored *before* the response is sent
+     * and the visitor waits for it — measured at ~17 ms on the heaviest page here. The
+     * Symfony host has always had this right, because `kernel.terminate` runs after the
+     * response by definition; this is the laminas half catching up, and it is what makes an
+     * unbounded write queue cost a visitor nothing on either front controller. Anything that
+     * passes an explicit priority here should stay below -10000 for the same reason.
      */
-    public function wireOnFinishTrigger(EventManagerInterface $em, $priority = 100)
+    public function wireOnFinishTrigger(EventManagerInterface $em, $priority = -11000)
     {
         if ($this->onFinishWired) {
             return;
@@ -480,25 +484,6 @@ trait SionCacheTrait
         }
     }
 
-    /**
-     * Get the maxItemsToCache value
-     * @return int
-     */
-    public function getMaxItemsToCache()
-    {
-        return $this->maxItemsToCache;
-    }
-
-    /**
-     *
-     * @param int $maxItemsToCache
-     * @return self
-     */
-    public function setMaxItemsToCache($maxItemsToCache)
-    {
-        $this->maxItemsToCache = $maxItemsToCache;
-        return $this;
-    }
 
     /**
      * Get the maxItemSize value in bytes
@@ -607,27 +592,46 @@ trait SionCacheTrait
     }
 
     /**
-     * At the end of the page load, cache any uncached items up to max_number_of_items_to_cache.
-     * This is because serializing big objects can be very memory expensive.
+     * At the end of the page load, write out every item this request queued.
      *
-     * Anything skipped here is logged. A queue that silently drops its tail
-     * reads afterwards as "everything was cached", and the difference matters:
-     * an item that never reaches the persistent cache is re-queried on every
-     * request forever.
+     * Deferred rather than written at `cacheEntityObjects()` time because
+     * serializing a large result set mid-render charges the visitor for it. By the
+     * time this runs the response is already sent — `kernel.terminate` on the
+     * Symfony host, and priority -11000 on `MvcEvent::EVENT_FINISH`, i.e. below
+     * SendResponseListener, on the laminas one — so what it costs, it costs nobody.
      *
-     * Calling this twice in one request writes nothing the second time: the
-     * queue is taken before the loop, not after it. That matters now that the
-     * call can arrive from two places — `MvcEvent::EVENT_FINISH` on a bridged
-     * request and {@see \SionModel\Cache\CacheFlushQueue} on a Symfony-served
-     * one — and it is the same property `$onFinishWired` protects on the event
-     * side. Note it also means the per-request `max_items_to_cache` budget is
-     * spent once and not renewed: the items a first pass refused on budget are
-     * dropped, not held over for a second pass that would defeat the budget.
+     * ## There used to be a count budget here, and it was the wrong shape
+     *
+     * `max_items_to_cache` wrote at most N items per table per request and dropped
+     * the rest, on the theory that the survivors would trickle in over subsequent
+     * page loads. It was introduced to stop the flush exhausting `memory_limit`,
+     * and it did not bound memory: it bounded *count*, while the thing that
+     * exhausted memory was the *size* of individual items (the historical
+     * offenders serialized to 29.2 and 45.7 MiB). {@see exceedsItemSizeBudget()}
+     * bounds that directly and has since 2026-08.
+     *
+     * The trickle did work, and the measurement is why the budget is gone anyway.
+     * Warming eight pages against production-scale data, at N=1 versus unbounded:
+     * both end at the same 16 items and the same 8.22 MiB of segment, but N=1 takes
+     * five passes to get there against one, and the whole unbounded flush costs
+     * 36 ms across the pass — 17 ms in its heaviest single request, peaking at 1.29
+     * MiB of PHP memory against a 512 MB limit. What the budget bought was not
+     * memory; it was four extra passes of cold requests (home: 67.8 ms wall / 49.6
+     * ms query at N=1, against 16.4 / 0.5 unbounded).
+     *
+     * And on a table written often it never converged at all — invalidation
+     * outpaced a one-item-per-request refill, which is how one key
+     * (`jusermodelusertable-usernames`) accounted for 23,107 of 25,394 logged
+     * skips: re-queried forever, while logging that it meant to do better.
+     *
+     * Calling this twice in one request writes nothing the second time: the queue is
+     * taken before the loop, not after it. That matters because the call can arrive
+     * from two places — `MvcEvent::EVENT_FINISH` on a bridged request and
+     * {@see \SionModel\Cache\CacheFlushQueue} on a Symfony-served one — and it is
+     * the same property `$onFinishWired` protects on the event side.
      */
     public function onFinishWriteCache()
     {
-        $maxObjects = $this->getMaxItemsToCache();
-        $count = 0;
         if (! is_object($this->persistentCache)) {
             return;
         }
@@ -636,12 +640,7 @@ trait SionCacheTrait
         //One read for the whole queue: nothing between here and the last write
         //can invalidate, because invalidation happens in other requests.
         $generation = $this->currentGeneration();
-        $overBudget = [];
         foreach ($queue as $fullyQualifiedCacheKey) {
-            if ($count >= $maxObjects) {
-                $overBudget[] = $fullyQualifiedCacheKey;
-                continue;
-            }
             if (! key_exists($fullyQualifiedCacheKey, $this->memoryCache)) {
                 continue;
             }
@@ -659,8 +658,6 @@ trait SionCacheTrait
                 }
                 continue;
             }
-            //an item we refuse on size never occupied a slot, so it doesn't
-            //cost the items queued behind it their chance to be written
             if ($this->exceedsItemSizeBudget($fullyQualifiedCacheKey, $this->memoryCache[$fullyQualifiedCacheKey])) {
                 continue;
             }
@@ -706,13 +703,6 @@ trait SionCacheTrait
                     'memorySpike' => $memorySpike . " MiB",
                 ]);
             }
-            $count++;
-        }
-        if (! empty($overBudget) && isset($this->logger)) {
-            $this->logger->info("Cache writes skipped: max_items_to_cache reached.", [
-                'maxItemsToCache' => $maxObjects,
-                'skipped' => $overBudget,
-            ]);
         }
     }
 

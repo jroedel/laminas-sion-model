@@ -264,12 +264,15 @@ class SionTable
         $this->changesTableName     = isset($config['changes_table']) ? $config['changes_table'] : null;
         $this->visitsTableName      = isset($config['visits_table']) ? $config['visits_table'] : null;
 
-        //Unconditional, where they used to sit inside the `has(PersistentCache)` branch.
+        //Unconditional, where it used to sit inside the `has(PersistentCache)` branch.
         //The cache is attached later now, and a budget that depended on the order two
-        //things happened in would be a trap: the numbers are just numbers.
-        if (isset($config['max_items_to_cache'])) {
-            $this->setMaxItemsToCache($config['max_items_to_cache']);
-        }
+        //things happened in would be a trap: the number is just a number.
+        //
+        //`max_items_to_cache` used to be read here too. It is retired, not renamed —
+        //see SionCacheTrait::onFinishWriteCache() for the measurement. A host whose
+        //config still names it is not broken, only ignored, which /sm/cache-status
+        //reports under `sionModel.retiredConfigKeys` so the leftover can be found
+        //without reading a gitignored file on a server.
         if (isset($config['max_cached_item_size'])) {
             $this->setMaxItemSize($config['max_cached_item_size']);
         }

@@ -102,7 +102,9 @@ memory and onto a queue, and `SionCacheTrait::onFinishWriteCache()` writes the q
 the end of the request. So the cache only works if something calls that method, and
 `SionTableWiring::wireFlushPoint()` picks one of two:
 
-- a listener on `MvcEvent::FINISH` — the default, and all a laminas host needs;
+- a listener on `MvcEvent::FINISH` at priority **-11000** — the default, and all a laminas
+  host needs. Below `SendResponseListener`'s -10000 deliberately, so the write happens after
+  the response has been sent rather than while the visitor waits for it;
 - **`SionModel\Cache\CacheFlushQueue`**, if the container holds one under that class name.
   Tables enrol themselves into it as they are built, and the host drains it from whatever
   its own end-of-request hook is.
@@ -134,8 +136,6 @@ Three things follow from the design:
 - **Do not register a queue in a console process.** An APCu segment belongs to the SAPI that
   created it, so anything a CLI run writes lands where no web request can read it.
 - `flush()` is safe to call twice: the write queue is drained by the pass that writes it.
-  Note this also means the per-request `max_items_to_cache` budget is spent once and not
-  renewed.
 
 **This is a breaking change (2026-08-22).** The old signature was
 `(AdapterInterface, $serviceLocator, ?ActingUserProviderInterface)` and the constructor
@@ -165,6 +165,29 @@ is the worked example; it was doing a full ICU pass over five locales.
 declared and populated for the benefit of `ProblemProviderInterface` implementors that clone
 it. Those subclasses take it in their own constructors now, and the parent's
 `ProblemService` lookup and its `! $this instanceof ProblemTable` cycle guard went with it.
+
+### What bounds a cache write
+
+One thing, and it is a size: `sion_model.max_cached_item_size` (bytes, 4 MiB by default,
+`0` disables). An item whose serialized form exceeds it is refused and logged, because APCu
+with `apc.ttl=0` clears its *whole* segment when an allocation fails — so one oversized
+write costs every other cached item on the host.
+
+**`sion_model.max_items_to_cache` is retired as of 2026-08-22.** It capped how many items a
+table wrote per request, and it was introduced to stop the flush exhausting `memory_limit`
+— but it bounded count while the thing that exhausted memory was the size of individual
+items. Measured on schoenstatt.link, warming eight pages against production-scale data:
+`1` and unbounded both end at the same 16 items and the same 8.22 MiB of segment, but the
+cap takes five passes to get there instead of one, and the entire unbounded flush costs
+36 ms across the pass, peaking at 1.29 MiB of PHP memory. On a frequently-written table it
+never converged at all — invalidation outran a one-item-per-request refill, and a single
+key accounted for 23,107 of 25,394 logged skips.
+
+The key is ignored, not renamed. A host that still sets it sees it listed under
+`sionModel.retiredConfigKeys` in `/sm/cache-status`, which is also where
+`sionModel.maxCachedItemSize` reports the bound now in force — both readable over HTTP with
+the maintenance key, because on most hosts `local.php` is gitignored and there is otherwise
+no way to see what a server is actually configured with.
 
 ## Attributing changes and comments to a user
 
