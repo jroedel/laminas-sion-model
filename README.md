@@ -71,6 +71,59 @@ included which shows all the collected problems.
 	],
 2. Implement the `ProblemProviderInterface` in the `Project\Model\ProjectTable` class. 
 
+## Building a SionTable
+
+`SionTable::__construct()` takes **four arguments and no container**:
+
+```php
+public function __construct(
+    AdapterInterface $dbAdapter,
+    EntitiesService $entities,
+    array $config,                                  // the ['sion_model'] config
+    ?ActingUserProviderInterface $actingUserProvider,
+)
+```
+
+Three optional collaborators are attached afterwards, by the factory, and
+`SionModel\Service\SionTableWiring` does all three from a container in one call:
+
+```php
+$table = new BookTable($adapter, $entities, $sionModelConfig, $actingUserProvider);
+SionTableWiring::apply($container, $table);
+```
+
+That covers the persistent cache and its `MvcEvent::FINISH` flush listener, the logger, and
+the user-directory resolver.
+
+**This is a breaking change (2026-08-22).** The old signature was
+`(AdapterInterface, $serviceLocator, ?ActingUserProviderInterface)` and the constructor
+pulled six services out of that container. A consuming application updating past this gets a
+`TypeError` at construction, per factory, naming the class — which is deliberate: a silent
+half-wired table is the failure mode worth avoiding.
+
+Three things a host should know while converting.
+
+**A data class no longer reaches laminas-mvc.** The only reason the constructor wanted the
+cache was to then resolve `Application` for its event manager. That lookup lives in
+`SionTableWiring` now — a factory is allowed to know about the ServiceManager and the MVC
+application; the table is not.
+
+**A missed `SionTableWiring::apply()` is silent.** The table reads and writes perfectly and
+merely never caches. If your application has an integration suite, sweep every table named
+by a `sion_model_class` entity spec and assert `getPersistentCache()` is not null; the
+schoenstatt.link suite does exactly that in `SionTableWiringCompletenessTest`.
+
+**Do not do cache work in a subclass constructor.** The cache is attached *after*
+construction now, so a constructor-time `fetchCachedEntityObjects()` misses every time and
+the matching write is discarded — no error, just work repeated on every build of the table.
+Move it to a lazy getter. `Schoenstatt\Model\SchoenstattTable::getCountryNameTranslations()`
+is the worked example; it was doing a full ICU pass over five locales.
+
+**`$entityProblemPrototype` is gone from `SionTable`.** Nothing in the class read it — it was
+declared and populated for the benefit of `ProblemProviderInterface` implementors that clone
+it. Those subclasses take it in their own constructors now, and the parent's
+`ProblemService` lookup and its `! $this instanceof ProblemTable` cycle guard went with it.
+
 ## Attributing changes and comments to a user
 
 Two screens name a person: the change log renders "who changed this", the comments list

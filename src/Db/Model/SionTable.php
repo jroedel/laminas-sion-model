@@ -11,10 +11,8 @@ use SionModel\Entity\Entity;
 use Laminas\Db\TableGateway\TableGatewayInterface;
 use Laminas\Uri\Http;
 use Laminas\Db\Adapter\AdapterInterface;
-use SionModel\Problem\ProblemTable;
 use Laminas\Db\Sql\Where;
 use Laminas\Stdlib\StringUtils;
-use SionModel\Problem\EntityProblem;
 use Laminas\Db\ResultSet\ResultSet;
 use Laminas\Db\Sql\Select;
 use Laminas\Db\Sql\Expression;
@@ -23,14 +21,12 @@ use Laminas\Db\Sql\Predicate\In;
 use Laminas\Db\Sql\Predicate\Operator;
 use Laminas\Db\Sql\Predicate\PredicateInterface;
 use Laminas\Db\Sql\Predicate\PredicateSet;
-use Laminas\ServiceManager\ServiceLocatorInterface;
 use Laminas\Db\ResultSet\ResultSetInterface;
 use Matriphe\ISO639\ISO639;
 use SionModel\Service\ActingUserProviderInterface;
 use SionModel\Service\Adapter\CallableUserDirectory;
 use SionModel\Service\UserDirectoryInterface;
 use SionModel\Service\EntitiesService;
-use SionModel\Service\ProblemService;
 use Laminas\Db\Sql\Predicate\IsNull;
 use SionModel\I18n\LanguageSupport;
 use Psr\Log\LoggerAwareTrait;
@@ -147,29 +143,21 @@ class SionTable
     protected $actingUserIdOverride;
 
     /**
-     * A prototype of an EntityProblem to clone
-     * @var EntityProblem $entityProblemPrototype
-     */
-    protected $entityProblemPrototype;
-
-    /**
      * Resolved on first use by getUserDirectory(), never in the constructor.
      * @var UserDirectoryInterface|null $userDirectory
      */
     protected $userDirectory;
 
     /**
-     * Container service id answering {@see UserDirectoryInterface}, or a plain object with
-     * `getUsers()` and `getUsernames()`, which {@see CallableUserDirectory} adapts.
+     * Resolves the directory on first use, or null if the host wired none.
      *
-     * A **string**, from the `user_directory_service` config key, because naming the class
-     * is exactly what this indirection exists to stop doing: SionModel does not require the
-     * package that owns the default and must not name its types. Set it to null in a host
-     * that has no user directory — the two screens then render a blank column, which is what
-     * they already do for a user id nobody can resolve.
-     * @var string|null $userDirectoryServiceName
+     * A **closure, not a container**, and lazily invoked for the same reason the container
+     * lookup was lazy before it: the host's user table is typically itself a SionTable, so
+     * resolving it while another table is still being constructed is how the dependency
+     * cycle closes. By the time anything asks for a name, construction has finished.
+     * @var (callable(): mixed)|null $userDirectoryResolver
      */
-    protected $userDirectoryServiceName = 'JUser\\Model\\UserTable';
+    protected $userDirectoryResolver;
 
     /**
      * Whether resolution has been attempted, so that "resolved to nothing" is remembered.
@@ -181,15 +169,6 @@ class SionTable
      * @var bool $userDirectoryResolved
      */
     protected $userDirectoryResolved = false;
-
-    /**
-     * Kept so optional collaborators can be resolved on first use instead of
-     * during construction. Eager service location in a constructor is what
-     * produced the UserTable/ProblemService/ProblemTable/AuthService cycle that
-     * only ocramius/proxy-manager's lazy proxies were hiding.
-     * @var ServiceLocatorInterface $serviceLocator
-     */
-    protected $serviceLocator;
 
     /**
      * Class to get language information
@@ -248,51 +227,51 @@ class SionTable
     public const ENTITY_ACTION_SUGGEST = 'entity-action-suggest';
 
     /**
+     * Everything this table cannot work without, and nothing else.
      *
-     * @param AdapterInterface $dbAdapter
-     * @param ServiceLocatorInterface $serviceLocator
-     * @param ActingUserProviderInterface|null $actingUserProvider
+     * **The container used to be the second parameter**, and the constructor pulled six
+     * services out of it: the entities service, the config, the persistent cache, the
+     * `Application` (for its event manager), the logger and the problem service. Two of
+     * those had no business being here at all — reaching `Application` is laminas-mvc,
+     * from a data class, and it is the only reason the cache was resolved during
+     * construction.
+     *
+     * What is optional is now wired by the factory after construction:
+     * {@see SionCacheTrait::setPersistentCache()} plus
+     * {@see SionCacheTrait::wireOnFinishTrigger()}, {@see self::setLogger()} and
+     * {@see self::setUserDirectoryResolver()}. `SionModel\Service\SionTableWiring` does
+     * all three from a container in one call, so a factory is one line longer, not twelve.
+     * A factory is allowed to know about laminas-mvc and the ServiceManager; this class
+     * is not, and no longer does.
+     *
+     * `$entityProblemPrototype` is gone from this class entirely. Nothing here read it —
+     * it was declared and populated for the benefit of the two
+     * {@see \SionModel\Problem\ProblemProviderInterface} implementors that clone it, and
+     * it now reaches them through their own constructors. That took the `ProblemService`
+     * lookup and the `! $this instanceof ProblemTable` cycle guard out with it.
      */
-    public function __construct(AdapterInterface $dbAdapter, $serviceLocator, ?ActingUserProviderInterface $actingUserProvider)
-    {
-        $this->serviceLocator = $serviceLocator;
-
-        /**
-         * @var EntitiesService $entities
-         */
-        $entities = $serviceLocator->get(EntitiesService::class);
-
-        $config = $serviceLocator->get('SionModel\Config');
-
-        //setup cache
-        if ($serviceLocator->has('SionModel\PersistentCache')) {
-            $this->setPersistentCache($serviceLocator->get('SionModel\PersistentCache'));
-
-            //setup listener for onFinish, so move objects to persistent storage
-            $em = $serviceLocator->get('Application')->getEventManager();
-            $this->wireOnFinishTrigger($em);
-            if (isset($config['max_items_to_cache'])) {
-                $this->setMaxItemsToCache($config['max_items_to_cache']);
-            }
-            if (isset($config['max_cached_item_size'])) {
-                $this->setMaxItemSize($config['max_cached_item_size']);
-            }
-        }
-
+    public function __construct(
+        AdapterInterface $dbAdapter,
+        EntitiesService $entities,
+        array $config,
+        ?ActingUserProviderInterface $actingUserProvider
+    ) {
         //laminas-db 2.22 refuses a TableGateway with an empty table name, so
         //the old generic '' gateway is gone; raw queries go through the adapter
-        $this->adapter          = $dbAdapter;
+        $this->adapter              = $dbAdapter;
         $this->entitySpecifications = $entities->getEntities();
-        $this->actingUserProvider = $actingUserProvider;
-        $this->changesTableName = isset($config['changes_table']) ? $config['changes_table'] : null;
-        $this->visitsTableName  = isset($config['visits_table']) ? $config['visits_table'] : null;
+        $this->actingUserProvider   = $actingUserProvider;
+        $this->changesTableName     = isset($config['changes_table']) ? $config['changes_table'] : null;
+        $this->visitsTableName      = isset($config['visits_table']) ? $config['visits_table'] : null;
 
-        //array_key_exists, not isset: null is a meaningful value here — it means "this host
-        //has no user directory", which is different from "this host said nothing" and must
-        //not fall back to the default.
-        if (array_key_exists('user_directory_service', $config)) {
-            $service = $config['user_directory_service'];
-            $this->userDirectoryServiceName = is_string($service) && '' !== $service ? $service : null;
+        //Unconditional, where they used to sit inside the `has(PersistentCache)` branch.
+        //The cache is attached later now, and a budget that depended on the order two
+        //things happened in would be a trap: the numbers are just numbers.
+        if (isset($config['max_items_to_cache'])) {
+            $this->setMaxItemsToCache($config['max_items_to_cache']);
+        }
+        if (isset($config['max_cached_item_size'])) {
+            $this->setMaxItemSize($config['max_cached_item_size']);
         }
 
         if (
@@ -307,42 +286,21 @@ class SionTable
         if (isset($config['privacy_hash_salt'])) {
             $this->privacyHashSalt = $config['privacy_hash_salt'];
         }
-        
-        if (isset($config['max_change_table_value_ttring_length']) 
+
+        if (
+            isset($config['max_change_table_value_ttring_length'])
             && is_int($config['max_change_table_value_string_length'])
         ) {
             $this->maxChangeTableValueStringLength = $config['max_change_table_value_string_length'];
         }
         //can be either string or null
-        if (array_key_exists('max_change_table_value_string_length_replacement_text', $config)
-            && (is_string($config['max_change_table_value_string_length_replacement_text']) 
+        if (
+            array_key_exists('max_change_table_value_string_length_replacement_text', $config)
+            && (is_string($config['max_change_table_value_string_length_replacement_text'])
                 || ! isset($config['max_change_table_value_string_length_replacement_text']))
         ) {
-            $this->maxChangeTableValueStringLengthReplacementText = 
+            $this->maxChangeTableValueStringLengthReplacementText =
                 $config['max_change_table_value_string_length_replacement_text'];
-        }
-
-        if ($serviceLocator->has('SionModel\Logger')) {
-            $logger = $serviceLocator->get('SionModel\Logger');
-            $this->setLogger($logger);
-        }
-
-        // The user directory is NOT resolved here. Asking the container for it while a
-        // SionTable is still being constructed is what closed the dependency cycle
-        // that ocramius/proxy-manager's lazy proxies used to defer past. It is now
-        // resolved on first use in getUserDirectory(), by which point construction has
-        // finished and the container can hand back a fully built instance.
-
-        if (
-            ! $this instanceof ProblemTable && // prevent circular dependency
-            isset($config['problem_specifications']) &&
-            ! empty($config['problem_specifications'])
-        ) {
-            /**
-             * @var ProblemService $problemService
-             */
-            $problemService = $serviceLocator->get(ProblemService::class);
-            $this->entityProblemPrototype = $problemService->getEntityProblemPrototype();
         }
     }
 
@@ -1822,20 +1780,16 @@ class SionTable
     /**
      * Resolves the user directory from the container on first use.
      *
-     * Doing this lazily rather than in the constructor is what keeps SionTable out
-     * of dependency cycles: the host's user table is typically itself a SionTable,
-     * and its construction reaches ProblemService and ProblemTable, so asking for it
-     * mid-construction can lead straight back to the half-built table that asked. By
-     * the time anything calls this getter, construction has finished and the
-     * container returns a complete instance.
+     * Invoking the resolver lazily rather than in the constructor is what keeps SionTable
+     * out of dependency cycles: the host's user table is typically itself a SionTable, so
+     * resolving it mid-construction can lead straight back to the half-built table that
+     * asked. By the time anything calls this getter, construction has finished.
      *
-     * Returns null when the host named no service, when the container does not have
-     * it, and when the service resolves to **this very table** — the last of those is
-     * an identity check rather than an `instanceof`, which is the point: the old code
-     * spelled the same guard as `! $this instanceof UserTable` and that class name was
-     * the entire coupling between this package and JUser. A table has no use for a
-     * handle on itself, and asking the container for one mid-resolution is how the
-     * cycle used to close.
+     * Returns null when the host wired no resolver, and when the resolver answers **this
+     * very table** — the second of those is an identity check rather than an `instanceof`,
+     * which is the point: the old code spelled the same guard as
+     * `! $this instanceof UserTable` and that class name was the entire coupling between
+     * this package and JUser. A table has no use for a handle on itself.
      *
      * A service that does not implement {@see UserDirectoryInterface} but answers
      * `getUsers()` and `getUsernames()` is wrapped in {@see CallableUserDirectory}, so
@@ -1851,15 +1805,11 @@ class SionTable
         //spelled as "did we try" is for.
         $this->userDirectoryResolved = true;
 
-        if (
-            null === $this->userDirectoryServiceName ||
-            null === $this->serviceLocator ||
-            ! $this->serviceLocator->has($this->userDirectoryServiceName)
-        ) {
+        if (null === $this->userDirectoryResolver) {
             return $this->userDirectory;
         }
 
-        $service = $this->serviceLocator->get($this->userDirectoryServiceName);
+        $service = ($this->userDirectoryResolver)();
         if ($service === $this) {
             //A table is never its own directory. Identity, not `instanceof`: the old code
             //spelled this as `! $this instanceof UserTable` and that class name was the
@@ -1872,6 +1822,25 @@ class SionTable
             $this->userDirectory = $this->adaptUserDirectory($service);
         }
         return $this->userDirectory;
+    }
+
+    /**
+     * Wires how the directory is found, without finding it yet.
+     *
+     * The one thing a host must not do here is resolve eagerly: the user table is itself a
+     * SionTable, so building it while another table is under construction reopens the cycle
+     * the lazy lookup has always existed to avoid. Hand over a closure and this class calls
+     * it once, on the first request for a name.
+     *
+     * @param (callable(): mixed)|null $resolver
+     * @return self
+     */
+    public function setUserDirectoryResolver(?callable $resolver)
+    {
+        $this->userDirectoryResolver = $resolver;
+        $this->userDirectory         = null;
+        $this->userDirectoryResolved = false;
+        return $this;
     }
 
     /**
