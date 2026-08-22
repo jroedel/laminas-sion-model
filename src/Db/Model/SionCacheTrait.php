@@ -133,10 +133,14 @@ trait SionCacheTrait
     /**
      * Attach the end-of-request cache writer.
      *
-     * Idempotent: SionTable's constructor wires this, and a factory that later
-     * swaps in its own namespaced cache (JUser does) used to wire it a second
-     * time, which is why every JUser cache key appeared twice in the log —
-     * "Writing cache" for the same key, back to back, once per listener.
+     * Idempotent: `SionModel\Service\SionTableWiring` wires this, and a factory that later
+     * swaps in its own namespaced cache (JUser does) used to wire it a second time, which is
+     * why every JUser cache key appeared twice in the log — "Writing cache" for the same key,
+     * back to back, once per listener.
+     *
+     * The wiring moved out of SionTable's constructor on 2026-08-22, together with the
+     * container it needed to reach the MVC `Application` for an event manager. That was the
+     * only laminas-mvc reach inside the data layer, and it is a factory's business now.
      */
     public function wireOnFinishTrigger(EventManagerInterface $em, $priority = 100)
     {

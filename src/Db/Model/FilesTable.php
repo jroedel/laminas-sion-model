@@ -4,6 +4,7 @@ namespace SionModel\Db\Model;
 
 use Laminas\Db\Adapter\AdapterInterface;
 use SionModel\Service\ActingUserProviderInterface;
+use SionModel\Service\EntitiesService;
 
 class FilesTable extends SionTable
 {
@@ -12,9 +13,23 @@ class FilesTable extends SionTable
     */
     protected $sionModelConfig;
 
-    public function __construct(AdapterInterface $dbAdapter, $serviceLocator, ?ActingUserProviderInterface $actingUserProvider, $sionModelConfig)
-    {
-        parent::__construct($dbAdapter, $serviceLocator, $actingUserProvider);
+    /**
+     * `$sionModelConfig` is the same array the parent receives, and passing it twice is
+     * deliberate rather than a slip: the parent reads a handful of keys off it and keeps
+     * none of them, while this class needs `files_directory` and `public_files_directory`
+     * later. Nothing here reaches a container.
+     *
+     * @param array<string, mixed> $config
+     * @param array<string, mixed> $sionModelConfig
+     */
+    public function __construct(
+        AdapterInterface $dbAdapter,
+        EntitiesService $entities,
+        array $config,
+        ?ActingUserProviderInterface $actingUserProvider,
+        $sionModelConfig
+    ) {
+        parent::__construct($dbAdapter, $entities, $config, $actingUserProvider);
         $this->sionModelConfig = $sionModelConfig;
     }
 
