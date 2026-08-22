@@ -98,6 +98,13 @@ trait SionCacheTrait
     protected $onFinishWired = false;
 
     /**
+     * Whoever the host wants told when this table invalidates an entity, or null.
+     *
+     * @var \SionModel\Cache\EntityChangeListeners|null $entityChangeListeners
+     */
+    protected $entityChangeListeners;
+
+    /**
      * Maximum serialized size, in bytes, of a single persistent cache item.
      * Items above this are skipped instead of written; see
      * exceedsItemSizeBudget() for why an oversized write is worse than no
@@ -408,7 +415,26 @@ trait SionCacheTrait
             ]);
         }
 
+        //Last, and inside the write: a host cache derived from this entity has to
+        //expire at the same moment ours does, and this is the one place every
+        //create, update and delete in every module passes through. See
+        //SionModel\Cache\EntityChangeListeners for why it is not four call sites
+        //in the writers instead.
+        if (isset($this->entityChangeListeners)) {
+            $this->entityChangeListeners->notify($entity);
+        }
+
         return true;
+    }
+
+    /**
+     * @param \SionModel\Cache\EntityChangeListeners $listeners
+     * @return self
+     */
+    public function setEntityChangeListeners($listeners)
+    {
+        $this->entityChangeListeners = $listeners;
+        return $this;
     }
 
     /**
