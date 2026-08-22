@@ -92,8 +92,50 @@ $table = new BookTable($adapter, $entities, $sionModelConfig, $actingUserProvide
 SionTableWiring::apply($container, $table);
 ```
 
-That covers the persistent cache and its `MvcEvent::FINISH` flush listener, the logger, and
-the user-directory resolver.
+That covers the persistent cache and its end-of-request flush point, the logger, and the
+user-directory resolver.
+
+### The end-of-request flush, and a Symfony host
+
+Nothing is written to the persistent cache at the moment it is cached: the item goes into
+memory and onto a queue, and `SionCacheTrait::onFinishWriteCache()` writes the queue out at
+the end of the request. So the cache only works if something calls that method, and
+`SionTableWiring::wireFlushPoint()` picks one of two:
+
+- a listener on `MvcEvent::FINISH` — the default, and all a laminas host needs;
+- **`SionModel\Cache\CacheFlushQueue`**, if the container holds one under that class name.
+  Tables enrol themselves into it as they are built, and the host drains it from whatever
+  its own end-of-request hook is.
+
+A host with no `MvcEvent::FINISH` — a Symfony front controller, say — **must register a
+queue or its persistent cache stores nothing**. That failure is completely silent: within
+the request that queued them, items are served back out of `$memoryCache`, so a queued item
+and a written one are indistinguishable to the code that queued them. Only the next request
+can tell, and it has no way to say so. On schoenstatt.link this went unnoticed for eleven
+days after its front-controller cutover, across 0 writes and 0 hits, because not booting
+laminas-mvc saved more per request than the cache had been returning and wall time went
+*down*.
+
+```php
+// once per request, in the host's kernel
+$queue = new CacheFlushQueue();
+$container->setService(CacheFlushQueue::class, $queue);   // before any table is built
+// ... and after the response has been sent:
+$queue->flush();
+```
+
+Three things follow from the design:
+
+- When a queue is present the MVC `Application` is deliberately **not** resolved.
+  `has('Application')` answers *true* under a Symfony front controller — laminas-mvc's
+  module config defines the service whether or not anything bootstraps it — so the
+  unconditional version built an MVC application per table per request for an event manager
+  whose event that request would never fire.
+- **Do not register a queue in a console process.** An APCu segment belongs to the SAPI that
+  created it, so anything a CLI run writes lands where no web request can read it.
+- `flush()` is safe to call twice: the write queue is drained by the pass that writes it.
+  Note this also means the per-request `max_items_to_cache` budget is spent once and not
+  renewed.
 
 **This is a breaking change (2026-08-22).** The old signature was
 `(AdapterInterface, $serviceLocator, ?ActingUserProviderInterface)` and the constructor
@@ -105,8 +147,8 @@ Three things a host should know while converting.
 
 **A data class no longer reaches laminas-mvc.** The only reason the constructor wanted the
 cache was to then resolve `Application` for its event manager. That lookup lives in
-`SionTableWiring` now — a factory is allowed to know about the ServiceManager and the MVC
-application; the table is not.
+`SionTableWiring` now, where a host can also replace it outright — a factory is allowed to
+know about the ServiceManager and the MVC application; the table is not.
 
 **A missed `SionTableWiring::apply()` is silent.** The table reads and writes perfectly and
 merely never caches. If your application has an integration suite, sweep every table named

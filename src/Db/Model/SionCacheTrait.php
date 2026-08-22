@@ -614,6 +614,15 @@ trait SionCacheTrait
      * reads afterwards as "everything was cached", and the difference matters:
      * an item that never reaches the persistent cache is re-queried on every
      * request forever.
+     *
+     * Calling this twice in one request writes nothing the second time: the
+     * queue is taken before the loop, not after it. That matters now that the
+     * call can arrive from two places — `MvcEvent::EVENT_FINISH` on a bridged
+     * request and {@see \SionModel\Cache\CacheFlushQueue} on a Symfony-served
+     * one — and it is the same property `$onFinishWired` protects on the event
+     * side. Note it also means the per-request `max_items_to_cache` budget is
+     * spent once and not renewed: the items a first pass refused on budget are
+     * dropped, not held over for a second pass that would defeat the budget.
      */
     public function onFinishWriteCache()
     {
@@ -622,11 +631,13 @@ trait SionCacheTrait
         if (! is_object($this->persistentCache)) {
             return;
         }
+        $queue = $this->newPersistentCacheItems;
+        $this->newPersistentCacheItems = [];
         //One read for the whole queue: nothing between here and the last write
         //can invalidate, because invalidation happens in other requests.
         $generation = $this->currentGeneration();
         $overBudget = [];
-        foreach ($this->newPersistentCacheItems as $fullyQualifiedCacheKey) {
+        foreach ($queue as $fullyQualifiedCacheKey) {
             if ($count >= $maxObjects) {
                 $overBudget[] = $fullyQualifiedCacheKey;
                 continue;

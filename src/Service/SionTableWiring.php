@@ -6,6 +6,7 @@ namespace SionModel\Service;
 
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
+use SionModel\Cache\CacheFlushQueue;
 use SionModel\Db\Model\SionTable;
 
 /**
@@ -21,9 +22,10 @@ use SionModel\Db\Model\SionTable;
  * and writes correctly, it just caches nothing, logs nothing, and renders a blank name in
  * the two columns that name a user:
  *
- * 1. the persistent cache, and with it the `MvcEvent::FINISH` listener that flushes the
- *    write queue. Resolving `Application` for its event manager was the one laminas-mvc
- *    reach inside the data layer, and it is now here instead;
+ * 1. the persistent cache, and with it the flush point that drains its write queue at the
+ *    end of the request — a {@see CacheFlushQueue} the host registered, or failing that a
+ *    `MvcEvent::FINISH` listener. Resolving `Application` for that event manager was the
+ *    one laminas-mvc reach inside the data layer, and it is now here instead;
  * 2. the logger;
  * 3. the user directory — as a **resolver**, never resolved here. See
  *    {@see self::wireUserDirectory()}.
@@ -42,12 +44,13 @@ final class SionTableWiring
     }
 
     /**
-     * The cache, plus the listener that writes the queue out at the end of the request.
+     * The cache, plus whatever will write the queue out at the end of the request.
      *
-     * Both or neither: a cache with no flush listener collects a write queue that nobody
-     * ever drains, which is not a cache at all. `wireOnFinishTrigger()` itself refuses a
-     * duplicate — a second attach used to mean two passes over the queue and every key
-     * appearing twice in the log.
+     * Both or neither: a cache with no flush point collects a write queue that nobody
+     * ever drains, which is not a cache at all — it is a per-request memoization that
+     * pays the bookkeeping cost of a cache and returns none of the benefit. That is
+     * exactly what a Symfony-served route had, silently, for eleven days; see
+     * {@see CacheFlushQueue}.
      */
     public static function wireCache(ContainerInterface $container, SionTable $table): void
     {
@@ -55,9 +58,34 @@ final class SionTableWiring
             return;
         }
         $table->setPersistentCache($container->get('SionModel\PersistentCache'));
+        self::wireFlushPoint($container, $table);
+    }
 
-        //`has()` because a console process has a ServiceManager but no MVC Application.
-        //Previously this was an unguarded get() inside the constructor.
+    /**
+     * Whatever calls `onFinishWriteCache()` for this host, and there are two.
+     *
+     * The queue wins when the host registered one, and then the MVC `Application` is
+     * deliberately **not** resolved: under a Symfony front controller `has('Application')`
+     * answers true — laminas-mvc's own module config defines the service whether or not
+     * anything ever bootstraps it — so the old code built an MVC application, took its
+     * event manager and attached a listener to an event that request would never fire.
+     * Every table, every ported request.
+     *
+     * `has()` on the fallback for the same reason it was always there: a console process
+     * has a ServiceManager but no MVC Application. A process with neither gets no flush
+     * point at all, which is correct — see {@see CacheFlushQueue} on why a CLI run must
+     * not write this cache.
+     */
+    public static function wireFlushPoint(ContainerInterface $container, SionTable $table): void
+    {
+        if ($container->has(CacheFlushQueue::class)) {
+            /** @var CacheFlushQueue $queue */
+            $queue = $container->get(CacheFlushQueue::class);
+            $queue->register($table);
+
+            return;
+        }
+
         if ($container->has('Application')) {
             $table->wireOnFinishTrigger($container->get('Application')->getEventManager());
         }
