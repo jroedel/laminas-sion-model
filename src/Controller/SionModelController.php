@@ -14,7 +14,6 @@ use Laminas\View\Model\ViewModel;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\Cache\Storage\FlushableInterface;
 use Laminas\View\Model\JsonModel;
-use BjyAuthorize\Exception\UnAuthorizedException;
 use SionModel\Cache\CacheStatusPayload;
 use SionModel\Service\ProblemService;
 use SionModel\Service\ChangesCollector;
@@ -146,7 +145,7 @@ class SionModelController extends AbstractActionController
      * Gate a maintenance endpoint behind the sion_model.api_keys config,
      * so deploy hooks can call it without a session.
      *
-     * @throws UnAuthorizedException
+     * @throws \RuntimeException
      */
     protected function assertApiKey()
     {

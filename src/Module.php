@@ -9,7 +9,6 @@
 namespace SionModel;
 
 use Laminas\Mvc\MvcEvent;
-use BjyAuthorize\Service\Authorize;
 use SionModel\Error\ErrorListener;
 use SionModel\Error\FatalErrorHandler;
 use SionModel\Mvc\CspListener;
@@ -27,13 +26,10 @@ class Module
     {
         $app = $e->getApplication();
         $sm = $app->getServiceManager();
-        // Add ACL information to the Navigation view helper
-        $authorize = $sm->get(Authorize::class);
-        $acl = $authorize->getAcl();
-        $role = $authorize->getIdentity();
-        //I think the following doesn't do anything: @todo check this
-        \Laminas\View\Helper\Navigation\AbstractHelper::setDefaultAcl($acl);
-        \Laminas\View\Helper\Navigation\AbstractHelper::setDefaultRole($role);
+        // (Removed 2026-09-09 with BjyAuthorize: this set the Navigation view helper's
+        // default ACL/role from BjyAuthorize's Authorize service. It runs only under
+        // laminas-mvc onBootstrap, its own author doubted it did anything, and authorization
+        // is now the host's concern via Host\AccessInterface.)
 
         $eventManager = $app->getEventManager();
         $strategy = $sm->get(CspListener::class);
