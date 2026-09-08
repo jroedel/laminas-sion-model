@@ -2,7 +2,6 @@
 
 namespace SionModel\Service;
 
-use SionModel\Problem\ProblemTable;
 use SionModel\Problem\ProblemProviderInterface;
 use SionModel\Problem\EntityProblem;
 use Laminas\Stdlib\ArrayUtils;
@@ -15,12 +14,6 @@ class ProblemService
      * @var ServiceLocatorInterface $serviceLocator
      */
     protected $serviceLocator;
-    /**
-     *
-     * @var ProblemTable
-     */
-    protected $problemTable;
-
     /**
      * An array of initialized services keyed by the service name.
      * Each array contains the following keys: serviceName(string), service(object), problems(array)
@@ -41,15 +34,18 @@ class ProblemService
     protected $entityProblemPrototype;
 
     /**
+     * `ProblemTable` was the second argument until 2026-09-08. It read `a_data_problems`,
+     * a table that does not exist in the schoenstatt.link database, and nothing in this
+     * class ever called it — it was stored and forgotten. It was also the reason the
+     * UserTable/ProblemService/ProblemTable/AuthService dependency cycle existed at all.
+     *
      * @param ServiceLocatorInterface $serviceLocator
-     * @param \SionModel\Problem\ProblemTable $problemTable
      * @param mixed[][] $problemProviders
      * @param EntityProblem $problemPrototype
      */
-    public function __construct(ServiceLocatorInterface $serviceLocator, $problemTable, $problemProviders, EntityProblem $entityProblemPrototype)
+    public function __construct(ServiceLocatorInterface $serviceLocator, $problemProviders, EntityProblem $entityProblemPrototype)
     {
         $this->serviceLocator = $serviceLocator;
-        $this->problemTable = $problemTable;
         foreach ($problemProviders as $serviceName) {
             $this->problemProviders[$serviceName] = [
                 'serviceName' => $serviceName,

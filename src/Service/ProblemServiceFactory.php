@@ -37,12 +37,7 @@ class ProblemServiceFactory implements FactoryInterface
 
         $problemPrototype = new EntityProblem($entities->getEntities(), $config['problem_specifications']);
 
-        /**
-         * @var ProblemTable $problemTable
-         */
-        $problemTable = $container->get('SionModel\Problem\ProblemTable');
-
-        $problemService = new ProblemService($container, $problemTable, $config['problem_providers'], $problemPrototype);
+        $problemService = new ProblemService($container, $config['problem_providers'], $problemPrototype);
 
         return $problemService;
     }

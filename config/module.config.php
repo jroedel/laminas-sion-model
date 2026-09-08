@@ -91,7 +91,6 @@ return [
             'SionModel\Config'              => Service\ConfigServiceFactory::class,
             Db\Model\FilesTable::class      => Service\FilesTableFactory::class,
             'SionModel\PersistentCache'     => Service\PersistentCacheFactory::class,
-            Problem\ProblemTable::class     => Service\ProblemTableFactory::class,
             Service\EntitiesService::class  => Service\EntitiesServiceFactory::class,
             Service\ProblemService::class   => Service\ProblemServiceFactory::class,
             Service\ChangesCollector::class => Service\ChangesCollectorFactory::class,
@@ -686,15 +685,6 @@ return [
                             'route'    => '/data-problems',
                             'defaults' => [
                                 'action'     => 'dataProblems',
-                            ],
-                        ],
-                    ],
-                    'auto-fix-data-problems' => [
-                        'type'    => Literal::class,
-                        'options' => [
-                            'route'    => '/auto-fix-data-problems',
-                            'defaults' => [
-                                'action'     => 'autoFixDataProblems',
                             ],
                         ],
                     ],
