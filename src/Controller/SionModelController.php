@@ -16,7 +16,6 @@ use Laminas\Cache\Storage\FlushableInterface;
 use Laminas\View\Model\JsonModel;
 use BjyAuthorize\Exception\UnAuthorizedException;
 use SionModel\Cache\CacheStatusPayload;
-use SionModel\Form\ConfirmForm;
 use SionModel\Service\ProblemService;
 use SionModel\Service\ChangesCollector;
 
@@ -101,36 +100,6 @@ class SionModelController extends AbstractActionController
         return new ViewModel([
             'problems' => $problems,
         ]);
-    }
-
-    /**
-     * Autofix data problems. User must accept the changes to be applied.
-     */
-    public function autoFixDataProblemsAction()
-    {
-        $simulate = true;
-
-        /** @var ProblemService $table */
-        $table = $this->services[ProblemService::class];
-
-        $form = new ConfirmForm();
-        $request = $this->getRequest();
-        if ($request->isPost()) {
-            $data = $request->getPost()->toArray();
-            $form->setData($data);
-            if ($form->isValid()) { //check the CSRF value
-                $simulate = false;
-            }
-        }
-        $problems = $table->autoFixProblems($simulate);
-
-        $view = new ViewModel([
-            'problems' => $problems,
-            'isSimulation' => $simulate,
-            'form' => $form,
-        ]);
-        $view->setTemplate('sion-model/sion-model/data-problems');
-        return $view;
     }
 
     /**
