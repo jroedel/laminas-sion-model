@@ -2,7 +2,6 @@
 
 namespace SionModel\Controller;
 
-use BjyAuthorize\Exception\UnAuthorizedException;
 use Laminas\Http\Header\HeaderInterface;
 use Laminas\Http\Request as HttpRequest;
 
@@ -18,14 +17,14 @@ trait MaintenanceKeyTrait
 {
     /**
      * @param array<int|string, mixed> $apiKeys The configured sion_model.api_keys
-     * @throws UnAuthorizedException When the caller presented no key, or one
-     *         that matches nothing configured.
+     * @throws \RuntimeException When the caller presented no key, or one that
+     *         matches nothing configured.
      */
     protected function assertApiKeyIn(array $apiKeys): void
     {
         $key = $this->getRequestApiKey();
         if (null === $key || '' === $key) {
-            throw new UnAuthorizedException();
+            throw new \RuntimeException('Unauthorized: missing or invalid maintenance key');
         }
         foreach ($apiKeys as $candidate) {
             //hash_equals rather than in_array: these are long-lived shared
@@ -35,7 +34,7 @@ trait MaintenanceKeyTrait
                 return;
             }
         }
-        throw new UnAuthorizedException();
+        throw new \RuntimeException('Unauthorized: missing or invalid maintenance key');
     }
 
     /**
