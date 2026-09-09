@@ -3,8 +3,6 @@
 namespace SionModel;
 
 use SionModel\Form\Element\Phone;
-use Laminas\Router\Http\Literal;
-use Laminas\Router\Http\Segment;
 
 return [
     /**
@@ -575,95 +573,6 @@ return [
                     'adminNotesUpdatedBy' => 'AdminNotesUpdatedBy',
                     'updatedOn' => 'UpdatedOn',
                     'updatedBy' => 'UpdatedBy',
-                ],
-            ],
-        ],
-    ],
-    'router' => [
-        'routes' => [
-            'comments' => [
-                'type'    => Literal::class,
-                'options' => [
-                    'route'    => '/comments',
-                    'defaults' => [
-                        'controller' => Controller\CommentController::class,
-                    ],
-                ],
-                'may_terminate' => false,
-                'child_routes' => [
-                    'create' => [
-                        'type'    => Segment::class,
-                        'options' => [
-                            'route'    => '/create/:entity/:entity_id[/:kind]',
-                            'defaults' => [
-                                'action' => 'create',
-                                'kind' => 'comment',
-                            ],
-                            'constraints' => [
-                                'entity_id' => '[0-9]{1,5}',
-                                'entity' => '[a-zA-Z_-]{1,25}',
-                                'kind' => '(comment|review|rating)',
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            'sion-model' => [
-                'type'    => Literal::class,
-                'options' => [
-                    'route'    => '/sm',
-                    'defaults' => [
-                        'controller' => Controller\SionModelController::class,
-                        'action'     => 'index',
-                    ],
-                ],
-                'may_terminate' => false,
-                'child_routes' => [
-                    'phpinfo' => [
-                        'type'    => Literal::class,
-                        'options' => [
-                            'route'    => '/phpinfo',
-                            'defaults' => [
-                                'action'     => 'phpinfo',
-                            ],
-                        ],
-                    ],
-                    'clear-persistent-cache' => [
-                        'type'    => Literal::class,
-                        'options' => [
-                            'route'    => '/clear-persistent-cache',
-                            'defaults' => [
-                                'action'     => 'clearPersistentCache',
-                            ],
-                        ],
-                    ],
-                    'cache-status' => [
-                        'type'    => Literal::class,
-                        'options' => [
-                            'route'    => '/cache-status',
-                            'defaults' => [
-                                'action'     => 'cacheStatus',
-                            ],
-                        ],
-                    ],
-                    'data-problems' => [
-                        'type'    => Literal::class,
-                        'options' => [
-                            'route'    => '/data-problems',
-                            'defaults' => [
-                                'action'     => 'dataProblems',
-                            ],
-                        ],
-                    ],
-                    'view-changes' => [
-                        'type'    => Literal::class,
-                        'options' => [
-                            'route'    => '/view-changes',
-                            'defaults' => [
-                                'action'     => 'viewChanges',
-                            ],
-                        ],
-                    ],
                 ],
             ],
         ],
