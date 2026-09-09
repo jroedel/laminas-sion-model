@@ -4,14 +4,20 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
+use Closure;
+use SionModel\View\Escape;
 
-class Address extends AbstractHelper
+class Address
 {
     public $defaultPlaceLineFormat = ':zip :cityState';
     public $placeLineCountryFormats = [];
 
-    public function __construct($config)
+    /**
+     * @param Closure(string): string|null $countryName the `countryName` view helper, injected
+     *        because this class no longer has a renderer to reach it through. A host that
+     *        supplies none renders the raw country code.
+     */
+    public function __construct($config, private readonly ?Closure $countryName = null)
     {
         if (isset($config['post_place_line_format'])) {
             $this->defaultPlaceLineFormat = $config['post_place_line_format'];
@@ -25,10 +31,10 @@ class Address extends AbstractHelper
     {
         $finalMarkup = '';
         if (isset($data['street1'])) {
-            $finalMarkup .= $this->view->escapeHtml($data['street1']) . '<br>';
+            $finalMarkup .= Escape::html((string) $data['street1']) . '<br>';
         }
         if (isset($data['street2'])) {
-            $finalMarkup .= $this->view->escapeHtml($data['street2']) . '<br>';
+            $finalMarkup .= Escape::html((string) $data['street2']) . '<br>';
         }
 
         if (isset($data['country']) && isset($this->placeLineCountryFormats[$data['country']])) {
@@ -38,9 +44,11 @@ class Address extends AbstractHelper
         }
         $placeLine = str_replace(':zip', isset($data['zip']) ? $data['zip'] : '', $placePattern);
         $placeLine = trim(str_replace(':cityState', isset($data['cityState']) ? $data['cityState'] : null, $placeLine));
-        $finalMarkup .= $this->view->escapeHtml($placeLine) . '<br>';
+        $finalMarkup .= Escape::html($placeLine) . '<br>';
         if (isset($data['country'])) {
-            $finalMarkup .= $this->view->countryName($data['country']) . '</p>';
+            $finalMarkup .= (null !== $this->countryName
+                ? ($this->countryName)($data['country'])
+                : $data['country']) . '</p>';
         }
         if (strlen($finalMarkup) > 0) {
             $finalMarkup = '<p>' . $finalMarkup . '</p>';
