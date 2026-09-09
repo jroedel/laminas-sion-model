@@ -23,6 +23,10 @@ return [
      * became plain classes on 2026-09: each takes its former `$this->view` collaborators as
      * injected closures, so a plugin manager cannot build one from a name alone. The host
      * constructs them — see App\Laminas\ViewHelpers in schoenstatt.link.
+     *
+     * Their laminas factories under src/Service went with them: a factory that resolves a
+     * helper from a plugin manager can no longer build these, and this library keeps no
+     * code for a laminas host.
      */
     'validators' => [
         'invokables' => [
