@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
-use Laminas\Escaper\Escaper;
+use SionModel\View\Escape;
 use Laminas\Form\Element\Checkbox;
 use Laminas\Form\Element\Csrf;
 use Laminas\Form\Element\Select;
@@ -65,7 +65,7 @@ use function trim;
  * - **`formHidden()` emits no `class`, but a hidden rendered through a row does.**
  *   On the association form, `associationId` goes through the first and the CSRF
  *   token through the second, so its two hidden inputs genuinely differ.
- * - **Escaping is laminas-escaper's**, not Twig's, so `&#x20;` and friends appear in
+ * - **Escaping is {@see \SionModel\View\Escape}**, not Twig's, so `&#x20;` and friends appear in
  *   attribute values exactly where the baseline has them.
  *
  * ## What it does not do
@@ -85,12 +85,9 @@ use function trim;
  */
 final class BootstrapFormRenderer
 {
-    private readonly Escaper $escaper;
-
     /** @param callable(string): string $translate */
     public function __construct(private readonly mixed $translate)
     {
-        $this->escaper = new Escaper('utf-8');
     }
 
     /**
@@ -132,7 +129,7 @@ final class BootstrapFormRenderer
          */
         $actionAttribute = '' === $action
             ? ''
-            : sprintf(' action="%s"', $this->escaper->escapeHtmlAttr($action));
+            : sprintf(' action="%s"', Escape::htmlAttr($action));
 
         /**
          * **`enctype` is emitted when the form declares one**, and no form did until the
@@ -142,17 +139,17 @@ final class BootstrapFormRenderer
          */
         $enctype          = $form->getAttribute('enctype');
         $enctypeAttribute = is_scalar($enctype) && '' !== (string) $enctype
-            ? sprintf(' enctype="%s"', $this->escaper->escapeHtmlAttr((string) $enctype))
+            ? sprintf(' enctype="%s"', Escape::htmlAttr((string) $enctype))
             : '';
 
         return sprintf(
             '<form method="%s" name="%s"%s%s class="%s" id="%s">',
-            $this->escaper->escapeHtmlAttr($method),
-            $this->escaper->escapeHtmlAttr($name),
+            Escape::htmlAttr($method),
+            Escape::htmlAttr($name),
             $actionAttribute,
             $enctypeAttribute,
-            $this->escaper->escapeHtmlAttr($class),
-            $this->escaper->escapeHtmlAttr($name)
+            Escape::htmlAttr($class),
+            Escape::htmlAttr($name)
         );
     }
 
@@ -276,7 +273,7 @@ final class BootstrapFormRenderer
 
         $translated = ($this->translate)((string) $text);
         if (strip_tags($translated) === $translated) {
-            $translated = $this->escaper->escapeHtml($translated);
+            $translated = Escape::html($translated);
         }
 
         return sprintf('<p class="help-block">%s</p>', $translated);
@@ -294,7 +291,7 @@ final class BootstrapFormRenderer
             return '';
         }
 
-        $text = $this->escaper->escapeHtml(($this->translate)($label));
+        $text = Escape::html(($this->translate)($label));
 
         if (! $withFor) {
             return '<label>' . $text . '</label>';
@@ -308,7 +305,7 @@ final class BootstrapFormRenderer
 
         return sprintf(
             '<label for="%s">%s</label>',
-            $this->escaper->escapeHtmlAttr($for),
+            Escape::htmlAttr($for),
             $text
         );
     }
@@ -447,7 +444,7 @@ final class BootstrapFormRenderer
         return sprintf(
             '<button %s>%s</button>',
             $this->attributeString($attributes),
-            $this->escaper->escapeHtml(($this->translate)($content))
+            Escape::html(($this->translate)($content))
         );
     }
 
@@ -521,7 +518,7 @@ final class BootstrapFormRenderer
         //exactly this, which is why the baseline's help blocks contain `&#039;` inside
         //otherwise untranslated English. Reversing it would change the bytes.
         return sprintf('<p class="help-block">%s</p>', ($this->translate)(
-            $this->escaper->escapeHtml((string) $text)
+            Escape::html((string) $text)
         ));
     }
 
@@ -551,7 +548,7 @@ final class BootstrapFormRenderer
             if (! is_scalar($message)) {
                 continue;
             }
-            $items .= '<li>' . $this->escaper->escapeHtml((string) $message) . '</li>';
+            $items .= '<li>' . Escape::html((string) $message) . '</li>';
         }
 
         return '' === $items ? '' : '<ul class="help-block">' . $items . '</ul>';
@@ -706,7 +703,7 @@ final class BootstrapFormRenderer
         return sprintf(
             '<textarea %s>%s</textarea>',
             $this->attributeString($attributes),
-            $this->escaper->escapeHtml(self::asString($element->getValue()))
+            Escape::html(self::asString($element->getValue()))
         );
     }
 
@@ -724,8 +721,8 @@ final class BootstrapFormRenderer
         if ($element->useHiddenElement()) {
             $markup .= sprintf(
                 '<input type="hidden" name="%s" value="%s">',
-                $this->escaper->escapeHtmlAttr($name),
-                $this->escaper->escapeHtmlAttr((string) $unchecked)
+                Escape::htmlAttr($name),
+                Escape::htmlAttr((string) $unchecked)
             );
         }
 
@@ -747,7 +744,7 @@ final class BootstrapFormRenderer
         return $markup . sprintf(
             '<label><input %s> %s</label>',
             $this->attributeString($attributes),
-            $this->escaper->escapeHtml(($this->translate)((string) $element->getLabel()))
+            Escape::html(($this->translate)((string) $element->getLabel()))
         );
     }
 
@@ -979,9 +976,9 @@ final class BootstrapFormRenderer
             }
             $options .= sprintf(
                 '<option value="%s"%s>%s</option>' . "\n",
-                $this->escaper->escapeHtmlAttr((string) $value),
+                Escape::htmlAttr((string) $value),
                 in_array((string) $value, $selectedValues, true) ? ' selected' : '',
-                $this->escaper->escapeHtml($translateOptions ? ($this->translate)((string) $label) : (string) $label)
+                Escape::html($translateOptions ? ($this->translate)((string) $label) : (string) $label)
             );
         }
 
@@ -1135,20 +1132,20 @@ final class BootstrapFormRenderer
         foreach ($attributes as $key => $value) {
             if (isset(self::BOOLEAN_ATTRIBUTES[$key])) {
                 if ($value) {
-                    $parts[] = $this->escaper->escapeHtmlAttr($key);
+                    $parts[] = Escape::htmlAttr($key);
                 }
                 continue;
             }
             if (is_bool($value)) {
                 if ($value) {
-                    $parts[] = $this->escaper->escapeHtmlAttr($key);
+                    $parts[] = Escape::htmlAttr($key);
                 }
                 continue;
             }
             $parts[] = sprintf(
                 '%s="%s"',
-                $this->escaper->escapeHtmlAttr($key),
-                $this->escaper->escapeHtmlAttr((string) $value)
+                Escape::htmlAttr($key),
+                Escape::htmlAttr((string) $value)
             );
         }
 
