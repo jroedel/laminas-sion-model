@@ -3,7 +3,6 @@ namespace SionModel\Mailing;
 
 use Laminas\I18n\Translator\TranslatorInterface;
 use Laminas\I18n\Translator\TranslatorAwareInterface;
-use Laminas\Math\Rand;
 use SionModel\Db\Model\SionTable;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
@@ -201,10 +200,23 @@ class Mailer implements TranslatorAwareInterface
         return (new CssToInlineStyles())->convert($body, $css);
     }
 
+    /**
+     * A tracking token for one message.
+     *
+     * `Laminas\Math\Rand::getString(24)` until 2026-09, and this reproduces exactly what
+     * that did with no character list: base64 of `ceil(length * 0.75)` random bytes, the
+     * padding stripped, cut to length. The alphabet therefore still includes `+` and `/`.
+     * That is kept rather than tidied because the tokens already in `mailings` were
+     * generated this way and the column is compared against them; nothing puts one in a
+     * URL, which is the only place those two characters would be a problem.
+     *
+     * @return string
+     */
     protected static function getNewTrackingToken()
     {
-        $token = Rand::getString(self::TOKEN_LENGTH, null, true);
-        return $token;
+        $bytes = random_bytes((int) ceil(self::TOKEN_LENGTH * 0.75));
+
+        return substr(rtrim(base64_encode($bytes), '='), 0, self::TOKEN_LENGTH);
     }
 
     /**
