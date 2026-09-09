@@ -13,6 +13,7 @@
         "symfony/console": "^7.0",
         "monolog/monolog": "^3.0",
         "psr/log": "^3.0",
+        "psr/simple-cache": "^1.0 || ^2.0 || ^3.0",
         "matriphe/iso-639": "^1.2",
         "twig/twig": "^3.0",
         "laminas/laminas-form": "^3.24",

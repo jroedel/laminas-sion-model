@@ -2,7 +2,7 @@
 
 namespace SionModel\Db\Model;
 
-use Laminas\Cache\Storage\StorageInterface;
+use SionModel\Cache\Storage;
 use Laminas\Filter\FilterChain;
 use Laminas\Filter\StringToLower;
 use Laminas\Filter\PregReplace;
@@ -59,7 +59,7 @@ use Laminas\Filter\PregReplace;
 trait SionCacheTrait
 {
     /**
-     * @var StorageInterface $cache
+     * @var Storage|null $persistentCache
      */
     protected $persistentCache;
 
@@ -535,7 +535,7 @@ trait SionCacheTrait
 
     /**
      * Get the cache value
-     * @return StorageInterface
+     * @return Storage|null
      */
     public function getPersistentCache()
     {
@@ -552,7 +552,7 @@ trait SionCacheTrait
      * first storage names keys that do not exist in the second, and keeping it
      * would let mayServe() vouch for items this instance can no longer reach.
      *
-     * @param StorageInterface $cache
+     * @param Storage|null $cache
      * @return self
      */
     public function setPersistentCache($cache)
