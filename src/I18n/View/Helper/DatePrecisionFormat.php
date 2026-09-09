@@ -4,7 +4,6 @@
 
 namespace SionModel\I18n\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
 
 use function class_exists;
 use function in_array;
@@ -42,7 +41,7 @@ use function in_array;
  * 15 June would render as 14 June for a viewer in New York — so the timezone has
  * to be the one the value was built in, not the viewer's.
  */
-class DatePrecisionFormat extends AbstractHelper
+class DatePrecisionFormat
 {
     public const YEAR  = 'year';
     public const MONTH = 'month';
