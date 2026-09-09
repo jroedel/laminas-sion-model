@@ -8,10 +8,6 @@ return [
         'application_log_path' => 'data/logs/application_{monthString}.log',
         'exceptions_log_path' => 'data/logs/exceptions_{monthString}.log',
         /**
-         * An AuthenticationServiceInterface instance to be fetched from service manager
-         */
-        'default_authentication_service' => 'zfcuser_auth_service',
-        /**
          * This PersonProvider will be used by the SuggestFormFactory if we have a multi-person user
          */
         'multi_person_user_person_provider' => 'Project\Model\MyPersonProvider',
