@@ -2,12 +2,39 @@
 
 namespace SionModel\View\Helper;
 
+use Closure;
 use InvalidArgumentException;
-use Laminas\View\Helper\AbstractHelper;
-use SionModel\Service\EntitiesService;
 use SionModel\Entity\Entity;
+use SionModel\Service\EntitiesService;
+use SionModel\View\Escape;
 
-class FormatEntity extends AbstractHelper
+/**
+ * An entity rendered as a flag, a name, a link and an edit pencil.
+ *
+ * A plain class since 2026-09. Everything it used to reach through `$this->view` — the
+ * renderer laminas-view handed to every AbstractHelper — is now injected: `flag`,
+ * `dateFormat`, `translate`, `url`, `editPencil`, `editPencilNew` and `isAllowed` as
+ * closures, `escapeHtml` as {@see Escape::html()}.
+ *
+ * ## Two dynamic lookups, made explicit
+ *
+ * The renderer allowed this class to fetch a helper *by name computed at runtime*, and it
+ * did so twice. Both are now declared:
+ *
+ *  - `$this->view->$viewHelperName(...)`, the deferral to whatever helper an entity spec
+ *    names in `formatViewHelper`, becomes the `$formatHelpers` map. In this application
+ *    that map has exactly one entry, `publication` -> `formatPublication`;
+ *  - `$this->view->plugin('isAllowed')` becomes the `$isAllowed` closure. It was wrapped
+ *    in a try/catch whose comment reads "if we don't have the isAllowed plugin, just
+ *    allow" — a null closure is that same state, said out loud.
+ *
+ * ## The translate closure must be the helper, not a translator
+ *
+ * `$name` is looked up with no text domain, so what answers has to be the object the host
+ * sets the request's domain on. A raw translator would look in `default`, miss, and return
+ * the English source in every locale — invisible in English and wrong in the other four.
+ */
+class FormatEntity
 {
     /**
      * @var Entity[] $entities
@@ -20,10 +47,34 @@ class FormatEntity extends AbstractHelper
     protected $routePermissionCheckingEnabled = false;
 
     /**
+     * Every closure is optional and every one of them degrades to the safest reading of
+     * the original: no flag, no link, no pencil, untranslated source text. A host that
+     * supplies none still renders a name.
+     *
      * @param EntitiesService $entityService
+     * @param bool $routePermissionCheckingEnabled
+     * @param Closure(string): string|null $flag
+     * @param Closure(mixed, int, int): (string|false)|null $dateFormat
+     * @param Closure(string): string|null $translate the shared `translate` view helper
+     * @param Closure(string, array): string|null $url
+     * @param Closure(string, mixed): string|null $editPencil
+     * @param Closure(string, array): string|null $editPencilNew
+     * @param Closure(?string, ?string): bool|null $isAllowed
+     * @param array<string, Closure> $formatHelpers keyed by the name an entity spec's
+     *        `formatViewHelper` carries
      */
-    public function __construct($entityService, $routePermissionCheckingEnabled = false)
-    {
+    public function __construct(
+        $entityService,
+        $routePermissionCheckingEnabled = false,
+        protected readonly ?Closure $flag = null,
+        protected readonly ?Closure $dateFormat = null,
+        protected readonly ?Closure $translate = null,
+        protected readonly ?Closure $url = null,
+        protected readonly ?Closure $editPencil = null,
+        protected readonly ?Closure $editPencilNew = null,
+        protected readonly ?Closure $isAllowed = null,
+        protected readonly array $formatHelpers = []
+    ) {
         $this->entities = $entityService->getEntities();
         $this->setRoutePermissionCheckingEnabled($routePermissionCheckingEnabled);
     }
@@ -48,10 +99,12 @@ class FormatEntity extends AbstractHelper
         $isDeleted = isset($data['isDeleted']) && $data['isDeleted'];
         $entitySpec = $this->entities[$entityType];
 
-        //forward request to registered view helper if we have one
+        //forward request to the registered formatter if we have one
         if (isset($entitySpec->formatViewHelper) && ! $isDeleted) {
             $viewHelperName = $entitySpec->formatViewHelper;
-            return $this->view->$viewHelperName($entityType, $data, $options);
+            if (isset($this->formatHelpers[$viewHelperName])) {
+                return ($this->formatHelpers[$viewHelperName])($entityType, $data, $options);
+            }
         }
 
         //set default options
@@ -103,27 +156,29 @@ class FormatEntity extends AbstractHelper
             isset($data[$entitySpec->countryField]) &&
             2 === strlen($data[$entitySpec->countryField])
         ) {
-            $finalMarkup .= $this->view->flag($data[$entitySpec->countryField]) . "&nbsp;";
+            $finalMarkup .= $this->renderFlag($data[$entitySpec->countryField]) . "&nbsp;";
         }
 
         //if our name field is a date, format it as a medium date
         if ($data[$entitySpec->nameField] instanceof \DateTime) {
-            $name = $this->view->dateFormat(
-                $data[$entitySpec->nameField],
-                \IntlDateFormatter::MEDIUM,
-                \IntlDateFormatter::NONE
-            );
+            $name = null !== $this->dateFormat
+                ? ($this->dateFormat)(
+                    $data[$entitySpec->nameField],
+                    \IntlDateFormatter::MEDIUM,
+                    \IntlDateFormatter::NONE
+                )
+                : '';
         } else {
             $name = $data[$entitySpec->nameField];
             if ($entitySpec->nameFieldIsTranslatable) {
-                $name = $this->view->translate($name);
+                $name = $this->translate($name);
             }
         }
 
         if ($options['displayAsLink']) {
-            $finalMarkup .= $this->wrapAsLink($entityType, $data, $this->view->escapeHtml($name));
+            $finalMarkup .= $this->wrapAsLink($entityType, $data, Escape::html((string) $name));
         } else {
-            $finalMarkup .= $this->view->escapeHtml($name);
+            $finalMarkup .= Escape::html((string) $name);
         }
 
         if ($options['displayEditPencil'] && isset($entitySpec->editRoute)) {
@@ -133,31 +188,29 @@ class FormatEntity extends AbstractHelper
                 foreach ($entitySpec->editRouteParams as $routeParam => $entityField) {
                     if (! isset($data[$entityField])) {
                         //@todo log this
-//                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
                     } else {
                         $editParams[$routeParam] = $data[$entityField];
                     }
                 }
                 if (count($editParams) === count($entitySpec->editRouteParams)) {
-                    $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
+                    $finalMarkup .= $this->renderEditPencilNew($editRoute, $editParams);
                 }
             } elseif ($entitySpec->editRouteKeyField &&
                 isset($data[$entitySpec->editRouteKeyField])
             ) {
                 $editId = $data[$entitySpec->editRouteKeyField];
-                $finalMarkup .= $this->view->editPencil($entityType, $editId);
+                $finalMarkup .= $this->renderEditPencil($entityType, $editId);
             } elseif ($entitySpec->defaultRouteParams) {
                 $editParams = [];
                 foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
                     if (! isset($data[$entityField])) {
                         //@todo log this
-                        //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
                     } else {
                         $editParams[$routeParam] = $data[$entityField];
                     }
                 }
                 if (count($editParams) === count($entitySpec->defaultRouteParams)) {
-                    $finalMarkup .= $this->view->editPencilNew($editRoute, $editParams);
+                    $finalMarkup .= $this->renderEditPencilNew($editRoute, $editParams);
                 }
             }
         }
@@ -166,10 +219,37 @@ class FormatEntity extends AbstractHelper
             isset($data['active']) && is_bool($active = $data['active']))
         ) {
             if (! $active) {
-                $finalMarkup .= ' <span class="label label-warning">' . $this->view->translate('Inactive') . '</span>';
+                $finalMarkup .= ' <span class="label label-warning">' . $this->translate('Inactive') . '</span>';
             }
         }
         return $finalMarkup;
+    }
+
+    /** The `flag` view helper, or nothing when the host supplies none. */
+    protected function renderFlag($countryCode)
+    {
+        return null !== $this->flag ? ($this->flag)($countryCode) : '';
+    }
+
+    /**
+     * The shared `translate` view helper, or the source string. A total catalog miss
+     * returns the source string too, so the untranslated host is not a special case.
+     */
+    protected function translate($message)
+    {
+        return null !== $this->translate ? ($this->translate)($message) : $message;
+    }
+
+    /** The `editPencil` view helper, or nothing. Permissions are checked inside it. */
+    protected function renderEditPencil($entityType, $id)
+    {
+        return null !== $this->editPencil ? ($this->editPencil)($entityType, $id) : '';
+    }
+
+    /** The `editPencilNew` view helper, or nothing. */
+    protected function renderEditPencilNew($editRoute, array $params)
+    {
+        return null !== $this->editPencilNew ? ($this->editPencilNew)($editRoute, $params) : '';
     }
 
     /**
@@ -182,7 +262,7 @@ class FormatEntity extends AbstractHelper
     {
         $entitySpec = $this->entities[$entityType];
         $route = $entitySpec->showRoute;
-        if (! isset($route) || ! $this->isActionAllowed('show', $entityType, $data)) {
+        if (! isset($route) || null === $this->url || ! $this->isActionAllowed('show', $entityType, $data)) {
             return $linkText;
         }
         if (is_array($entitySpec->showRouteParams)) {
@@ -190,13 +270,12 @@ class FormatEntity extends AbstractHelper
             foreach ($entitySpec->showRouteParams as $routeParam => $entityField) {
                 if (! isset($data[$entityField])) {
                     //@todo log this
-//                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
                 } else {
                     $params[$routeParam] = $data[$entityField];
                 }
             }
             if (count($params) === count($entitySpec->showRouteParams)) {
-                return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);
+                return sprintf('<a href="%s">%s</a>', ($this->url)($route, $params), $linkText);
             }
         }
         if (
@@ -207,20 +286,19 @@ class FormatEntity extends AbstractHelper
         ) {
             $routeKey = $entitySpec->showRouteKey;
             $id = $data[$entitySpec->showRouteKeyField];
-            return sprintf('<a href="%s">%s</a>', $this->view->url($route, [$routeKey => $id]), $linkText);
+            return sprintf('<a href="%s">%s</a>', ($this->url)($route, [$routeKey => $id]), $linkText);
         }
         if (is_array($entitySpec->defaultRouteParams)) {
             $params = [];
             foreach ($entitySpec->defaultRouteParams as $routeParam => $entityField) {
                 if (! isset($data[$entityField])) {
                     //@todo log this
-                    //                     throw new \Exception("Error while redirecting after a successful edit. Missing param `$entityField`");
                 } else {
                     $params[$routeParam] = $data[$entityField];
                 }
             }
             if (count($params) === count($entitySpec->defaultRouteParams)) {
-                return sprintf('<a href="%s">%s</a>', $this->view->url($route, $params), $linkText);
+                return sprintf('<a href="%s">%s</a>', ($this->url)($route, $params), $linkText);
             }
         }
         return $linkText;
@@ -236,25 +314,17 @@ class FormatEntity extends AbstractHelper
         }
         $entitySpec = $this->entities[$entityType];
 
-        /**
-         * isAllowed plugin
-         * @var \Laminas\View\Helper\HelperInterface $isAllowedPlugin
-         */
-        $isAllowedPlugin = null;
-        try {
-            $isAllowedPlugin = $this->view->plugin('isAllowed');
-        } catch (\Exception $e) {
-        }
-        //if we don't have the isAllowed plugin, just allow
-        if (! is_callable($isAllowedPlugin)) {
+        //no isAllowed collaborator is the state the original reached by catching the
+        //plugin manager's exception: just allow
+        if (null === $this->isAllowed) {
             return true;
         }
 
-        //check the route permissions of BjyAuthorize
+        //check the route permissions
         $routeProperty = array_key_exists($action, Entity::$actionRouteProperties) ? Entity::$actionRouteProperties[$action] : null;
         if (
             isset($routeProperty) && isset($entitySpec->$routeProperty) &&
-            ! $isAllowedPlugin->__invoke('route/' . $entitySpec->$routeProperty)
+            ! ($this->isAllowed)('route/' . $entitySpec->$routeProperty)
         ) {
             return false;
         }
@@ -266,10 +336,10 @@ class FormatEntity extends AbstractHelper
         $permissionProperty = Entity::$isActionAllowedPermissionProperties[$action];
         if (! isset($entitySpec->$permissionProperty)) {
             //we don't need the permission, just the resourceId
-            return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField]);
+            return ($this->isAllowed)($object[$entitySpec->aclResourceIdField]);
         }
 
-        return $isAllowedPlugin->__invoke($object[$entitySpec->aclResourceIdField], $entitySpec->$permissionProperty);
+        return ($this->isAllowed)($object[$entitySpec->aclResourceIdField], $entitySpec->$permissionProperty);
     }
 
     /**

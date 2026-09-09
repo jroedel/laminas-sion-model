@@ -2,11 +2,18 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
+use Closure;
 use SionModel\Entity\Entity;
 use SionModel\Service\EntitiesService;
 
-class EditPencil extends AbstractHelper
+/**
+ * The little pencil that links an entity to its edit route.
+ *
+ * A plain class since 2026-09. The two collaborators it used to reach through the
+ * renderer — `$this->view->isAllowed()` and `$this->view->url()` — are injected as
+ * closures, because there is no renderer to reach them through any more.
+ */
+class EditPencil
 {
     /**
      * @var Entity[] $entities
@@ -14,11 +21,17 @@ class EditPencil extends AbstractHelper
     protected $entities = [];
 
     /**
-     *
      * @param EntitiesService $entityService
+     * @param Closure(string): bool|null $isAllowed the `isAllowed` helper. Null keeps the
+     *        original's posture for a host with no route permissions configured: allow.
+     * @param Closure(string, array): string|null $url the `url` helper. Without one there
+     *        is no href to write, so the pencil is omitted rather than rendered dead.
      */
-    public function __construct($entityService)
-    {
+    public function __construct(
+        $entityService,
+        private readonly ?Closure $isAllowed = null,
+        private readonly ?Closure $url = null
+    ) {
         $this->entities = $entityService->getEntities();
     }
 
@@ -42,10 +55,15 @@ class EditPencil extends AbstractHelper
 //         $entitySpec = $this->entities[$entityType];
         $isAllowed = true; //if there is an exception, we'll assume there's no route permissions configured
         try {
-            $isAllowed = $this->view->isAllowed('route/' . $this->entities[$entityType]->editRoute);
+            if (null !== $this->isAllowed) {
+                $isAllowed = ($this->isAllowed)('route/' . $this->entities[$entityType]->editRoute);
+            }
         } catch (\Exception $e) {
         }
         if (! $isAllowed) {
+            return '';
+        }
+        if (null === $this->url) {
             return '';
         }
         $otherAttributes = $openInNewTab ? 'target="_blank"' : '';
@@ -58,27 +76,11 @@ class EditPencil extends AbstractHelper
          *
          * In order to do this we need to receive more info. Major BC break
          */
-//         if (isset($entitySpec->editRouteParams)) {
-
-//         } elseif (isset($entitySpec->editRouteKey) && isset($entitySpec->editRouteKeyField)) {
-//             $url = $this->view->url(
-//                 $this->entities[$entityType]->editRoute,
-//                 [$this->entities[$entityType]->editRouteKey => $id]
-//                 );
-//         } elseif (isset($entitySpec->defaultRouteParams) || isset()) {
-//             $params = [];
-//             $url = $this->view->url(
-//                 $this->entities[$entityType]->editRoute,
-//                 [$this->entities[$entityType]->editRouteKey => $id]
-//                 );
-//         } else {
-
-//         }
 
         $pattern = ' <a href="%s" %s><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></a>';
         $finalMarkup = sprintf(
             $pattern,
-            $this->view->url(
+            ($this->url)(
                 $this->entities[$entityType]->editRoute,
                 [$this->entities[$entityType]->editRouteKey => $id]
             ),
