@@ -9,6 +9,7 @@ namespace SionModel\Service;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Interop\Container\ContainerInterface;
 use SionModel\Mailing\Mailer;
+use SionModel\Mailing\TemplateRendererInterface;
 
 /**
  * Factory responsible of priming the Mailer service
@@ -28,7 +29,7 @@ class MailerFactory implements FactoryInterface
         //the mailings table; subclasses wire in their own table
         return new Mailer(
             $container->get('SionModel\MailTransport'),
-            $container->get('ViewRenderer'),
+            $container->get(TemplateRendererInterface::class),
             $container->get('translator'),
             $container->get('Config')
         );

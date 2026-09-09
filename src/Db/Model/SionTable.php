@@ -237,12 +237,11 @@ class SionTable
      * construction.
      *
      * What is optional is now wired by the factory after construction:
-     * {@see SionCacheTrait::setPersistentCache()} plus
-     * {@see SionCacheTrait::wireOnFinishTrigger()}, {@see self::setLogger()} and
-     * {@see self::setUserDirectoryResolver()}. `SionModel\Service\SionTableWiring` does
-     * all three from a container in one call, so a factory is one line longer, not twelve.
-     * A factory is allowed to know about laminas-mvc and the ServiceManager; this class
-     * is not, and no longer does.
+     * {@see SionCacheTrait::setPersistentCache()} plus its enrolment in the host's
+     * `CacheFlushQueue`, {@see self::setLogger()} and {@see self::setUserDirectoryResolver()}.
+     * `SionModel\Service\SionTableWiring` does all of it from a container in one call, so a
+     * factory is one line longer, not twelve. A factory is allowed to know about the
+     * ServiceManager; this class is not, and no longer does.
      *
      * `$entityProblemPrototype` is gone from this class entirely. Nothing here read it —
      * it was declared and populated for the benefit of the two

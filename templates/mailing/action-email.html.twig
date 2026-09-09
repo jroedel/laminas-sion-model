@@ -1,0 +1,91 @@
+{#-
+  The transactional mail body: a title, a schema.org EmailMessage header, a column of
+  paragraphs and an optional footer. Ported from view/sion-model/mailing/action-email.phtml
+  byte for byte — including the whitespace, so a rendered notice can be diffed against the
+  old renderer's, and including two quirks worth knowing:
+
+  - `title` is never translated. The original tested `isset($title)` on a variable it had
+    not assigned yet, so the branch never ran; `shouldTranslateTitle` is accepted and
+    ignored exactly as before.
+  - the JSON-LD `description` is HTML-attribute-escaped inside a JSON string, as before.
+
+  Parameters: paragraphs (list; each a string or an array — see _paragraph.html.twig),
+  title, and optionally description, url (the ViewAction target), footer (one paragraph),
+  isTranslatorEnabled, textDomain, locale.
+-#}
+{%- set isTranslatorEnabled = isTranslatorEnabled is not defined or isTranslatorEnabled is not same as(false) -%}
+{%- set textDomain = textDomain is defined and textDomain is not null ? textDomain : 'default' -%}
+{%- set locale = locale is defined ? locale : null -%}
+{%- set target = url is defined ? url : null -%}
+{%- set title = title is defined and title is not null ? title : '' -%}
+{%- set description = description is defined and description is not null ? description : null -%}
+{%- if description is not null and isTranslatorEnabled -%}
+    {%- set description = translate(description, textDomain, locale) -%}
+{%- endif -%}
+{%- set defaults = {isTranslatorEnabled: isTranslatorEnabled, textDomain: textDomain, locale: locale} -%}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="viewport" content="width=device-width" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>{{ title|e('html_attr') }}</title>
+</head>
+
+<body itemscope itemtype="http://schema.org/EmailMessage">
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "EmailMessage",
+  "description": "{{ (description ?? '')|e('html_attr') }}",{% if target is not null %}
+  "potentialAction": {
+    "@type": "ViewAction",
+    "target": "{{ target|e('html_attr') }}",
+    "name": "{{ title|e('html_attr') }}"
+  },{% endif %}
+
+  "publisher": {
+    "@type": "Organization",
+    "name": "Schoenstatt Fathers",
+    "url": "https://schoenstatt-fathers.org"
+  }
+}
+</script>
+<table class="body-wrap">
+    <tr>
+        <td></td>
+        <td class="container" width="600">
+            <div class="content">
+                <table class="main" width="100%" cellpadding="0" cellspacing="0" itemprop="action" itemscope itemtype="http://schema.org/ViewAction">
+                    <tr>
+                        <td class="content-wrap">
+                            <meta itemprop="name" content="Confirm Email"/>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                            {% for paragraph in paragraphs -%}
+                                {%- set p = defaults|merge(paragraph is iterable ? paragraph : {content: paragraph}) -%}
+                                {%- if p.type is defined and p.type == 'button' -%}
+<tr>
+    <td class="content-block" itemprop="handler" itemscope itemtype="http://schema.org/ViewAction">{{ include('@sion-model/mailing/_paragraph.html.twig', p, with_context = false) }}</td>
+</tr>
+{% else -%}
+<tr>
+    <td class="content-block">
+        {{ include('@sion-model/mailing/_paragraph.html.twig', p, with_context = false) }}    </td>
+</tr>
+{% endif %}                                                            {% endfor %}                            </table>
+                        </td>
+                    </tr>
+                </table>
+{% if footer is defined and footer is not null %}{% set f = defaults|merge(footer is iterable ? footer : {content: footer}) %}                <div class="footer">
+                    <table width="100%">
+                        <tr>
+                            <td class="aligncenter content-block">{{ include('@sion-model/mailing/_paragraph.html.twig', f, with_context = false) }}</td>
+                        </tr>
+                    </table>
+                </div>
+{% endif %}</div>
+        </td>
+        <td></td>
+    </tr>
+</table>
+</body>
+</html>{#- the original ends without a newline -#}

@@ -1,0 +1,21 @@
+{#-
+  One paragraph of a mail body. Ported from view/sion-model/mailing/paragraph-partial.phtml.
+
+  `type` is content (default), button or partial:
+  - content: `content`, translated unless isTranslatorEnabled is false, escaped unless
+    shouldEscape is false, then vsprintf'd with contentParams if isContentParameterized —
+    see SionModel\Twig\MailExtension::content() for the order and its consequence;
+  - button: the same text inside an anchor to `target` (printed verbatim, as before) with
+    class buttonClass (default btn-primary). The old `urlArgs` alternative — assemble a
+    laminas route — is gone: a mail has no request to build a URL from, so callers pass
+    the absolute `target`;
+  - partial: includes the template named by `partial` with this paragraph's variables.
+-#}
+{%- set type = type is defined and type in ['content', 'partial', 'button'] ? type : 'content' -%}
+{%- if type == 'partial' -%}
+    {%- if partial is defined %}{{ include(partial) }}{% endif -%}
+{%- elseif type == 'button' -%}
+<a href="{{ target is defined and target is not null ? target|raw : '' }}" class="{{ (buttonClass is defined and buttonClass is not null ? buttonClass : 'btn-primary')|e('html_attr') }}" itemprop="url">{{ mail_content(_context) }}</a>
+    {% else -%}
+{{ mail_content(_context) }}
+{%- endif -%}

@@ -95,22 +95,19 @@ SionTableWiring::apply($container, $table);
 That covers the persistent cache and its end-of-request flush point, the logger, and the
 user-directory resolver.
 
-### The end-of-request flush, and a Symfony host
+### The end-of-request flush
 
 Nothing is written to the persistent cache at the moment it is cached: the item goes into
 memory and onto a queue, and `SionCacheTrait::onFinishWriteCache()` writes the queue out at
-the end of the request. So the cache only works if something calls that method, and
-`SionTableWiring::wireFlushPoint()` picks one of two:
+the end of the request. So the cache only works if something calls that method, and the
+only thing that does is **`SionModel\Cache\CacheFlushQueue`**: the host registers one in
+the container under that class name, tables enrol themselves into it as they are built
+(`SionTableWiring::wireFlushPoint()`), and the host drains it from its own end-of-request
+hook — after the response has been sent, so the write costs the visitor nothing. (Until
+2026-09 there was a fallback listener on laminas-mvc's `MvcEvent::FINISH`; it is gone with
+the MVC layer.)
 
-- a listener on `MvcEvent::FINISH` at priority **-11000** — the default, and all a laminas
-  host needs. Below `SendResponseListener`'s -10000 deliberately, so the write happens after
-  the response has been sent rather than while the visitor waits for it;
-- **`SionModel\Cache\CacheFlushQueue`**, if the container holds one under that class name.
-  Tables enrol themselves into it as they are built, and the host drains it from whatever
-  its own end-of-request hook is.
-
-A host with no `MvcEvent::FINISH` — a Symfony front controller, say — **must register a
-queue or its persistent cache stores nothing**. That failure is completely silent: within
+A host **must register a queue or its persistent cache stores nothing**. That failure is completely silent: within
 the request that queued them, items are served back out of `$memoryCache`, so a queued item
 and a written one are indistinguishable to the code that queued them. Only the next request
 can tell, and it has no way to say so. On schoenstatt.link this went unnoticed for eleven
@@ -128,11 +125,6 @@ $queue->flush();
 
 Three things follow from the design:
 
-- When a queue is present the MVC `Application` is deliberately **not** resolved.
-  `has('Application')` answers *true* under a Symfony front controller — laminas-mvc's
-  module config defines the service whether or not anything bootstraps it — so the
-  unconditional version built an MVC application per table per request for an event manager
-  whose event that request would never fire.
 - **Do not register a queue in a console process.** An APCu segment belongs to the SAPI that
   created it, so anything a CLI run writes lands where no web request can read it.
 - `flush()` is safe to call twice: the write queue is drained by the pass that writes it.
@@ -251,10 +243,9 @@ without a laminas-mvc view helper, and `SionModel\Twig\FormExtension` binds it t
 Twig functions (`form_open`, `form_row`, `form_submit`, ...). Together they are what lets a
 Symfony-served -- or any non-MVC -- route render this package's forms.
 
-It is not "equivalent" markup: it emits the same bytes as
-`SionModel\Form\View\Helper\SionFormRow`, the TwbBundle-derived helper in this same
-package, because the CSS and the selectize/markdown JS bundles are written against that
-exact structure. The renderer's class docblock lists the details that are load-bearing.
+It is not "equivalent" markup: it emits the same bytes as the TwbBundle `formRow` helper
+this package used to subclass (`SionFormRow`, deleted with the laminas-mvc layer), because
+the CSS and the selectize/markdown JS bundles are written against that exact structure. The renderer's class docblock lists the details that are load-bearing.
 
 Wire it with any `callable(string): string` as the translator:
 

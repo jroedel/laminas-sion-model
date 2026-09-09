@@ -6,8 +6,6 @@ use Laminas\Cache\Storage\StorageInterface;
 use Laminas\Filter\FilterChain;
 use Laminas\Filter\StringToLower;
 use Laminas\Filter\PregReplace;
-use Laminas\EventManager\EventManagerInterface;
-use Laminas\Mvc\MvcEvent;
 
 /**
  * Entity-aware caching for a SionTable: cache a query result, name the entities
@@ -93,11 +91,6 @@ trait SionCacheTrait
     protected $reReadDependencies = false;
 
     /**
-     * @var bool $onFinishWired whether onFinishWriteCache is already attached
-     */
-    protected $onFinishWired = false;
-
-    /**
      * Whoever the host wants told when this table invalidates an entity, or null.
      *
      * @var \SionModel\Cache\EntityChangeListeners|null $entityChangeListeners
@@ -131,36 +124,6 @@ trait SionCacheTrait
      * @var string $classIdentifier
      */
     protected $classIdentifier;
-
-    /**
-     * Attach the end-of-request cache writer.
-     *
-     * Idempotent: `SionModel\Service\SionTableWiring` wires this, and a factory that later
-     * swaps in its own namespaced cache (JUser does) used to wire it a second time, which is
-     * why every JUser cache key appeared twice in the log — "Writing cache" for the same key,
-     * back to back, once per listener.
-     *
-     * The wiring moved out of SionTable's constructor on 2026-08-22, together with the
-     * container it needed to reach the MVC `Application` for an event manager. That was the
-     * only laminas-mvc reach inside the data layer, and it is a factory's business now.
-     *
-     * **The default priority is below Laminas\\Mvc\\SendResponseListener's -10000**, and that
-     * is the whole point of the number. Both listeners sit on `MvcEvent::EVENT_FINISH`, so a
-     * higher priority means the cache is serialized and stored *before* the response is sent
-     * and the visitor waits for it — measured at ~17 ms on the heaviest page here. The
-     * Symfony host has always had this right, because `kernel.terminate` runs after the
-     * response by definition; this is the laminas half catching up, and it is what makes an
-     * unbounded write queue cost a visitor nothing on either front controller. Anything that
-     * passes an explicit priority here should stay below -10000 for the same reason.
-     */
-    public function wireOnFinishTrigger(EventManagerInterface $em, $priority = -11000)
-    {
-        if ($this->onFinishWired) {
-            return;
-        }
-        $this->onFinishWired = true;
-        $em->attach(MvcEvent::EVENT_FINISH, [$this, 'onFinishWriteCache'], $priority);
-    }
 
     /**
      * Cache some entities. A simple proxy of the cache's setItem method with dependency support.
@@ -622,9 +585,9 @@ trait SionCacheTrait
      *
      * Deferred rather than written at `cacheEntityObjects()` time because
      * serializing a large result set mid-render charges the visitor for it. By the
-     * time this runs the response is already sent — `kernel.terminate` on the
-     * Symfony host, and priority -11000 on `MvcEvent::EVENT_FINISH`, i.e. below
-     * SendResponseListener, on the laminas one — so what it costs, it costs nobody.
+     * time this runs the response is already sent — the host drains
+     * {@see \SionModel\Cache\CacheFlushQueue} from `kernel.terminate` — so what it
+     * costs, it costs nobody.
      *
      * ## There used to be a count budget here, and it was the wrong shape
      *
@@ -651,10 +614,7 @@ trait SionCacheTrait
      * skips: re-queried forever, while logging that it meant to do better.
      *
      * Calling this twice in one request writes nothing the second time: the queue is
-     * taken before the loop, not after it. That matters because the call can arrive
-     * from two places — `MvcEvent::EVENT_FINISH` on a bridged request and
-     * {@see \SionModel\Cache\CacheFlushQueue} on a Symfony-served one — and it is
-     * the same property `$onFinishWired` protects on the event side.
+     * taken before the loop, not after it.
      */
     public function onFinishWriteCache()
     {

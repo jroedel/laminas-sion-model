@@ -9,16 +9,15 @@ use SionModel\Db\Model\SionTable;
 use function in_array;
 
 /**
- * The tables whose queued cache writes still need draining, for a host whose
- * end-of-request hook is not `MvcEvent::EVENT_FINISH`.
+ * The tables whose queued cache writes still need draining at the end of the request.
  *
  * ## The bug this exists for
  *
  * A SionTable does not write to the persistent cache when it caches something. It
  * queues the item and writes the queue out at the end of the request, because
  * serializing a large object is expensive and doing it mid-render costs the visitor
- * the time. `SionCacheTrait::onFinishWriteCache()` is that write, and until now the
- * only thing that ever called it was a listener on `MvcEvent::EVENT_FINISH`.
+ * the time. `SionCacheTrait::onFinishWriteCache()` is that write, and until 2026-08 the
+ * only thing that ever called it was a listener on laminas-mvc's `MvcEvent::EVENT_FINISH`.
  *
  * A Symfony-served route never reaches that event. So on the whole of a
  * strangled application's ported surface, every table read, cached into memory,
@@ -48,8 +47,8 @@ use function in_array;
  * The host creates one of these per request, registers it in the container under
  * this class's name, and calls {@see flush()} from whatever its end-of-request hook
  * is; {@see \SionModel\Service\SionTableWiring::wireFlushPoint()} does the rest. A
- * host that registers nothing keeps the `MvcEvent` path and needs no changes. See
- * `App\Http\SionCacheFlushListener` in schoenstatt.link for the Symfony side.
+ * host that registers nothing has no flush point and its persistent cache stores nothing.
+ * See `App\Http\SionCacheFlushListener` in schoenstatt.link for the Symfony side.
  *
  * **Not from a console process.** An APCu segment belongs to the SAPI that created
  * it, so anything a CLI run writes lands in a segment no web request can read (see
@@ -64,8 +63,8 @@ final class CacheFlushQueue
      * Idempotent, because a factory may wire the same table twice — JUser's
      * UserTableFactory swaps in its own namespaced cache after
      * `SionTableWiring::apply()` has already run. Registering twice would mean two
-     * passes over one write queue, which is the duplicate-write bug the
-     * `MvcEvent` path's own `$onFinishWired` guard exists to stop.
+     * passes over one write queue — the duplicate-write bug the MvcEvent listener's
+     * own guard used to stop.
      */
     public function register(SionTable $table): void
     {
@@ -79,6 +78,12 @@ final class CacheFlushQueue
     public function isEmpty(): bool
     {
         return [] === $this->tables;
+    }
+
+    /** Whether this table's queue will be written at the end of the request. */
+    public function contains(SionTable $table): bool
+    {
+        return in_array($table, $this->tables, true);
     }
 
     /**

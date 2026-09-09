@@ -2,7 +2,6 @@
 
 namespace Project;
 
-use Laminas\Mvc\MvcEvent;
 
 return [
     'sion_model' => [
@@ -24,8 +23,6 @@ return [
             //https://csp-evaluator.withgoogle.com
             'csp_string' => "script-src 'strict-dynamic' 'nonce-{:nonce}' 'unsafe-inline' https:; object-src 'none'; "
                 . "base-uri 'none'; report-uri https://csp.example.com;",
-            //if this header isn't set, no Content-Security-Policy header will be set
-            'inject_headers_event' => MvcEvent::EVENT_FINISH,
         ],
         /**
          * Database table name of where to store change records
