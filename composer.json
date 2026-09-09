@@ -17,6 +17,7 @@
         "matriphe/iso-639": "^1.2",
         "twig/twig": "^3.0",
         "laminas/laminas-form": "^3.24",
+        "laminas/laminas-translator": "^1.0",
         "laminas/laminas-escaper": "^2.18",
         "ext-intl": "*"
     },
