@@ -2,7 +2,6 @@
 
 namespace SionModel\Error;
 
-use Laminas\Http\PhpEnvironment\RemoteAddress;
 use SionModel\Service\ActingUserProviderInterface;
 use Throwable;
 
@@ -94,12 +93,14 @@ class RequestContext
         if ('none' === $this->capture['ip']) {
             return null;
         }
-        try {
-            $address = (new RemoteAddress())->getIpAddress();
-            return '' === $address ? null : $address;
-        } catch (Throwable $e) {
-            return null;
-        }
+        //`Laminas\Http\PhpEnvironment\RemoteAddress` until laminas-http was removed, and
+        //this is what it did: `useProxy` defaults to false, so its proxy branch returned
+        //immediately and `getIpAddress()` was `$_SERVER['REMOTE_ADDR']` and nothing else.
+        //Deliberately still not trusting a forwarding header — an attacker sets those, and
+        //this address goes into an error report where a forged value is worse than none.
+        $address = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        return is_string($address) && '' !== $address ? $address : null;
     }
 
     /**

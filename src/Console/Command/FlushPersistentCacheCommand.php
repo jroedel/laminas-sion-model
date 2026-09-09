@@ -2,7 +2,7 @@
 
 namespace SionModel\Console\Command;
 
-use Laminas\Http\Client;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -42,7 +42,7 @@ final class FlushPersistentCacheCommand extends Command
     /** Env var checked when no --key is given; preferred over --key. */
     public const KEY_ENV_VAR = 'SCH_MAINTENANCE_KEY';
 
-    private Client $client;
+    private HttpClientInterface $client;
     private string $baseUrl;
     /** @var list<string> */
     private array $apiKeys;
@@ -53,7 +53,7 @@ final class FlushPersistentCacheCommand extends Command
      *        server, so a run there needs no key passed in at all.
      */
     public function __construct(
-        Client $client,
+        HttpClientInterface $client,
         string $baseUrl,
         array $apiKeys,
         string $path = self::DEFAULT_PATH
@@ -107,33 +107,36 @@ final class FlushPersistentCacheCommand extends Command
         $uri = $baseUrl . $this->path;
         $io->writeln(sprintf('Flushing persistent cache via <info>%s</info>', $uri));
 
-        $this->client->resetParameters();
-        $this->client->setUri($uri);
-        $this->client->setMethod('GET');
-        //no redirect following: an unauthenticated request is answered with a
-        //302 to the sign-in page, and that redirect is how a rejected key
-        //announces itself. Following it would turn a 401 into a cheerful 200.
-        //no redirect following, and it is the laminas front controller this
-        //guards against: it answers a rejected key with a 302 to the sign-in
-        //page. The Symfony kernel serves this route with a JSON 401 instead
-        //(App\Controller\ClearPersistentCacheController), so both shapes are
-        //handled below — which one you get depends on SYMFONY_KERNEL on the
-        //target host, not on anything here.
-        $this->client->setOptions(['maxredirects' => 0, 'timeout' => 30]);
-        $this->client->setHeaders([
-            'X-Api-Key' => $key,
-            'Accept' => 'application/json',
-        ]);
-
         try {
-            $response = $this->client->send();
+            $response = $this->client->request('GET', $uri, [
+                //**No redirect following, and it is load-bearing.** A rejected key is
+                //announced by a 302 to the sign-in page, so following it would turn a
+                //refusal into a cheerful 200. The Symfony kernel answers this route with a
+                //JSON 401 instead, so both shapes are handled below; which one you get
+                //depends on the target host, not on anything here.
+                'max_redirects' => 0,
+                'timeout'       => 30,
+                'headers'       => [
+                    'X-Api-Key' => $key,
+                    'Accept'    => 'application/json',
+                ],
+            ]);
+            //Symfony's client is lazy: the request is not sent until the response is read,
+            //so the status has to be asked for inside the try or a transport failure would
+            //surface later as an unhandled exception rather than as this error message.
+            $status = $response->getStatusCode();
         } catch (\Throwable $e) {
             $io->error(sprintf('Request failed: %s', $e->getMessage()));
             return Command::FAILURE;
         }
-
-        $status = $response->getStatusCode();
-        $body = trim((string) $response->getBody());
+        //`getContent(false)`: Symfony's client throws on a non-2xx by default, and the
+        //302 and 401 branches below are exactly the statuses this command exists to
+        //explain. Asking it not to throw is what keeps them reachable.
+        try {
+            $body = trim($response->getContent(false));
+        } catch (\Throwable) {
+            $body = '';
+        }
 
         if (302 === $status || 301 === $status) {
             $io->error([

@@ -2,7 +2,7 @@
 
 namespace SionModel\Service;
 
-use Laminas\Http\Client;
+use Symfony\Component\HttpClient\HttpClient;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
 use SionModel\Console\Command\FlushPersistentCacheCommand;
@@ -31,6 +31,6 @@ class FlushPersistentCacheCommandFactory implements FactoryInterface
             ? $config['canonical_base_url']
             : '';
 
-        return new FlushPersistentCacheCommand(new Client(), $baseUrl, $apiKeys);
+        return new FlushPersistentCacheCommand(HttpClient::create(), $baseUrl, $apiKeys);
     }
 }
