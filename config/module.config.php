@@ -20,13 +20,11 @@ return [
     ],
     'view_helpers' => [
         'factories' => [
-            'address'               => Service\AddressFactory::class,
             'editPencil'            => Service\EditPencilFactory::class,
             'formatEntity'          => Service\FormatEntityFactory::class,
         ],
         'invokables' => [
             'editPencilNew'         => View\Helper\EditPencilNew::class,
-            'diffForHumans'         => View\Helper\DiffForHumans::class,
         ],
     ],
     'validators' => [

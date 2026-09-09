@@ -4,12 +4,21 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
 use Carbon\Carbon;
+use Closure;
 
-class DiffForHumans extends AbstractHelper
+class DiffForHumans
 {
     protected $firstInvocation = true;
+
+    /**
+     * @param Closure(mixed, int, int): (string|false) $dateFormat the `dateFormat` view
+     *        helper, injected because this class no longer has a renderer to reach it
+     *        through. It builds the `title` attribute; Carbon builds the body.
+     */
+    public function __construct(private readonly Closure $dateFormat)
+    {
+    }
 
     public function __invoke($date)
     {
@@ -25,7 +34,7 @@ class DiffForHumans extends AbstractHelper
         $carbonDate = Carbon::instance($date);
         $format = '<abbr title="%s">%s</abbr>';
         $args = [
-            $this->view->dateFormat($date, \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT),
+            ($this->dateFormat)($date, \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT),
             $carbonDate->diffForHumans(),
         ];
         return vsprintf($format, $args);

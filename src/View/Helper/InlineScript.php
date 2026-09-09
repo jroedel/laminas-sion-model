@@ -2,7 +2,6 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
 use Laminas\View\Helper\HeadScript;
 use Laminas\View\Helper\InlineScript as LaminasInlineScript;
 use Laminas\View\Helper\Placeholder\Container\AbstractContainer;
@@ -24,7 +23,7 @@ use Laminas\View\Renderer\RendererInterface;
  * Behaviour is pinned by test/Integration/InlineScriptNonceContractTest.php in
  * the application repo.
  */
-class InlineScript extends AbstractHelper
+class InlineScript
 {
     private LaminasInlineScript $inlineScript;
 
@@ -121,13 +120,13 @@ class InlineScript extends AbstractHelper
     }
 
     /**
-     * The wrapped helper renders the markup, so it needs the view too.
+     * The wrapped helper renders the markup and asks the renderer for the doctype, so it
+     * still needs a view. This wrapper does not.
      *
      * @return $this
      */
     public function setView(RendererInterface $view)
     {
-        parent::setView($view);
         $this->inlineScript->setView($view);
 
         return $this;
