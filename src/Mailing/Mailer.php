@@ -1,8 +1,7 @@
 <?php
 namespace SionModel\Mailing;
 
-use Laminas\I18n\Translator\TranslatorInterface;
-use Laminas\I18n\Translator\TranslatorAwareInterface;
+use Laminas\Translator\TranslatorInterface;
 use SionModel\Db\Model\SionTable;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
@@ -15,7 +14,7 @@ use voku\Html2Text\Html2Text;
  * application's mail identity, renders their bodies from Twig templates through a
  * {@see TemplateRendererInterface}, and records every attempt in the mailings table.
  */
-class Mailer implements TranslatorAwareInterface
+class Mailer
 {
     /**
      * Relative to the application root, where the entry points chdir()
@@ -244,7 +243,7 @@ class Mailer implements TranslatorAwareInterface
      *                                           Default is null, which sets no translator.
      * @param  string              $textDomain  [optional] text domain
      *                                           Default is null, which skips setTranslatorTextDomain
-     * @return TranslatorAwareInterface
+     * @return self
      */
     public function setTranslator(?TranslatorInterface $translator = null, $textDomain = null)
     {
@@ -280,7 +279,7 @@ class Mailer implements TranslatorAwareInterface
      *
      * @param  bool $enabled [optional] whether translator should be used.
      *                       Default is true.
-     * @return TranslatorAwareInterface
+     * @return self
      */
     public function setTranslatorEnabled($enabled = true)
     {
@@ -302,7 +301,7 @@ class Mailer implements TranslatorAwareInterface
      * Set translation text domain
      *
      * @param  string $textDomain
-     * @return TranslatorAwareInterface
+     * @return self
      */
     public function setTranslatorTextDomain($textDomain = 'default')
     {

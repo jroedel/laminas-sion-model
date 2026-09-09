@@ -754,7 +754,9 @@ final class BootstrapFormRenderer
     /**
      * A `<select>` carrying only the options that are currently selected.
      *
-     * `Books\View\Helper\FormSelectWithoutOptions`, reproduced. The publication form has
+     * `Books\View\Helper\FormSelectWithoutOptions` reproduced — that helper extended a
+     * laminas-form view helper and was deleted with laminas-i18n in 2026-09, so this is the
+     * only implementation now. The publication form has
      * five pickers — `authorsAll`, `editorsAll`, `translatorsAll`, `mainPublicationId`
      * and `translatedFromPublicationId` — whose full option lists are the entire person
      * and publication tables. Shipping them as `<option>` elements would be enormous, so

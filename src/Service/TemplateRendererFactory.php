@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Service;
 
-use Laminas\I18n\Translator\TranslatorInterface;
+use Laminas\Translator\TranslatorInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
 use SionModel\Mailing\TwigTemplateRenderer;

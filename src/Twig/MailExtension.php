@@ -6,7 +6,7 @@ namespace SionModel\Twig;
 
 use IntlDateFormatter;
 use InvalidArgumentException;
-use Laminas\I18n\Translator\TranslatorInterface;
+use Laminas\Translator\TranslatorInterface;
 use Locale;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
