@@ -4,8 +4,6 @@ namespace SionModel\Mailing;
 use Laminas\I18n\Translator\TranslatorInterface;
 use Laminas\I18n\Translator\TranslatorAwareInterface;
 use Laminas\Math\Rand;
-use Laminas\View\Model\ViewModel;
-use Laminas\View\Renderer\RendererInterface;
 use SionModel\Db\Model\SionTable;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
@@ -15,13 +13,13 @@ use voku\Html2Text\Html2Text;
 
 /**
  * Base class for application mailers: builds messages stamped with the
- * application's mail identity, renders their bodies from view templates, and
- * records every attempt in the mailings table.
+ * application's mail identity, renders their bodies from Twig templates through a
+ * {@see TemplateRendererInterface}, and records every attempt in the mailings table.
  */
 class Mailer implements TranslatorAwareInterface
 {
     /**
-     * Relative to the application root, where laminas-mvc entry points chdir()
+     * Relative to the application root, where the entry points chdir()
      * to. The old module-relative default ('/../../../public/css/…' from this
      * file) pointed inside the SionModel package, where the file has never
      * existed since the module was vendored into applications — every mail
@@ -37,7 +35,7 @@ class Mailer implements TranslatorAwareInterface
     protected $transport;
 
     /**
-     * @var RendererInterface $renderer
+     * @var TemplateRendererInterface $renderer
      */
     protected $renderer;
 
@@ -68,7 +66,7 @@ class Mailer implements TranslatorAwareInterface
 
     public function __construct(
         TransportInterface $transport,
-        RendererInterface $renderer,
+        TemplateRendererInterface $renderer,
         $translator,
         array $config,
         ?SionTable $sionTable = null
@@ -104,17 +102,16 @@ class Mailer implements TranslatorAwareInterface
     }
 
     /**
-     * Render a view template to an HTML string, for use as a message body.
+     * Render a template to an HTML string, for use as a message body.
      *
-     * @param string $template
+     * @param string $template a name the renderer resolves, e.g.
+     *        `@sion-model/mailing/action-email.html.twig`
      * @param array $params
      * @return string
      */
     public function renderTemplate($template, array $params)
     {
-        $model = new ViewModel($params);
-        $model->setTemplate($template);
-        return $this->renderer->render($model);
+        return $this->renderer->render((string) $template, $params);
     }
 
     public function reportMailing(

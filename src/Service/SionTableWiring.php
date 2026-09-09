@@ -24,9 +24,7 @@ use SionModel\Db\Model\SionTable;
  * invalidates, and renders a blank name in the two columns that name a user:
  *
  * 1. the persistent cache, and with it the flush point that drains its write queue at the
- *    end of the request — a {@see CacheFlushQueue} the host registered, or failing that a
- *    `MvcEvent::FINISH` listener. Resolving `Application` for that event manager was the
- *    one laminas-mvc reach inside the data layer, and it is now here instead;
+ *    end of the request — the {@see CacheFlushQueue} the host registered;
  * 2. the logger;
  * 3. the user directory — as a **resolver**, never resolved here. See
  *    {@see self::wireUserDirectory()};
@@ -84,33 +82,22 @@ final class SionTableWiring
     }
 
     /**
-     * Whatever calls `onFinishWriteCache()` for this host, and there are two.
+     * Whatever calls `onFinishWriteCache()` for this host: the {@see CacheFlushQueue} it
+     * registered, drained from its own end-of-request hook.
      *
-     * The queue wins when the host registered one, and then the MVC `Application` is
-     * deliberately **not** resolved: under a Symfony front controller `has('Application')`
-     * answers true — laminas-mvc's own module config defines the service whether or not
-     * anything ever bootstraps it — so the old code built an MVC application, took its
-     * event manager and attached a listener to an event that request would never fire.
-     * Every table, every ported request.
-     *
-     * `has()` on the fallback for the same reason it was always there: a console process
-     * has a ServiceManager but no MVC Application. A process with neither gets no flush
-     * point at all, which is correct — see {@see CacheFlushQueue} on why a CLI run must
-     * not write this cache.
+     * A host that registers none gets no flush point, which is correct for the one such
+     * host there is — a console process. See {@see CacheFlushQueue} on why a CLI run must
+     * not write this cache. (Until 2026-09 the fallback was a listener on laminas-mvc's
+     * `MvcEvent::FINISH`; nothing dispatches through laminas-mvc any more.)
      */
     public static function wireFlushPoint(ContainerInterface $container, SionTable $table): void
     {
-        if ($container->has(CacheFlushQueue::class)) {
-            /** @var CacheFlushQueue $queue */
-            $queue = $container->get(CacheFlushQueue::class);
-            $queue->register($table);
-
+        if (! $container->has(CacheFlushQueue::class)) {
             return;
         }
-
-        if ($container->has('Application')) {
-            $table->wireOnFinishTrigger($container->get('Application')->getEventManager());
-        }
+        /** @var CacheFlushQueue $queue */
+        $queue = $container->get(CacheFlushQueue::class);
+        $queue->register($table);
     }
 
     public static function wireLogger(ContainerInterface $container, SionTable $table): void

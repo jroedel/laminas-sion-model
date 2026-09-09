@@ -3,9 +3,6 @@
 namespace SionModel\Error;
 
 use Laminas\Http\PhpEnvironment\RemoteAddress;
-use Laminas\Http\Request as HttpRequest;
-use Laminas\Mvc\MvcEvent;
-use Laminas\Router\RouteMatch;
 use SionModel\Service\ActingUserProviderInterface;
 use Throwable;
 
@@ -50,61 +47,11 @@ class RequestContext
     }
 
     /**
-     * Everything ExceptionRecord needs about the request that failed.
+     * Everything ExceptionRecord needs about the request that failed, read from the
+     * superglobals: the route is unknown at this layer, and a shutdown handler firing
+     * after the request object is long gone has nothing else to consult anyway.
      *
-     * @param MvcEvent $event
      * @return array keys route, controller, action, revision, context
-     */
-    public function attributesFor(MvcEvent $event)
-    {
-        $attributes = [
-            'route'      => Fingerprinter::NO_ROUTE,
-            'controller' => null,
-            'action'     => null,
-            'revision'   => $this->revision(),
-            'context'    => [],
-        ];
-
-        $routeMatch = $event->getRouteMatch();
-        if ($routeMatch instanceof RouteMatch) {
-            $name = $routeMatch->getMatchedRouteName();
-            if (null !== $name && '' !== $name) {
-                $attributes['route'] = $name;
-            }
-            $attributes['controller'] = $this->stringOrNull($routeMatch->getParam('controller'));
-            $attributes['action']     = $this->stringOrNull($routeMatch->getParam('action'));
-        }
-        //the controller may be known even when routing produced no match
-        if (null === $attributes['controller']) {
-            $attributes['controller'] = $this->stringOrNull($event->getController());
-        }
-
-        $request = $event->getRequest();
-        $context = $request instanceof HttpRequest
-            ? $this->httpContext($request)
-            : $this->globalsContext();
-
-        if ($routeMatch instanceof RouteMatch) {
-            $params = $routeMatch->getParams();
-            //controller and action are already reported above
-            unset($params['controller'], $params['action']);
-            if ([] !== $params) {
-                //route params come from the URL, which we already record in full
-                $context['route_params'] = Redactor::flatten($params);
-            }
-        }
-
-        $attributes['context'] = $context;
-
-        return $attributes;
-    }
-
-    /**
-     * The same attributes for a failure with no MvcEvent to consult — a fatal
-     * during bootstrap, or a shutdown handler firing after the request object
-     * is long gone.
-     *
-     * @return array
      */
     public function attributesFromGlobals()
     {
@@ -115,35 +62,6 @@ class RequestContext
             'revision'   => $this->revision(),
             'context'    => $this->globalsContext(),
         ];
-    }
-
-    /**
-     * @param HttpRequest $request
-     * @return array
-     */
-    private function httpContext(HttpRequest $request)
-    {
-        $context = [
-            'method'     => $request->getMethod(),
-            'uri'        => (string) $request->getUriString(),
-            'referer'    => $this->headerValue($request, 'Referer'),
-            'user_agent' => $this->headerValue($request, 'User-Agent'),
-            'client'     => Redactor::ip($this->clientAddress(), $this->capture['ip']),
-            'user_id'    => $this->userId(),
-        ];
-
-        $query = $request->getQuery();
-        $post  = $request->getPost();
-        $context['query'] = Redactor::params(
-            is_object($query) && method_exists($query, 'toArray') ? $query->toArray() : (array) $query,
-            $this->capture['params']
-        );
-        $context['post'] = Redactor::params(
-            is_object($post) && method_exists($post, 'toArray') ? $post->toArray() : (array) $post,
-            $this->capture['params']
-        );
-
-        return $context;
     }
 
     /**
@@ -206,21 +124,6 @@ class RequestContext
     }
 
     /**
-     * @param HttpRequest $request
-     * @param string      $name
-     * @return string|null
-     */
-    private function headerValue(HttpRequest $request, $name)
-    {
-        $header = $request->getHeader($name);
-        if (false === $header) {
-            return null;
-        }
-        $value = $header->getFieldValue();
-        return '' === $value ? null : $value;
-    }
-
-    /**
      * Which deployed code produced this failure — phploy leaves the revision it
      * uploaded at the application root.
      *
@@ -240,17 +143,5 @@ class RequestContext
             }
         }
         return $this->revision;
-    }
-
-    /**
-     * @param mixed $value
-     * @return string|null
-     */
-    private function stringOrNull($value)
-    {
-        if (! is_string($value) || '' === $value) {
-            return null;
-        }
-        return $value;
     }
 }

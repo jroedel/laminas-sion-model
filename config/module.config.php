@@ -2,11 +2,9 @@
 
 namespace SionModel;
 
-use SionModel\Controller\LazyControllerFactory;
 use SionModel\Form\Element\Phone;
 use Laminas\Router\Http\Literal;
 use Laminas\Router\Http\Segment;
-use Laminas\View\Helper\InlineScript;
 
 return [
     /**
@@ -22,16 +20,12 @@ return [
     ],
     'view_helpers' => [
         'factories' => [
-            'inlineScript'          => Service\InlineScriptFactory::class,
-            InlineScript::class => Service\InlineScriptFactory::class,
             'address'               => Service\AddressFactory::class,
             'editPencil'            => Service\EditPencilFactory::class,
             'formatEntity'          => Service\FormatEntityFactory::class,
-            'routeName'             => Service\RouteNameFactory::class,
         ],
         'invokables' => [
             'editPencilNew'         => View\Helper\EditPencilNew::class,
-            'formRow'               => Form\View\Helper\SionFormRow::class,
             'dayFormat'             => I18n\View\Helper\DayFormat::class,
             'datePrecisionFormat'   => I18n\View\Helper\DatePrecisionFormat::class,
             'diffForHumans'         => View\Helper\DiffForHumans::class,
@@ -64,24 +58,6 @@ return [
             'Phone' => Phone::class,
         ],
     ],
-    'view_manager' => [
-        'template_map' => include __DIR__ . '/template_map.config.php',
-        'template_path_stack' => [
-            'sion-model' => __DIR__ . '/../view',
-        ],
-    ],
-    'controllers' => [
-        'invokables' => [
-            //SionModelController::class => SionModelController::class,
-        ],
-        'factories' => [
-            Controller\SionModelController::class => Service\SionModelControllerFactory::class,
-        ],
-        'abstract_factories' => [
-            Controller\SionControllerFactory::class,
-            LazyControllerFactory::class,
-        ],
-    ],
     'service_manager' => [
         'invokables' => [
             I18n\LanguageSupport::class     => I18n\LanguageSupport::class
@@ -95,18 +71,19 @@ return [
             Service\ProblemService::class   => Service\ProblemServiceFactory::class,
             Service\ChangesCollector::class => Service\ChangesCollectorFactory::class,
             Mailing\Mailer::class           => Service\MailerFactory::class,
+            //the Twig environment mail bodies render with; templates under `@sion-model/…`
+            //plus whatever `sion_model.mail_template_paths` names
+            Mailing\TemplateRendererInterface::class => Service\TemplateRendererFactory::class,
             Db\Model\PredicatesTable::class => Service\PredicatesTableFactory::class,
-            Mvc\CspListener::class          => Service\CspListenerFactory::class,
             Service\ErrorHandling::class    => Service\ErrorHandlingFactory::class,
             'ExceptionsLogger'              => Service\ExceptionsLoggerFactory::class,
             'SionModel\Logger'              => Service\LoggerFactory::class,
-            //exception reporting: recorder, notifier and the dispatch/render
-            //error listener Module::onBootstrap() attaches
+            //exception reporting: recorder and notifier, reached through the host's
+            //FatalErrorHandler resolver
             Error\Fingerprinter::class      => Service\FingerprinterFactory::class,
             Error\ExceptionStore::class     => Service\ExceptionStoreFactory::class,
             Error\RequestContext::class     => Service\RequestContextFactory::class,
             Error\ExceptionNotifier::class  => Service\ExceptionNotifierFactory::class,
-            Error\ErrorListener::class      => Service\ErrorListenerFactory::class,
             'SionModel\MailTransport'       => Service\MailTransportFactory::class,
             Console\Command\ClearConfigCacheCommand::class
                                             => Service\ClearConfigCacheCommandFactory::class,
@@ -132,6 +109,11 @@ return [
          * cache:flush-persistent command takes --url when it is unset.
          */
         'canonical_base_url'        => '',
+        /**
+         * Where mail templates live, `twig namespace => directory`. This package's own
+         * are under `@sion-model/…`; a host adds its directories here.
+         */
+        'mail_template_paths'       => [],
         /**
          * Exception reporting. Every exception that reaches dispatch.error or
          * render.error is logged as before and additionally recorded in a
@@ -225,12 +207,6 @@ return [
         'post_place_line_format_by_country' => [
             'US' => ':cityState :zip',
             'CL' => ':cityState :zip',
-        ],
-        'sion_controller_services' => [
-            'SionModel\Config',
-            Service\ProblemService::class,
-            'SionModel\PersistentCache',
-            Service\ChangesCollector::class,
         ],
         'url_map'                   => [ //@todo clarify this, for general users
             'g+' => [

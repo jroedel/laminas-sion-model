@@ -43,8 +43,8 @@ class FatalErrorHandler
 
     /**
      * Returns [ErrorHandling, RequestContext]. Invoked only on failure, so a
-     * healthy request never pays for constructing either — see ErrorListener
-     * for why that matters.
+     * healthy request never pays for constructing either: ExceptionsLogger opens a
+     * file handle when constructed, and RequestContext pulls in the acting-user provider.
      *
      * @var callable|null
      */
