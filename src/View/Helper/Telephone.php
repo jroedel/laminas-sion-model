@@ -4,13 +4,14 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
+use Laminas\Translator\TranslatorInterface;
+use SionModel\View\Escape;
 use Laminas\Filter\StringTrim;
 use Laminas\Filter\FilterChain;
 use Laminas\Filter\PregReplace;
 use libphonenumber\PhoneNumberFormat;
 
-class Telephone extends AbstractHelper
+class Telephone
 {
     /**
      *
@@ -20,7 +21,7 @@ class Telephone extends AbstractHelper
     protected $phoneUtil;
     protected $geocoder;
 
-    public function __construct()
+    public function __construct(private readonly ?TranslatorInterface $translator = null)
     {
         $this->filter = new FilterChain();
         $this->filter->attach(new StringTrim())
@@ -58,21 +59,27 @@ class Telephone extends AbstractHelper
         if (isset($telUrl) && ! is_null($telUrl)) { //if we have it, use the lib-formatted URL
             $return .= $telUrl;
         } else {
-            $return .= 'tel:' . $this->getView()->escapeHtml($filteredTelephone);
+            $return .= 'tel:' . Escape::html($filteredTelephone);
         }
         $return .= '" ' . ($tooltip ? ('data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="' . $tooltip . '"') : "") .
-           '>' . $this->getView()->escapeHtml($telephone) . '</a>';
+           '>' . Escape::html($telephone) . '</a>';
         if ($whatsApp) {
             $return .= ' <i class="fa fa-whatsapp" aria-hidden="true" ' .
             'data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="' .
-                $this->view->translate('WhatsApp number') . '"></i>';
+                $this->translate('WhatsApp number') . '"></i>';
         }
 
         if ((! is_object($numberProto) || ! $this->phoneUtil->isValidNumber($numberProto)) && $displayWarning) {
             $return .= ' <i class="fa fa-exclamation-triangle" aria-hidden="true" ' .
             'data-toggle="tooltip" data-placement="bottom" data-container="body" data-original-title="' .
-                $this->view->translate('Unrecognized phone number') . '"></i>';
+                $this->translate('Unrecognized phone number') . '"></i>';
         }
         return $return;
+    }
+
+    /** Untranslated when the host provides no translator, which is what a catalog miss gives too. */
+    private function translate(string $message): string
+    {
+        return null === $this->translator ? $message : $this->translator->translate($message);
     }
 }

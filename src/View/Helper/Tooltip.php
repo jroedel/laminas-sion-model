@@ -4,9 +4,10 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
+use SionModel\View\Escape;
 
-class Tooltip extends AbstractHelper
+
+class Tooltip
 {
     public function __invoke($text, $tooltipText, $escape = true, $placement = 'bottom')
     {
@@ -14,10 +15,10 @@ class Tooltip extends AbstractHelper
             return '';
         }
         if (is_null($tooltipText) || $tooltipText == '') {
-            return '<span>' . ($escape ? $this->escapeHtml($text) : $text) . '</span>';
+            return '<span>' . ($escape ? Escape::html((string) $text) : $text) . '</span>';
         }
         return '<span class="tooltip" data-toggle="tooltip" data-placement="' . $placement . '" title="' .
-            ($escape ? $this->view->escapeHtmlAttr($tooltipText) : $tooltipText) .
-            '">' . ($escape ? $this->view->escapeHtml($text) : $text) . '</span>';
+            ($escape ? Escape::htmlAttr((string) $tooltipText) : $tooltipText) .
+            '">' . ($escape ? Escape::html((string) $text) : $text) . '</span>';
     }
 }

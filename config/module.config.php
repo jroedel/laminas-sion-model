@@ -26,12 +26,7 @@ return [
         ],
         'invokables' => [
             'editPencilNew'         => View\Helper\EditPencilNew::class,
-            'dayFormat'             => I18n\View\Helper\DayFormat::class,
             'diffForHumans'         => View\Helper\DiffForHumans::class,
-            'formatUrlObject'       => View\Helper\FormatUrlObject::class,
-            'helpBlock'             => View\Helper\HelpBlock::class,
-            'telephone'             => View\Helper\Telephone::class,
-            'tooltip'               => View\Helper\Tooltip::class,
         ],
     ],
     'validators' => [
