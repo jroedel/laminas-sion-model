@@ -4,9 +4,10 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
+use SionModel\View\Escape;
 
-class FormatUrlObject extends AbstractHelper
+
+class FormatUrlObject
 {
     public function __invoke($url, $openInNewTab = true)
     {
@@ -25,7 +26,7 @@ class FormatUrlObject extends AbstractHelper
         } else {
             $format = "<a href=\"%s\">%s</a>";
         }
-        $return = sprintf($format, $url['url'], $this->view->escapeHtml($url['label']));
+        $return = sprintf($format, $url['url'], Escape::html((string) $url['label']));
         return $return;
     }
 }

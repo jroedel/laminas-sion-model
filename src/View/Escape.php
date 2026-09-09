@@ -4,7 +4,14 @@ declare(strict_types=1);
 
 namespace SionModel\View;
 
+use Twig\Runtime\EscaperRuntime;
+
+use function hexdec;
 use function htmlspecialchars;
+use function mb_convert_encoding;
+use function preg_match;
+use function preg_replace_callback;
+use function sprintf;
 
 use const ENT_QUOTES;
 use const ENT_SUBSTITUTE;
@@ -44,4 +51,61 @@ final class Escape
             ? ''
             : htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, self::ENCODING);
     }
+
+    /**
+     * Escape a value going into an HTML **attribute**.
+     *
+     * A different and much stricter algorithm than {@see html()}: everything outside
+     * `[a-z0-9,.\-_]` becomes a numeric entity, so the value stays inert even in an
+     * unquoted attribute. Twig ships that algorithm and this delegates to it — writing a
+     * second copy of an escaper is how a subtle difference becomes an injection.
+     *
+     * **The guard is the reason this is not a one-liner.** Twig *throws* on a string that
+     * is not valid UTF-8; `Laminas\Escaper\Escaper::escapeHtmlAttr()` converted instead and
+     * returned something. A page whose only fault is one bad byte in a database field must
+     * not die, so invalid sequences are substituted first — the same substitution
+     * `ENT_SUBSTITUTE` performs for {@see html()} — and Twig then sees valid input.
+     *
+     * The runtime is built once and needs nothing but a charset; it is not the Twig
+     * environment that renders templates and shares no state with it.
+     */
+    public static function htmlAttr(?string $value): string
+    {
+        if (null === $value || '' === $value) {
+            return '';
+        }
+        if (1 !== preg_match('//u', $value)) {
+            //not valid UTF-8: replace the invalid sequences rather than raise
+            $value = (string) mb_convert_encoding($value, self::ENCODING, self::ENCODING);
+        }
+
+        self::$escaper ??= new EscaperRuntime(self::ENCODING);
+
+        return self::laminasEntityWidth((string) self::$escaper->escape($value, 'html_attr'));
+    }
+
+    /**
+     * Twig writes every numeric entity four digits wide; laminas wrote two below U+0100
+     * and four above (`sprintf('&#x%02X;')` / `'&#x%04X;'`).
+     *
+     * Both are the same character to every browser, and normalising is still worth six
+     * lines: this application's data is full of non-ASCII — German, Spanish and Portuguese
+     * names in tooltips and titles — so without it every such attribute would change bytes
+     * on the deploy that ports these helpers. Byte-identical output is what makes the
+     * golden-master tests and a diff against the live site mean anything.
+     */
+    private static function laminasEntityWidth(string $escaped): string
+    {
+        return (string) preg_replace_callback(
+            '/&#x([0-9A-F]+);/',
+            static function (array $m): string {
+                $ord = (int) hexdec($m[1]);
+
+                return sprintf($ord > 255 ? '&#x%04X;' : '&#x%02X;', $ord);
+            },
+            $escaped
+        );
+    }
+
+    private static ?EscaperRuntime $escaper = null;
 }

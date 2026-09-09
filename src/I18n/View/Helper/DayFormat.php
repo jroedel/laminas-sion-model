@@ -4,14 +4,15 @@
 
 namespace SionModel\I18n\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
+use Laminas\Translator\TranslatorInterface;
+use SionModel\View\Escape;
 
-class DayFormat extends AbstractHelper
+class DayFormat
 {
     protected $englishStrings;
     protected $cardinalEndings;
 
-    public function __construct()
+    public function __construct(private readonly ?TranslatorInterface $translator = null)
     {
         $this->englishStrings = [
             1 => 'January %s',
@@ -74,7 +75,14 @@ class DayFormat extends AbstractHelper
         }
         $month = (int)$date->format('m');
         $day = (int)$date->format('j');
-        $return = $this->view->escapeHtml(sprintf($this->view->translate($this->englishStrings[$month], 'Patres'), $day));
+        $pattern = $this->englishStrings[$month];
+        //'Patres' is this string set's own text domain, and was passed here before the
+        //translator was injected; keeping it is what stops these month names landing in
+        //`default` and filing a second phrase row for every one of them.
+        $pattern = null === $this->translator
+            ? $pattern
+            : $this->translator->translate($pattern, 'Patres');
+        $return  = Escape::html(sprintf($pattern, $day));
         if (\Locale::getPrimaryLanguage(\Locale::getDefault()) == 'en') {
             $return .= $this->cardinalEndings[$day];
         }
