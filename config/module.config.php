@@ -18,15 +18,12 @@ return [
             'cache:flush-persistent' => Console\Command\FlushPersistentCacheCommand::class,
         ],
     ],
-    'view_helpers' => [
-        'factories' => [
-            'editPencil'            => Service\EditPencilFactory::class,
-            'formatEntity'          => Service\FormatEntityFactory::class,
-        ],
-        'invokables' => [
-            'editPencilNew'         => View\Helper\EditPencilNew::class,
-        ],
-    ],
+    /**
+     * **No `view_helpers` key any more.** `editPencil`, `editPencilNew` and `formatEntity`
+     * became plain classes on 2026-09: each takes its former `$this->view` collaborators as
+     * injected closures, so a plugin manager cannot build one from a name alone. The host
+     * constructs them — see App\Laminas\ViewHelpers in schoenstatt.link.
+     */
     'validators' => [
         'invokables' => [
             'Skype'         => Validator\Skype::class,
