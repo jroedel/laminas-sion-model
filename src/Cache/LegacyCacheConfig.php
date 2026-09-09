@@ -3,13 +3,14 @@
 namespace SionModel\Cache;
 
 /**
- * Translates Laminas\Cache\StorageFactory::factory()-shaped config arrays
- * (laminas-cache 2.x, removed in 3.0) into the shape
- * StorageAdapterFactoryInterface::createFromArrayConfiguration() expects.
+ * Normalises the two generations of laminas-cache configuration this application's files
+ * are written in into one shape: `{adapter: string, options: array, plugins: list}`.
  *
- * Exists so the untracked, machine-specific cache configs (cache.local.php on
- * every deployment target) keep working across the laminas-cache 2 → 3 bump
- * without a coordinated config rewrite during the deploy.
+ * Exists so the untracked, machine-specific cache configs — `cache.local.php` on every
+ * deployment target — keep working without a coordinated config rewrite during a deploy.
+ * It was written for the laminas-cache 2 → 3 bump; laminas-cache is gone now and
+ * {@see StorageFactory} reads what comes out of here, so the same files keep working
+ * across that removal too. Nothing in it depends on laminas.
  */
 final class LegacyCacheConfig
 {
@@ -17,7 +18,11 @@ final class LegacyCacheConfig
      * @param array<string, mixed> $legacy StorageFactory-shaped: adapter as
      *        array{name, options?, ttl?} (or already a string), plugins as a
      *        list of names, name=>options maps, or {name, options} entries
-     * @return array{adapter: string, options: array<string, mixed>, plugins: list<array{name: string, options?: array<string, mixed>}>}
+     * @return array{
+     *     adapter: string,
+     *     options: array<string, mixed>,
+     *     plugins: list<array{name: string, options?: array<string, mixed>}>
+     * }
      */
     public static function translate(array $legacy): array
     {
