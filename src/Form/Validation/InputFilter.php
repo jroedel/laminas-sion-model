@@ -40,6 +40,28 @@ use function str_ends_with;
  *      if empty, a not-empty check is **injected in front of them** — unless the field
  *      already declares one of its own.
  *
+ * ## What this engine does NOT carry, and must before it can be cut over
+ *
+ * It is driven by the specification alone. `Laminas\Form\Form::getInputFilter()` also
+ * builds an input per **element**, from each element's own `getInputSpecification()`, and
+ * merges the two. Measured 2026-09-10: **101 fields across the 36 forms are validated only
+ * by that element half**, against 199 whose validators are declared in a specification —
+ * a `Select`'s `InArray` over its value options, `Uri` on a `Url`,
+ * `Regex`/`GreaterThan`/`LessThan`/`Step` on a `Number`, and **31 `Csrf` checks**, since no
+ * form's specification names `security`: `SionModel\Form\SionForm` adds the element and
+ * laminas supplies the validator from it.
+ *
+ * So replacing `Laminas\InputFilter` with this class today would drop all 101, every CSRF
+ * check on the site included. They are enumerated in `test/Fuzz/known-form-gaps.php` under
+ * `validationSuppliedOnlyByElement` and that list must reach zero first.
+ *
+ * `test/Integration/InputFilterEngineParityTest` cannot see any of this: it feeds laminas'
+ * `Factory` and this engine the *same* specification, so both sides start where that list
+ * ends. It proves the two agree given a specification. It proves nothing about what the
+ * assembled filter contains.
+ *
+ * ## The semantics, continued
+ *
  * That injection is the rule most easily missed, because it does not depend on `required`.
  * `Schoenstatt\Form\SearchForm` is the case that proves it: `showPhotos` is
  * `required => false` with a `Boolean` filter, so an empty submission filters to `false` —
