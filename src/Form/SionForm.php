@@ -12,8 +12,9 @@ use Laminas\Filter\StripTags;
 use Laminas\Filter\StripNewlines;
 use Laminas\Filter\StringTrim;
 use Laminas\Form\Element\Csrf;
+use Laminas\InputFilter\InputFilterProviderInterface;
 
-class SionForm extends Form
+class SionForm extends Form implements InputFilterProviderInterface
 {
     protected $filterSpec;
     protected $phoneInputFilterSpec;
@@ -75,6 +76,25 @@ class SionForm extends Form
                     ],
                 ],
             ],
+        ];
+    }
+
+    /**
+     * The CSRF token, which every form built on this class carries.
+     *
+     * Subclasses override this and must spread the same entry in — `CsrfSpec` exists so
+     * that it is one expression rather than a copied literal, and so that it reads the
+     * element instead of guessing at its options. Stated rather than left to
+     * `Laminas\Form\Element\Csrf`'s own input specification because
+     * `SionModel\Form\Validation\InputFilter` reads the specification and nothing else:
+     * at step 5 a check that lives only on the element is a check that disappears.
+     *
+     * @return array<string, mixed>
+     */
+    public function getInputFilterSpecification()
+    {
+        return [
+            'security' => CsrfSpec::forElement($this->get('security')),
         ];
     }
 

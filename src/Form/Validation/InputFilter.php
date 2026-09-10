@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace SionModel\Form\Validation;
 
+use InvalidArgumentException;
+
 use function array_key_exists;
 use function array_unshift;
+use function get_debug_type;
 use function is_array;
 use function is_string;
+use function sprintf;
 use function str_ends_with;
 
 /**
@@ -39,6 +43,28 @@ use function str_ends_with;
  *   5. otherwise the validators run, and when the field neither allows empty nor continues
  *      if empty, a not-empty check is **injected in front of them** — unless the field
  *      already declares one of its own.
+ *
+ * ## What this engine does NOT carry, and must before it can be cut over
+ *
+ * It is driven by the specification alone. `Laminas\Form\Form::getInputFilter()` also
+ * builds an input per **element**, from each element's own `getInputSpecification()`, and
+ * merges the two. Measured 2026-09-10: **101 fields across the 36 forms are validated only
+ * by that element half**, against 199 whose validators are declared in a specification —
+ * a `Select`'s `InArray` over its value options, `Uri` on a `Url`,
+ * `Regex`/`GreaterThan`/`LessThan`/`Step` on a `Number`, and **31 `Csrf` checks**, since no
+ * form's specification names `security`: `SionModel\Form\SionForm` adds the element and
+ * laminas supplies the validator from it.
+ *
+ * So replacing `Laminas\InputFilter` with this class today would drop all 101, every CSRF
+ * check on the site included. They are enumerated in `test/Fuzz/known-form-gaps.php` under
+ * `validationSuppliedOnlyByElement` and that list must reach zero first.
+ *
+ * `test/Integration/InputFilterEngineParityTest` cannot see any of this: it feeds laminas'
+ * `Factory` and this engine the *same* specification, so both sides start where that list
+ * ends. It proves the two agree given a specification. It proves nothing about what the
+ * assembled filter contains.
+ *
+ * ## The semantics, continued
  *
  * That injection is the rule most easily missed, because it does not depend on `required`.
  * `Schoenstatt\Form\SearchForm` is the case that proves it: `showPhotos` is
@@ -237,8 +263,20 @@ final class InputFilter
             return $out;
         }
         foreach ($list as $entry) {
+            //Not `continue`. A specification entry this engine cannot read is a filter or
+            //validator that silently does not run, which is the failure this whole layer
+            //exists to stop being possible — and it is a shape laminas accepts, so it is
+            //not hypothetical: `Laminas\InputFilter\Factory` takes a validator *instance*
+            //where this takes a name, and handing one over would have been checked by
+            //nothing.
             if (! is_array($entry) || ! is_string($entry['name'] ?? null)) {
-                continue;
+                throw new InvalidArgumentException(sprintf(
+                    'A %s entry must be ["name" => string, "options" => array]; got %s. '
+                    . 'This engine reads specifications as data, so a validator or filter '
+                    . 'object has to be declared by class name instead.',
+                    $key,
+                    get_debug_type($entry)
+                ));
             }
             /** @var array<string, mixed> $options */
             $options = is_array($entry['options'] ?? null) ? $entry['options'] : [];
