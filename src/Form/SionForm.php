@@ -44,7 +44,13 @@ class SionForm extends Form implements InputFilterProviderInterface
 
         $this->phoneInputFilterSpec = [
             'required' => false,
+            //StringTrim and StripNewlines come first because that is the order
+            //SionModel\Form\Element\Phone declares them and laminas merges the element's
+            //filters ahead of the specification's. It is not only order that matters:
+            //without the trim, ToNull leaves '   ' as three spaces instead of null.
             'filters'  => [
+                ['name' => StringTrim::class],
+                ['name' => StripNewlines::class],
                 ['name' => ToNull::class],
             ],
             'validators' => [

@@ -8,7 +8,7 @@ use InvalidArgumentException;
 
 use function array_key_exists;
 use function array_keys;
-use function array_unshift;
+use function array_replace;
 use function get_debug_type;
 use function is_array;
 use function is_string;
@@ -347,29 +347,49 @@ final class InputFilter
      */
     private function validate(mixed $value, array $rules, bool $injectNotEmpty): array
     {
-        $declared = $this->entries($rules, 'validators');
+        $chain = [];
 
-        if ($injectNotEmpty && ! $this->declaresNotEmpty($declared)) {
-            array_unshift($declared, ['NotEmpty', []]);
+        //The injected check goes first **and breaks the chain**, which is not a detail:
+        //`Input::injectNotEmptyValidator()` calls `prependByName(NotEmpty::class, [], true)`
+        //and that third argument is `breakChainOnFailure`. So an empty value reports
+        //`isEmpty` and nothing else — rather than `isEmpty` plus whatever a length or
+        //format rule says about a value that should never have reached it.
+        if ($injectNotEmpty && ! $this->declaresNotEmpty($this->entries($rules, 'validators'))) {
+            $chain[] = ['NotEmpty', [], true];
+        }
+        foreach ($this->entries($rules, 'validators') as [$name, $options]) {
+            $chain[] = [$name, $options, false];
         }
 
-        foreach ($declared as [$name, $options]) {
+        //Every declared validator runs, and their messages merge, which is exactly
+        //`ValidatorChain::isValid()`: it continues unless an entry sets
+        //`breakChainOnFailure`, and nothing in this application sets it.
+        //
+        //This used to stop at the first failure and report only its messages. The verdict
+        //was identical — every rule here is independent — but the message *list* was not,
+        //and the list is what the visitor reads: an address that is both malformed and too
+        //long said one of the two things rather than both. Changing what a form says is
+        //not something an engine swap gets to do as a side effect.
+        $messages = [];
+
+        foreach ($chain as [$name, $options, $breaks]) {
             /** @var object $validator */
             $validator = ($this->makeValidator)($name, $options);
             /** @psalm-suppress MixedMethodCall */
-            if (! $validator->isValid($value)) {
-                /** @var array<string, string> $messages */
-                $messages = $validator->getMessages();
+            if ($validator->isValid($value)) {
+                continue;
+            }
 
-                //laminas' ValidatorChain runs the whole chain and merges messages unless a
-                //validator breaks the chain; every validator these forms declare is a
-                //single independent rule, so reporting the first failure is the same answer
-                //with a shorter message list. Asserted against laminas in the parity test.
-                return $messages;
+            /** @var array<string, string> $failed */
+            $failed   = $validator->getMessages();
+            $messages = array_replace($messages, $failed);
+
+            if ($breaks) {
+                break;
             }
         }
 
-        return [];
+        return $messages;
     }
 
     /** @param list<array{0: string, 1: array<string, mixed>}> $declared */
