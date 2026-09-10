@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace SionModel\Form\Validation;
 
+use InvalidArgumentException;
+
 use function array_key_exists;
 use function array_unshift;
+use function get_debug_type;
 use function is_array;
 use function is_string;
+use function sprintf;
 use function str_ends_with;
 
 /**
@@ -259,8 +263,20 @@ final class InputFilter
             return $out;
         }
         foreach ($list as $entry) {
+            //Not `continue`. A specification entry this engine cannot read is a filter or
+            //validator that silently does not run, which is the failure this whole layer
+            //exists to stop being possible — and it is a shape laminas accepts, so it is
+            //not hypothetical: `Laminas\InputFilter\Factory` takes a validator *instance*
+            //where this takes a name, and handing one over would have been checked by
+            //nothing.
             if (! is_array($entry) || ! is_string($entry['name'] ?? null)) {
-                continue;
+                throw new InvalidArgumentException(sprintf(
+                    'A %s entry must be ["name" => string, "options" => array]; got %s. '
+                    . 'This engine reads specifications as data, so a validator or filter '
+                    . 'object has to be declared by class name instead.',
+                    $key,
+                    get_debug_type($entry)
+                ));
             }
             /** @var array<string, mixed> $options */
             $options = is_array($entry['options'] ?? null) ? $entry['options'] : [];

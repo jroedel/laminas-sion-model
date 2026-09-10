@@ -97,6 +97,7 @@ class CommentForm extends SionForm implements InputFilterProviderInterface
     public function getInputFilterSpecification()
     {
         return [
+            'security' => CsrfSpec::forElement($this->get('security')),
             'comment' => [
                 'required' => true,
                 'filters' => [
