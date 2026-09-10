@@ -7,6 +7,7 @@ namespace SionModel\Form\Validation;
 use InvalidArgumentException;
 
 use function array_key_exists;
+use function array_keys;
 use function array_unshift;
 use function get_debug_type;
 use function is_array;
@@ -44,25 +45,25 @@ use function str_ends_with;
  *      if empty, a not-empty check is **injected in front of them** — unless the field
  *      already declares one of its own.
  *
- * ## What this engine does NOT carry, and must before it can be cut over
+ * ## What it is driven by, and what that cost to arrange
  *
- * It is driven by the specification alone. `Laminas\Form\Form::getInputFilter()` also
- * builds an input per **element**, from each element's own `getInputSpecification()`, and
- * merges the two. Measured 2026-09-10: **101 fields across the 36 forms are validated only
- * by that element half**, against 199 whose validators are declared in a specification —
- * a `Select`'s `InArray` over its value options, `Uri` on a `Url`,
- * `Regex`/`GreaterThan`/`LessThan`/`Step` on a `Number`, and **31 `Csrf` checks**, since no
- * form's specification names `security`: `SionModel\Form\SionForm` adds the element and
- * laminas supplies the validator from it.
+ * The specification alone. `Laminas\Form\Form::getInputFilter()` also builds an input per
+ * **element**, from that element's own `getInputSpecification()`, and merges the two —
+ * which is why, measured 2026-09-10, **120 fields across the application were validated
+ * only by that element half**, 31 of them by `Csrf`. Every one of those was a check this
+ * engine would have dropped in silence. They were moved into the specifications over the
+ * following days; `test/Fuzz/known-form-gaps.php`'s `validationSuppliedOnlyByElement`
+ * holds what is left, and `FormValidationContractTest` fails when it grows.
  *
- * So replacing `Laminas\InputFilter` with this class today would drop all 101, every CSRF
- * check on the site included. They are enumerated in `test/Fuzz/known-form-gaps.php` under
- * `validationSuppliedOnlyByElement` and that list must reach zero first.
+ * The other half of the merge — the shape, not the rules — is {@see FormSpecification},
+ * which assembles the same nested structure `Form::attachInputFilterDefaults()` does out
+ * of the specifications and the element list.
  *
- * `test/Integration/InputFilterEngineParityTest` cannot see any of this: it feeds laminas'
+ * `test/Integration/InputFilterEngineParityTest` can see none of this: it feeds laminas'
  * `Factory` and this engine the *same* specification, so both sides start where that list
- * ends. It proves the two agree given a specification. It proves nothing about what the
- * assembled filter contains.
+ * ends. It proves the two agree given a specification. `EngineMatchesAssembledFilterTest`
+ * compares field by field against what the application really validates with, and
+ * `WholeFormEngineParityTest` compares whole submissions.
  *
  * ## The semantics, continued
  *
@@ -91,8 +92,21 @@ final class InputFilter
     /** @var array<string, mixed> */
     private array $values = [];
 
-    /** @var array<string, array<string, string>> */
+    /** @var array<string, mixed> */
     private array $messages = [];
+
+    /**
+     * The names to validate, or null for all of them.
+     *
+     * A group is a **whitelist that also narrows the result**: `BaseInputFilter::getValues()`
+     * iterates `$this->validationGroup ?? array_keys($this->inputs)`, so a field outside the
+     * group is neither checked nor returned. `Schoenstatt\Form\EditAssignmentForm` relies on
+     * exactly that — its comment says so — and `JUser\Form\EditUserForm` sets one covering
+     * every element, which is a no-op it can keep.
+     *
+     * @var list<string>|null
+     */
+    private ?array $validationGroup = null;
 
     /**
      * @param array<string, mixed> $spec the form's getInputFilterSpecification()
@@ -123,14 +137,56 @@ final class InputFilter
         $this->messages = [];
     }
 
+    /**
+     * Validate and return only these names; null restores all of them.
+     *
+     * @param list<string>|null $group
+     * @throws InvalidArgumentException when a name is not in the specification, which is
+     *         `BaseInputFilter::validateValidationGroup()`'s behaviour and worth keeping:
+     *         a group naming a field that does not exist is a whitelist that silently
+     *         stopped whitelisting when the field was renamed.
+     */
+    public function setValidationGroup(?array $group): void
+    {
+        if (null === $group) {
+            $this->validationGroup = null;
+
+            return;
+        }
+
+        foreach ($group as $name) {
+            if (! array_key_exists($name, $this->spec)) {
+                throw new InvalidArgumentException(sprintf(
+                    'The validation group names %s, which the specification does not describe.',
+                    $name
+                ));
+            }
+        }
+
+        $this->validationGroup = $group;
+    }
+
     public function isValid(): bool
     {
         $this->values   = [];
         $this->messages = [];
         $valid          = true;
 
-        foreach ($this->spec as $name => $rules) {
-            if (! is_string($name) || ! is_array($rules)) {
+        foreach ($this->validationGroup ?? array_keys($this->spec) as $name) {
+            $name  = (string) $name;
+            $rules = $this->spec[$name] ?? null;
+            if (! is_array($rules)) {
+                continue;
+            }
+
+            //A fieldset or a collection is a specification of its own rather than a rule,
+            //so it is dispatched before anything reads `required` off it.
+            if (is_array($rules['fieldset'] ?? null)) {
+                $valid = $this->validateFieldset($name, $rules['fieldset']) && $valid;
+                continue;
+            }
+            if (is_array($rules['collection'] ?? null)) {
+                $valid = $this->validateCollection($name, $rules['collection']) && $valid;
                 continue;
             }
 
@@ -177,13 +233,91 @@ final class InputFilter
         return $valid;
     }
 
-    /** @return array<string, mixed> the filtered value of every field in the specification */
+    /**
+     * One nested fieldset, validated by its own specification.
+     *
+     * `BaseInputFilter::populate()` is the source of the two coercions here: a name absent
+     * from the data, and a name whose value is not an array, both become an empty set
+     * rather than an error. So `map=hello` does not throw — it validates an empty `map`,
+     * which fails exactly the fields inside it that are required.
+     *
+     * @param array<string, mixed> $spec
+     */
+    private function validateFieldset(string $name, array $spec): bool
+    {
+        $data = is_array($this->data[$name] ?? null) ? $this->data[$name] : [];
+
+        $child = new self($spec, $this->makeFilter, $this->makeValidator);
+        $child->setData($data);
+        $valid = $child->isValid();
+
+        $this->values[$name] = $child->getValues();
+        if (! $valid) {
+            $this->messages[$name] = $child->getMessages();
+        }
+
+        return $valid;
+    }
+
+    /**
+     * A collection: the same specification applied to each row, keyed as the rows are.
+     *
+     * `CollectionInputFilter` carries a `count` and an `isRequired` that decide whether too
+     * few rows is a failure. Neither is reachable from a form — `Form::attachInputFilterDefaults()`
+     * constructs the collection filter and calls neither setter — so a collection is exactly
+     * "validate each row that arrived", and reproducing the unreachable half would be
+     * reproducing laminas rather than the application.
+     *
+     * A row that is not an array is validated as an empty row. laminas instead throws
+     * `InvalidArgumentException` from `CollectionInputFilter::setData()`, which reaches the
+     * visitor as a 500 with their whole submission lost; answering "this row is invalid" is
+     * the same verdict without the crash. Recorded here because it is a deliberate
+     * divergence, and asserted by `WholeFormEngineParityTest`.
+     *
+     * @param array<string, mixed> $spec
+     */
+    private function validateCollection(string $name, array $spec): bool
+    {
+        $rows = is_array($this->data[$name] ?? null) ? $this->data[$name] : [];
+
+        $valid    = true;
+        $values   = [];
+        $messages = [];
+
+        /** @var mixed $row */
+        foreach ($rows as $key => $row) {
+            $child = new self($spec, $this->makeFilter, $this->makeValidator);
+            $child->setData(is_array($row) ? $row : []);
+
+            if (! $child->isValid()) {
+                $valid           = false;
+                $messages[$key]  = $child->getMessages();
+            }
+            $values[$key] = $child->getValues();
+        }
+
+        $this->values[$name] = $values;
+        if ([] !== $messages) {
+            $this->messages[$name] = $messages;
+        }
+
+        return $valid;
+    }
+
+    /**
+     * @return array<string, mixed> the filtered value of every field validated, nested as
+     *         the specification is
+     */
     public function getValues(): array
     {
         return $this->values;
     }
 
-    /** @return array<string, array<string, string>> field name => message key => message */
+    /**
+     * @return array<string, mixed> field name => message key => message, nested for a
+     *         fieldset and keyed by row for a collection, which is the shape
+     *         `Laminas\Form\Fieldset::setMessages()` distributes
+     */
     public function getMessages(): array
     {
         return $this->messages;
