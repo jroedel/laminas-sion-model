@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace SionModel\Form\Validation;
 
 use InvalidArgumentException;
+use Laminas\Filter\FilterPluginManager;
+use Laminas\ServiceManager\ServiceManager;
+use Laminas\Validator\ValidatorPluginManager;
 
 use function array_key_exists;
 use function array_keys;
@@ -127,6 +130,60 @@ final class InputFilter
         private readonly mixed $makeFilter,
         private readonly mixed $makeValidator
     ) {
+    }
+
+    /**
+     * An engine over a specification, resolving rules through laminas' plugin managers.
+     *
+     * The one place the "today they resolve to laminas' own filters and validators" of the
+     * constructor's docblock is actually decided, so that swapping a rule set is one edit
+     * rather than one per caller. Four callers want it: {@see \SionModel\Form\Form} for
+     * every form on the site, and the three non-form validators — the associations API, the
+     * phrases API and the Patres import — that used to reach for
+     * `Laminas\Form\Form::getInputFilter()`.
+     *
+     * The plugin managers take a **bare** `ServiceManager` rather than the application's.
+     * Measured when the form cutover landed: all 23 filter names and all 29 validator names
+     * any specification here uses resolve out of the managers' own defaults, and SionModel's
+     * two custom validators are named by class. Handing them the application container would
+     * make an input filter depend on module loading, which is exactly what lets the
+     * associations API validate with no MVC, no merged config and no session.
+     *
+     * @param array<string, mixed> $spec
+     */
+    public static function withLaminasRules(array $spec): self
+    {
+        $filters    = null;
+        $validators = null;
+
+        return new self(
+            $spec,
+            static function (string $name, array $options) use (&$filters): object {
+                $filters ??= new FilterPluginManager(new ServiceManager());
+
+                return $filters->get($name, $options);
+            },
+            static function (string $name, array $options) use (&$validators): object {
+                $validators ??= new ValidatorPluginManager(new ServiceManager());
+
+                return $validators->get($name, $options);
+            }
+        );
+    }
+
+    /**
+     * The rules this engine was built with.
+     *
+     * The laminas filter this replaces was introspected as an object graph — `has()`,
+     * `get()`, `getValidatorChain()` — and two callers did exactly that: the API schema
+     * endpoint publishes a phrase's maximum length, and the parity tests compare two
+     * surfaces field by field. A specification is plain data, so they read it instead.
+     *
+     * @return array<string, mixed>
+     */
+    public function specification(): array
+    {
+        return $this->spec;
     }
 
     /** @param array<string, mixed> $data */
