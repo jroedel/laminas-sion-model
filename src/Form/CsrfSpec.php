@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
+use Laminas\Filter\StringTrim;
 use Laminas\Form\Element\Csrf;
 use Laminas\Form\ElementInterface;
 use Laminas\Validator\Csrf as CsrfValidator;
@@ -63,12 +64,18 @@ final class CsrfSpec
      * `required` is the element's own: `Csrf::getInputSpecification()` declares it, and a
      * missing token must fail rather than pass as an absent optional field.
      *
-     * @return array{required: bool, validators: list<array{name: class-string, options: array<string, mixed>}>}
+     * The `StringTrim` is the element's too, and it is not decoration: a token arriving with
+     * a stray newline — a hand-written client, a copy-paste — is a token that matches after
+     * trimming and not before. Losing it would make a form intermittently refuse a valid
+     * submission, which is the worst failure shape there is.
+     *
+     * @return array{required: bool, filters: list<array{name: class-string}>, validators: list<array{name: class-string, options: array<string, mixed>}>}
      */
     public static function forElement(ElementInterface $element): array
     {
         return [
             'required'   => true,
+            'filters'    => [['name' => StringTrim::class]],
             'validators' => self::validators($element),
         ];
     }

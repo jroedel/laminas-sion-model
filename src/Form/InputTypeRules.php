@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
+use Laminas\Filter\DateSelect as DateSelectFilter;
+use Laminas\Filter\MonthSelect as MonthSelectFilter;
+use Laminas\Filter\StringTrim;
 use Laminas\Form\Element\AbstractDateTime;
+use Laminas\Form\Element\Csrf;
 use Laminas\Form\Element\DateSelect;
 use Laminas\Form\Element\Email;
+use Laminas\Form\Element\MonthSelect;
 use Laminas\Form\Element\Number;
 use Laminas\Form\Element\Url;
 use Laminas\Form\ElementInterface;
@@ -200,6 +205,58 @@ final class InputTypeRules
         }
 
         return [['name' => Regex::class, 'options' => ['pattern' => $pattern]]];
+    }
+
+    /**
+     * The **filters** an element type supplies, which are as easy to lose as its validators
+     * and rather harder to notice.
+     *
+     * ## Why this exists separately, and what it cost to find
+     *
+     * `test/Fuzz/FormGapCollector` compared validator sets for months and never compared
+     * filters, so `validationSuppliedOnlyByElement` read 3 while **74 fields** were being
+     * filtered by something no specification named. The rest of step 5 was built on that
+     * number.
+     *
+     * It surfaced when the engine was first cut over and the smoke suite refused to create
+     * a person: `Schoenstatt\Form\PersonForm::nameDay` is a `DateSelect`, which posts
+     * `['year' => …, 'month' => …, 'day' => …]` from its three `<select>`s, and
+     * `Laminas\Form\Element\DateSelect::getInputSpecification()` supplies the
+     * `Laminas\Filter\DateSelect` that turns that array into `Y-m-d`. Without it the array
+     * reaches `Laminas\Validator\Date` unchanged and every person save fails on a field
+     * nobody touched.
+     *
+     * The other 73 are `StringTrim`, and they are not cosmetic either: a `ToNull` after a
+     * `StringTrim` turns `'   '` into `null`, and the same `ToNull` without it stores three
+     * spaces. The ordering below matters for the same reason — laminas merges the element's
+     * filters *before* the specification's, so these must be spread first.
+     *
+     * @return list<array<string, mixed>> filter specifications, or none
+     */
+    public static function filters(ElementInterface $element): array
+    {
+        //Before MonthSelect: DateSelect extends it, and the two filters differ.
+        if ($element instanceof DateSelect) {
+            return [['name' => DateSelectFilter::class]];
+        }
+        if ($element instanceof MonthSelect) {
+            return [['name' => MonthSelectFilter::class]];
+        }
+
+        //`Csrf`, `Url`, `Email`, `Number` and `AbstractDateTime` each declare exactly
+        //`['name' => StringTrim::class]` and nothing else — read from their
+        //getInputSpecification(), not assumed from a pattern.
+        if (
+            $element instanceof Csrf
+            || $element instanceof Url
+            || $element instanceof Email
+            || $element instanceof Number
+            || $element instanceof AbstractDateTime
+        ) {
+            return [['name' => StringTrim::class]];
+        }
+
+        return [];
     }
 
     /**
