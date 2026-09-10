@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
-use Laminas\Filter\FilterPluginManager;
 use Laminas\Form\Exception\DomainException;
 use Laminas\Form\Form as LaminasForm;
 use Laminas\Form\FormInterface;
-use Laminas\ServiceManager\ServiceManager;
-use Laminas\Validator\ValidatorPluginManager;
 use LogicException;
 use SionModel\Form\Validation\FormSpecification;
 use SionModel\Form\Validation\InputFilter as Engine;
@@ -58,7 +55,9 @@ use function sprintf;
  * So there is nothing to inject, and that is the point: the alternative was a static
  * registry populated at bootstrap, which is exactly the shape `GlobalAdapterFeature` had
  * before `JUser\Form\DeleteUserForm` took its adapter as a constructor argument instead —
- * a form that could not be constructed without reproducing a bootstrap step.
+ * a form that could not be constructed without reproducing a bootstrap step. The wiring
+ * itself lives in {@see Engine::withLaminasRules()}, shared with the three non-form
+ * validators, so replacing a rule set is one edit rather than four.
  */
 class Form extends LaminasForm
 {
@@ -67,9 +66,6 @@ class Form extends LaminasForm
 
     /** @var array<string, mixed> the messages of the last validation */
     private array $engineMessages = [];
-
-    private ?FilterPluginManager $filters       = null;
-    private ?ValidatorPluginManager $validators = null;
 
     /**
      * @throws DomainException when there is no data to validate, as laminas throws.
@@ -221,20 +217,6 @@ class Form extends LaminasForm
         //request with its value options narrowed in between — AssignmentForm::setData()
         //does exactly that — and a memoised specification would enforce the first call's
         //domain on the second call's data.
-        return new Engine(
-            FormSpecification::of($this),
-            fn(string $name, array $options): object => $this->filters()->get($name, $options),
-            fn(string $name, array $options): object => $this->validators()->get($name, $options)
-        );
-    }
-
-    private function filters(): FilterPluginManager
-    {
-        return $this->filters ??= new FilterPluginManager(new ServiceManager());
-    }
-
-    private function validators(): ValidatorPluginManager
-    {
-        return $this->validators ??= new ValidatorPluginManager(new ServiceManager());
+        return Engine::withLaminasRules(FormSpecification::of($this));
     }
 }
