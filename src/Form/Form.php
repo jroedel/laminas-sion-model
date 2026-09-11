@@ -4,37 +4,31 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
-use Laminas\Form\Exception\DomainException;
-use Laminas\Form\Factory;
-use Laminas\Form\Form as LaminasForm;
-use Laminas\Form\FormInterface;
 use LogicException;
-use SionModel\Form\Element\Registry;
+use SionModel\Form\Exception\DomainException;
 use SionModel\Form\Validation\FormSpecification;
 use SionModel\Form\Validation\InputFilter as Engine;
 
 use function is_array;
-use function is_object;
+use function iterator_to_array;
 use function sprintf;
 
 /**
- * The application's form base class: validation runs on {@see Engine}, not on
- * `Laminas\InputFilter`.
+ * The application's form base class: a fieldset that can be submitted.
  *
- * ## What changes, and what deliberately does not
+ * ## What it is
  *
- * `isValid()` and `getData()` are the whole of it. Everything else — elements, rendering,
- * `setData()`, `prepare()`, messages reaching the elements — is still laminas-form's, and
- * has to be: `SionModel\Form\BootstrapFormRenderer` asks elements twelve questions and
- * sixty templates go through it. This class is step 5 of the laminas exit and step 5
- * replaces the *input filter*.
+ * `Laminas\Form\Form` is 800 lines, and what a form here needs from it is four things:
+ * hold elements, take submitted data, validate, and prepare itself for rendering. The
+ * first comes from {@see Fieldset}; the middle two are below; `prepare()` is the last.
  *
- * The order matters. Removing `laminas-form` means writing an element model and a form
- * model, parity-tested against every one of those templates, and building that on an
- * unproven validation engine would mean debugging both at once. So the engine goes first,
- * behind an unchanged surface, where the thing it replaced is still sitting next to it:
- * `getInputFilter()` still assembles laminas' filter, `WholeFormEngineParityTest` still
- * compares the two on every form, and reverting this class is a one-line change.
+ * Everything else in laminas' class serves machinery this application does not use, and
+ * each omission was measured across every call site rather than assumed. There is no
+ * object binding and no hydrator — {@see guardAgainstBoundObject()} has refused a bound
+ * object since #239 and nothing noticed. There is no `getInputFilter()`: validation runs
+ * on {@see Engine} over {@see FormSpecification}, and by the time the form model was
+ * replaced the only callers left were tests measuring an object no request reached. There
+ * is no base fieldset, no `wrapElements()`, no `setPriority()`, no `VALUES_RAW`.
  *
  * ## Why the engine is built at isValid() time
  *
@@ -42,11 +36,10 @@ use function sprintf;
  * finished when its constructor returns: `BookFormFactory` fills in authors, collections,
  * publishers and categories afterwards, `AssignmentForm::setData()` narrows `roleId` to
  * the submitted association's roles, and `CheckoutForms::mass()` populates a select inside
- * a collection's target element. laminas has the same property for the same reason —
- * `getInputFilter()` calls `getInputFilterSpecification()` lazily — and `ChoiceDomain`
- * depends on it to read a haystack a factory supplied.
+ * a collection's target element. laminas had the same property for the same reason, and
+ * `ChoiceDomain` depends on it to read a haystack a factory supplied.
  *
- * ## Why the plugin managers need no wiring
+ * ## Why the rules need no wiring
  *
  * A specification names its filters and validators by class or by short name, and every
  * one of the 23 filter names and 29 validator names in this application resolves from a
@@ -61,8 +54,20 @@ use function sprintf;
  * itself lives in {@see Engine::withLaminasRules()}, shared with the three non-form
  * validators, so replacing a rule set is one edit rather than four.
  */
-class Form extends LaminasForm
+class Form extends Fieldset implements FormInterface
 {
+    /** @var array<string, mixed>|null the data last submitted */
+    protected ?array $data = null;
+
+    /** @var list<string>|null */
+    protected ?array $validationGroup = null;
+
+    protected bool $hasValidated = false;
+
+    protected bool $isValid = false;
+
+    protected bool $isPrepared = false;
+
     /** @var array<string, mixed>|null the values of the last validation */
     private ?array $engineValues = null;
 
@@ -70,39 +75,90 @@ class Form extends LaminasForm
     private array $engineMessages = [];
 
     /**
-     * The factory that builds this form's elements, defaulting to one that knows ours.
+     * A form is named, and laminas' constructor took the name first.
      *
-     * `Laminas\Form\Fieldset::getFormFactory()` makes a bare `Factory` the first time it is
-     * asked, and a bare factory's element manager holds laminas' own aliases — so a form
-     * built with `new` would keep building `SionModel\Form\Element\Select` however the
-     * application's `form_elements` config is written. Half the forms here are built that
-     * way: `ImportMappingForm` takes a spreadsheet's worksheets, `LibraryDeleteForm` takes a
-     * library.
-     *
-     * A form retrieved from the container needs none of this — `FormElementManager` injects
-     * itself into the factory of everything it creates — and a form that was given a factory
-     * keeps it, which is what lets `AssociationValidator` supply its own.
+     * @param null|int|string $name
+     * @param iterable<string, mixed> $options
      */
-    public function getFormFactory(): Factory
+    public function __construct($name = null, iterable $options = [])
     {
-        if (null === $this->factory) {
-            $this->setFormFactory(Registry::formFactory());
-        }
+        parent::__construct($name, $options);
 
-        return parent::getFormFactory();
+        //laminas' Form seeds `method="POST"` and nothing else; `BootstrapFormRenderer::open()`
+        //reads the attribute back, and the two contact-search forms override it with GET.
+        if (! $this->hasAttribute('method')) {
+            $this->setAttribute('method', 'POST');
+        }
     }
 
     /**
-     * @throws DomainException when there is no data to validate, as laminas throws.
-     * @throws LogicException when an object is bound; see getData().
+     * Take a submission.
+     *
+     * The values reach the elements immediately, which is what lets an edit page render a
+     * record by calling this and nothing else.
+     *
+     * @param iterable<string, mixed> $data
+     */
+    public function setData(iterable $data): static
+    {
+        $data = is_array($data) ? $data : iterator_to_array($data);
+
+        $this->hasValidated = false;
+        $this->data         = $data;
+        $this->populateValues($data);
+
+        return $this;
+    }
+
+    /**
+     * Materialise what a rendering needs, once.
+     *
+     * Only a fieldset's children are renamed — `prepareElement()` on this class does not
+     * rename the form's own top-level elements, because laminas only did that under
+     * `wrapElements()`, which nothing sets. What it does reach is every
+     * {@see PrepareAwareInterface} child: the CSRF token, the collection's rows, the
+     * DateSelect's three sub-elements, the file input's enctype.
+     */
+    public function prepare(): static
+    {
+        if ($this->isPrepared) {
+            return $this;
+        }
+
+        foreach ($this->getIterator() as $child) {
+            if ($child instanceof PrepareAwareInterface) {
+                $child->prepareElement($this);
+            }
+        }
+
+        $this->isPrepared = true;
+
+        return $this;
+    }
+
+    /** @inheritDoc */
+    public function setValidationGroup(array $group): static
+    {
+        $this->hasValidated    = false;
+        $this->validationGroup = $group;
+
+        return $this;
+    }
+
+    /** @inheritDoc */
+    public function getValidationGroup(): ?array
+    {
+        return $this->validationGroup;
+    }
+
+    /**
+     * @throws DomainException when there is no data to validate, as laminas threw.
      */
     public function isValid(): bool
     {
         if ($this->hasValidated) {
             return $this->isValid;
         }
-
-        $this->guardAgainstBoundObject();
 
         if (! is_array($this->data)) {
             throw new DomainException(sprintf(
@@ -112,7 +168,7 @@ class Form extends LaminasForm
         }
 
         $engine = $this->engine();
-        $engine->setValidationGroup($this->flatValidationGroup());
+        $engine->setValidationGroup($this->validationGroup);
         $engine->setData($this->data);
 
         $this->isValid      = $result = $engine->isValid();
@@ -121,11 +177,11 @@ class Form extends LaminasForm
         $this->engineMessages = $engine->getMessages();
 
         if (! $result) {
-            //The same call laminas makes, and the reason the renderer needs no change:
             //`Fieldset::setMessages()` hands each message set to the element of that name,
-            //and `BootstrapFormRenderer` reads them back through `getMessages()`. The
-            //engine nests its messages the way laminas nests them so a fieldset's reach
-            //their fieldset's elements.
+            //and `BootstrapFormRenderer::errors()` reads them back through `getMessages()`.
+            //That distribution is what puts a message on screen; the engine nests its
+            //messages the way a form is nested so a fieldset's reach their fieldset's
+            //elements.
             $this->setMessages($engine->getMessages());
         }
 
@@ -154,11 +210,10 @@ class Form extends LaminasForm
     }
 
     /**
-     * @param int $flag ignored except to refuse `VALUES_RAW`
      * @return array<string, mixed>
-     * @throws DomainException when validation has not run, as laminas throws.
+     * @throws DomainException when validation has not run, as laminas threw.
      */
-    public function getData(int $flag = FormInterface::VALUES_NORMALIZED)
+    public function getData(): array
     {
         if (! $this->hasValidated || null === $this->engineValues) {
             throw new DomainException(sprintf(
@@ -167,73 +222,7 @@ class Form extends LaminasForm
             ));
         }
 
-        //laminas answers VALUES_RAW from `$filter->getRawValues()`. The engine keeps no
-        //raw values — it has the submitted data and the filtered result, and a caller
-        //wanting the former can read the request. Nothing in this application asks, so
-        //this refuses rather than inventing an answer that looks right.
-        if (FormInterface::VALUES_RAW === $flag) {
-            throw new LogicException(sprintf(
-                '%s does not answer VALUES_RAW. Read the request for unfiltered values.',
-                __METHOD__
-            ));
-        }
-
         return $this->engineValues;
-    }
-
-    /**
-     * The validation group as a flat list of names.
-     *
-     * laminas accepts a nested group — `['map' => ['title']]` — and `prepareValidationGroup()`
-     * walks it into fieldsets and expands it across a collection's rows. Both groups in this
-     * application are flat lists of top-level names, and a nested one would narrow a
-     * fieldset in a way this class would silently ignore, so it is refused instead.
-     *
-     * @return list<string>|null
-     */
-    private function flatValidationGroup(): ?array
-    {
-        $group = $this->getValidationGroup();
-        if (null === $group) {
-            return null;
-        }
-
-        $flat = [];
-        foreach ($group as $key => $value) {
-            if (is_array($value)) {
-                throw new LogicException(sprintf(
-                    'The validation group of %s narrows the fieldset %s. %s validates a '
-                    . 'fieldset by its own specification and cannot narrow one.',
-                    static::class,
-                    (string) $key,
-                    self::class
-                ));
-            }
-            $flat[] = (string) $value;
-        }
-
-        return $flat;
-    }
-
-    /**
-     * Bound objects are refused rather than supported.
-     *
-     * `Form::bind()` makes `getData()` return a hydrated object instead of an array, and
-     * `isValid()` extract the data from it. Nothing in this application binds — measured
-     * across every form, and every controller reads `getData()` as an array and hands it to
-     * `SionTable` — so supporting it would mean carrying laminas-hydrator into a layer whose
-     * purpose is to leave laminas behind, for no caller.
-     */
-    private function guardAgainstBoundObject(): void
-    {
-        if (is_object($this->object)) {
-            throw new LogicException(sprintf(
-                '%s has an object bound to it. %s validates and returns arrays; binding '
-                . 'needs a hydrator, which this application does not use anywhere.',
-                static::class,
-                self::class
-            ));
-        }
     }
 
     private function engine(): Engine

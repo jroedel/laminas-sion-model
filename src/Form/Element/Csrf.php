@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SionModel\Form\Element;
 
-use Laminas\Form\ElementPrepareAwareInterface;
-use Laminas\Form\FormInterface;
+use SionModel\Form\FormInterface;
+use SionModel\Form\PrepareAwareInterface;
 use Laminas\Validator\Csrf as CsrfValidator;
 
 use function array_merge;
@@ -34,7 +34,7 @@ use function array_merge;
  * `SionForm` and four others pass `csrf_options => ['timeout' => 900]`; the rest pass
  * nothing and take laminas' 300 seconds. 28 of the 35 carry the option.
  */
-class Csrf extends Element implements ElementPrepareAwareInterface
+class Csrf extends Element implements PrepareAwareInterface
 {
     /** @var array<string, mixed> */
     protected array $attributes = [

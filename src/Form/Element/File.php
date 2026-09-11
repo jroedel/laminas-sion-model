@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SionModel\Form\Element;
 
-use Laminas\Form\ElementPrepareAwareInterface;
-use Laminas\Form\FormInterface;
+use SionModel\Form\FormInterface;
+use SionModel\Form\PrepareAwareInterface;
 
 /**
  * A file input. One of them: `Books\Form\ImportForm::file`.
@@ -23,7 +23,7 @@ use Laminas\Form\FormInterface;
  * `App\Books\Import\SpreadsheetUpload` is what actually judges it. That was already
  * recorded as a known difference in the engine parity test before this class existed.
  */
-class File extends Element implements ElementPrepareAwareInterface
+class File extends Element implements PrepareAwareInterface
 {
     /** @var array<string, mixed> */
     protected array $attributes = [

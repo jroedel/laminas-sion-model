@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SionModel\Form;
 
 use SionModel\Form\Element\Checkbox;
-use Laminas\Form\ElementInterface;
+use SionModel\Form\ElementInterface;
 use Laminas\Validator\InArray;
 
 /**

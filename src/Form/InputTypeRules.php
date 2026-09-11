@@ -12,7 +12,7 @@ use SionModel\Form\Element\DateSelect;
 use SionModel\Form\Element\Email;
 use SionModel\Form\Element\Number;
 use SionModel\Form\Element\Url;
-use Laminas\Form\ElementInterface;
+use SionModel\Form\ElementInterface;
 use Laminas\Validator\Date as DateValidator;
 use Laminas\Validator\Explode;
 use Laminas\Validator\GreaterThan;

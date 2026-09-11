@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SionModel\Form\Validation;
 
-use Laminas\Form\Element\Collection;
-use Laminas\Form\Fieldset;
+use SionModel\Form\Collection;
+use SionModel\Form\Fieldset;
 use Laminas\InputFilter\InputFilterProviderInterface;
 use LogicException;
 

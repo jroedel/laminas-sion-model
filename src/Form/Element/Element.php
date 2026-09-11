@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Form\Element;
 
-use Laminas\Form\ElementAttributeRemovalInterface;
-use Laminas\Form\ElementInterface;
-use Laminas\Form\LabelAwareInterface;
-use Laminas\Stdlib\InitializableInterface;
+use SionModel\Form\ElementInterface;
 
 use function array_key_exists;
 use function is_array;
@@ -32,13 +29,16 @@ use function iterator_to_array;
  * actually ask for, recorded across all 441 elements in `test/Element/element-surface.php`
  * before a line of this was written.
  *
- * ## Why it still implements laminas' interfaces
+ * ## One interface, not four
  *
- * Because `Laminas\Form\Fieldset::add()` type-hints `ElementInterface`, and the form model
- * is a later step. Implementing the interfaces is what lets an element be replaced without
- * touching a single form: the same `$this->add(['type' => 'Select', ...])` builds ours, and
- * `test/Integration/ElementSurfaceTest` says whether it answers the same. The interfaces
- * leave with `Laminas\Form\Form` and `Laminas\Form\Fieldset`, not before.
+ * It implemented `Laminas\Form\ElementInterface` plus `LabelAwareInterface`,
+ * `ElementAttributeRemovalInterface` and `Laminas\Stdlib\InitializableInterface` while the
+ * form model was still laminas', because `Fieldset::add()` type-hinted the first and the
+ * other three were how laminas split the rest up. {@see \SionModel\Form\ElementInterface}
+ * is the whole surface now: the label methods are on it because every element here has a
+ * label and the renderer asks all of them, and `init()` is on it because the factory calls
+ * it. The nine label-attribute methods below are still here and still work; nothing
+ * type-hints an element in order to call them, so the interface does not name them.
  *
  * ## Two behaviours here are load-bearing and easy to lose
  *
@@ -60,11 +60,7 @@ use function iterator_to_array;
  * property directly, so anything that did read it would already be getting the wrong answer
  * for 42 elements here. Carrying it forward would be carrying a bug nobody can observe.
  */
-class Element implements
-    ElementAttributeRemovalInterface,
-    ElementInterface,
-    InitializableInterface,
-    LabelAwareInterface
+class Element implements ElementInterface
 {
     /** @var array<string, mixed> */
     protected array $attributes = [];

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SionModel\Form;
 
 use SionModel\Form\Element\Select;
-use Laminas\Form\ElementInterface;
+use SionModel\Form\ElementInterface;
 use Laminas\Validator\Explode;
 use Laminas\Validator\InArray;
 
