@@ -39,7 +39,7 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
         //fixture on 2026-08-14 — POST with `cancel=Cancel` and no `submit` answered
         //302 → the entity index with the row gone.
         //
-        //Laminas\Form\Element\Button declares `type => button` in its own $attributes, so
+        //SionModel\Form\Element\Button declares `type => button` in its own $attributes, so
         //naming the type here is the whole fix on the browser's side: the button no longer
         //submits anything, and inside the two delete modals (person-edit, assignment-edit)
         //`data-dismiss` closes the modal on its own, which is what it was always meant to
@@ -67,7 +67,7 @@ class DeleteEntityForm extends Form implements InputFilterProviderInterface
      * Only the CSRF token: `submit` is a button rather than data, and this form carries
      * no fields of its own.
      *
-     * `security` is stated here even though `Laminas\Form\Element\Csrf` supplies the
+     * `security` is stated here even though `SionModel\Form\Element\Csrf` supplies the
      * validator itself. That was the reasoning this docblock used to give for returning
      * an empty array, and it stops being safe at step 5:
      * `SionModel\Form\Validation\InputFilter` reads the specification and nothing else,

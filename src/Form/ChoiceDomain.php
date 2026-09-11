@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
-use Laminas\Form\Element\MultiCheckbox;
-use Laminas\Form\Element\Select;
+use SionModel\Form\Element\Select;
 use Laminas\Form\ElementInterface;
 use Laminas\Validator\Explode;
 use Laminas\Validator\InArray;
@@ -20,12 +19,16 @@ use function count;
  *
  * ## Why a form has to restate it at all
  *
- * A `Select`, `Radio` or `MultiCheckbox` builds its own `InArray` from its value options —
- * `Laminas\Form\Element\Select::getInputSpecification()` does it — **unless the element sets
- * `disable_inarray_validator => true`**. That option is the whole of it, and it is set on 35
- * elements in the schoenstatt.link application. Where it is set, nothing constrains the field
- * to its own list and any string at all reaches the column; this class is how a form puts the
- * check back.
+ * A laminas `Select` built its own `InArray` from its value options, in
+ * `getInputSpecification()`, **unless the element set `disable_inarray_validator => true`** —
+ * an option 63 elements in this application set, and where it was set nothing constrained
+ * the field to its own list and any string at all reached the column. This class is how a
+ * form puts the check back.
+ *
+ * The element model states no rules at all, so every choice field now depends on a form
+ * saying this. `disable_inarray_validator` survives as documentation of which fields
+ * deliberately accept a value outside their list — see the section below — and nothing
+ * reads it.
  *
  * ## What this docblock said until 2026-08-15, and why it was wrong
  *
@@ -132,7 +135,11 @@ final class ChoiceDomain
      */
     public static function validators(ElementInterface $element, array $fallbackHaystack = []): array
     {
-        if (! $element instanceof Select && ! $element instanceof MultiCheckbox) {
+        //A `Select` and nothing else. Under laminas this also accepted a `MultiCheckbox`
+        //and a `Radio`; the element model has neither, because the census found none in any
+        //form on this site. A form that grows one gets no domain from here and
+        //`test/Fuzz/known-form-gaps.php` says so on the next run.
+        if (! $element instanceof Select) {
             return [];
         }
 
@@ -153,9 +160,15 @@ final class ChoiceDomain
         }
 
         //A multiple select posts an array, and InArray validates a scalar. Explode is what
-        //Laminas\Form\Element\Select::getInputSpecification() wraps it in for exactly this,
-        //so the element's discarded input and this replacement have the same shape.
-        if ($element instanceof MultiCheckbox || $element->getAttribute('multiple')) {
+        //`Laminas\Form\Element\Select::getInputSpecification()` wrapped it in for exactly
+        //this, so the rule that replaced the element's has the same shape.
+        //
+        //`isMultiple()` rather than the truthiness of the attribute: it accepts `true` and
+        //`'multiple'`, which is what makes a browser send an array, and nothing else. The
+        //19 multiple selects here are 18 of the first and 1 of the second, so the two agree
+        //today; `'multiple' => 'yes'` is where they would not, and the browser sides with
+        //this one.
+        if ($element->isMultiple()) {
             return [[
                 'name'    => Explode::class,
                 'options' => [

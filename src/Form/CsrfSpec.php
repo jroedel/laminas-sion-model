@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SionModel\Form;
 
 use Laminas\Filter\StringTrim;
-use Laminas\Form\Element\Csrf;
+use SionModel\Form\Element\Csrf;
 use Laminas\Form\ElementInterface;
 use Laminas\Validator\Csrf as CsrfValidator;
 
@@ -16,17 +16,19 @@ use function array_merge;
  *
  * ## Why a form has to restate it at all
  *
- * `Laminas\Form\Element\Csrf` supplies its own validator through
- * `InputProviderInterface::getInputSpecification()`, so every form here is CSRF-checked
- * today without a single specification mentioning it. Measured 2026-09-10: **31 forms in
- * that state, and zero specifications naming `security`.**
+ * `Laminas\Form\Element\Csrf` supplied its own validator through
+ * `InputProviderInterface::getInputSpecification()`, so every form here was CSRF-checked
+ * without a single specification mentioning it. Measured 2026-09-10: **31 forms in that
+ * state, and zero specifications naming `security`.**
  *
- * That is fine while `Laminas\InputFilter` assembles the filter, and fatal the moment
- * {@see Validation\InputFilter} does. The replacement engine reads the specification and
- * nothing else — deliberately, because a specification is a value you can read, and the
- * silent invention of whichever half is missing is exactly what step 5 removes. So each of
- * those 31 forms has to say `'security' => ['validators' => CsrfSpec::validators(...)]`
- * before the engine can take over, or the cutover removes CSRF protection from the site.
+ * That was fine while `Laminas\InputFilter` assembled the filter, and fatal the moment
+ * {@see Validation\InputFilter} did. The engine reads the specification and nothing else —
+ * deliberately, because a specification is a value you can read, and the silent invention
+ * of whichever half is missing is exactly what step 5 removes. So each of those 31 forms
+ * had to say `'security' => ['validators' => CsrfSpec::validators(...)]` before the engine
+ * could take over, and all of them do. `SionModel\Form\Element\Csrf` now supplies no input
+ * specification at all — it owns the token and says nothing about checking it — so this
+ * class is the only thing standing between the site and an unprotected form.
  *
  * ## Why it takes the element rather than returning a constant
  *
@@ -61,10 +63,11 @@ final class CsrfSpec
     /**
      * The specification entry for a form's CSRF element.
      *
-     * `required` is the element's own: `Csrf::getInputSpecification()` declares it, and a
-     * missing token must fail rather than pass as an absent optional field.
+     * `required` was the element's own: `Laminas\Form\Element\Csrf::getInputSpecification()`
+     * declared it, and a missing token must fail rather than pass as an absent optional
+     * field.
      *
-     * The `StringTrim` is the element's too, and it is not decoration: a token arriving with
+     * The `StringTrim` was the element's too, and it is not decoration: a token arriving with
      * a stray newline — a hand-written client, a copy-paste — is a token that matches after
      * trimming and not before. Losing it would make a form intermittently refuse a valid
      * submission, which is the worst failure shape there is.

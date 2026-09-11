@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
-use Laminas\Form\Element\Checkbox;
-use Laminas\Form\Element\MultiCheckbox;
+use SionModel\Form\Element\Checkbox;
 use Laminas\Form\ElementInterface;
 use Laminas\Validator\InArray;
 
@@ -14,16 +13,18 @@ use Laminas\Validator\InArray;
  *
  * The sibling of {@see ChoiceDomain}, and separate from it for a reason: that class is
  * about **value options** and the `disable_inarray_validator` flag, and a
- * `Laminas\Form\Element\Checkbox` has neither. Its domain is the pair it was built with,
+ * `SionModel\Form\Element\Checkbox` has neither. Its domain is the pair it was built with,
  * so the derivation is different even though the resulting validator is the same shape.
  *
  * ## Why restate it
  *
- * `Checkbox::getInputSpecification()` supplies the validator itself, so 42 checkboxes in
- * this application are constrained today without a single specification mentioning it.
- * `SionModel\Form\Validation\InputFilter` reads the specification and nothing else, so
- * each of those is a check that disappears when the engine replaces `Laminas\InputFilter`.
- * See `test/Fuzz/known-form-gaps.php`, `validationSuppliedOnlyByElement`.
+ * `Laminas\Form\Element\Checkbox::getInputSpecification()` supplied this validator itself,
+ * so 42 checkboxes in this application were constrained without a single specification
+ * mentioning it. `SionModel\Form\Validation\InputFilter` reads the specification and nothing
+ * else, and `SionModel\Form\Element\Checkbox` supplies no input specification at all, so
+ * every one of those checks would simply have stopped happening. This class is where they
+ * are written down instead; `test/Fuzz/known-form-gaps.php` measures that none is left on
+ * an element, under `validationSuppliedOnlyByElement`.
  *
  * ## What the constraint is actually worth
  *
@@ -36,8 +37,9 @@ use Laminas\Validator\InArray;
  *
  * ## `strict` is laminas' `false`, not ChoiceDomain's safer mode
  *
- * Deliberately. `Checkbox::getValidator()` passes `'strict' => false`, and this migration's
- * contract is that a specification produces the verdicts the element already produced. The
+ * Deliberately. `Laminas\Form\Element\Checkbox::getValidator()` passed `'strict' => false`,
+ * and this migration's contract is that a specification produces the verdicts the element
+ * produced. The
  * difference is theoretical under PHP 8 — the string-to-int comparison change means
  * `'1abc' == 1` is already false — so tightening it would buy nothing here and would make
  * a behaviour change look like a port. If it is ever wanted, it is its own decision.
@@ -53,11 +55,13 @@ final class CheckboxDomain
      */
     public static function validators(ElementInterface $element): array
     {
-        //`MultiCheckbox extends Checkbox`, and `Radio extends MultiCheckbox`, so the
-        //obvious instanceof also catches every radio and multi-checkbox in the
-        //application — and would hand each one a haystack of two values instead of its
-        //option list, refusing every real selection. Those belong to ChoiceDomain.
-        if (! $element instanceof Checkbox || $element instanceof MultiCheckbox) {
+        //Under laminas this also had to exclude `MultiCheckbox`, which extended `Checkbox`
+        //— an instanceof that caught every radio and multi-checkbox and would have handed
+        //each one a haystack of two values instead of its option list, refusing every real
+        //selection. The element model has no MultiCheckbox: the census found none in any
+        //form, so `SionModel\Form\Element\Checkbox` has no subclass and the exclusion has
+        //nothing left to exclude. Choice fields belong to ChoiceDomain either way.
+        if (! $element instanceof Checkbox) {
             return [];
         }
 
