@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace SionModel\Form;
 
 use SionModel\View\Escape;
-use Laminas\Form\Element\Checkbox;
-use Laminas\Form\Element\Csrf;
-use Laminas\Form\Element\Select;
-use Laminas\Form\Element\Submit;
-use Laminas\Form\Element\Textarea;
+use SionModel\Form\Element\Checkbox;
+use SionModel\Form\Element\Csrf;
+use SionModel\Form\Element\Select;
+use SionModel\Form\Element\Submit;
+use SionModel\Form\Element\Textarea;
 use Laminas\Form\ElementInterface;
 use Laminas\Form\FormInterface;
 
@@ -678,7 +678,7 @@ final class BootstrapFormRenderer
         $attributes = $this->attributes($element, ['name' => (string) $element->getName()]);
         /**
          * **`type` is filtered out, and until 2026-08-21 it was dropped by accident.**
-         * `Laminas\Form\Element\Textarea` seeds its own attribute array with
+         * `SionModel\Form\Element\Textarea` seeds its own attribute array with
          * `['type' => 'textarea']` — a `<textarea>` has no `type` attribute, and
          * `FormTextarea::$validTagAttributes` does not list one, so laminas never emits it.
          * The old ordering code unset `type` from the declared set as a side effect of
@@ -1022,7 +1022,7 @@ final class BootstrapFormRenderer
         //**`value` is the one key that is dropped**, and it is dropped because of *when*
         //laminas would have produced it rather than because it is unwanted. A plain
         //element never carries one (`Element::setAttribute()` diverts that key to
-        //`setValue()`), but `Laminas\Form\Element\Csrf` materialises `value` in its
+        //`setValue()`), but `SionModel\Form\Element\Csrf` materialises `value` in its
         //attribute array the first time its hash is asked for — and TwbBundle's row has
         //already set `class` on the element by then, so laminas renders
         //`type name class value` and not `type name value class`. Removing it here and

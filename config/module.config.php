@@ -2,7 +2,7 @@
 
 namespace SionModel;
 
-use SionModel\Form\Element\Phone;
+use SionModel\Form\Element\Registry;
 
 return [
     /**
@@ -42,11 +42,11 @@ return [
             'DateNotBefore' => Validator\DateNotBefore::class,
          ],
     ],
-    'form_elements' => [
-        'invokables' => [
-            'Phone' => Phone::class,
-        ],
-    ],
+    //Which class answers `'type' => 'Select'` and the fourteen like it. The list is in
+    //SionModel\Form\Element\Registry because two other places build elements without ever
+    //seeing this file: a form constructed with `new`, and the associations API, which
+    //validates with no module loading at all. See that class.
+    'form_elements' => Registry::config(),
     'service_manager' => [
         'invokables' => [
             I18n\LanguageSupport::class     => I18n\LanguageSupport::class

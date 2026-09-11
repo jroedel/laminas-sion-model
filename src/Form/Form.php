@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SionModel\Form;
 
 use Laminas\Form\Exception\DomainException;
+use Laminas\Form\Factory;
 use Laminas\Form\Form as LaminasForm;
 use Laminas\Form\FormInterface;
 use LogicException;
+use SionModel\Form\Element\Registry;
 use SionModel\Form\Validation\FormSpecification;
 use SionModel\Form\Validation\InputFilter as Engine;
 
@@ -66,6 +68,29 @@ class Form extends LaminasForm
 
     /** @var array<string, mixed> the messages of the last validation */
     private array $engineMessages = [];
+
+    /**
+     * The factory that builds this form's elements, defaulting to one that knows ours.
+     *
+     * `Laminas\Form\Fieldset::getFormFactory()` makes a bare `Factory` the first time it is
+     * asked, and a bare factory's element manager holds laminas' own aliases — so a form
+     * built with `new` would keep building `SionModel\Form\Element\Select` however the
+     * application's `form_elements` config is written. Half the forms here are built that
+     * way: `ImportMappingForm` takes a spreadsheet's worksheets, `LibraryDeleteForm` takes a
+     * library.
+     *
+     * A form retrieved from the container needs none of this — `FormElementManager` injects
+     * itself into the factory of everything it creates — and a form that was given a factory
+     * keeps it, which is what lets `AssociationValidator` supply its own.
+     */
+    public function getFormFactory(): Factory
+    {
+        if (null === $this->factory) {
+            $this->setFormFactory(Registry::formFactory());
+        }
+
+        return parent::getFormFactory();
+    }
 
     /**
      * @throws DomainException when there is no data to validate, as laminas throws.

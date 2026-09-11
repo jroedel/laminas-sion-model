@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace SionModel\Form;
 
 use Laminas\Filter\DateSelect as DateSelectFilter;
-use Laminas\Filter\MonthSelect as MonthSelectFilter;
 use Laminas\Filter\StringTrim;
-use Laminas\Form\Element\AbstractDateTime;
-use Laminas\Form\Element\Csrf;
-use Laminas\Form\Element\DateSelect;
-use Laminas\Form\Element\Email;
-use Laminas\Form\Element\MonthSelect;
-use Laminas\Form\Element\Number;
-use Laminas\Form\Element\Url;
+use SionModel\Form\Element\AbstractDateTime;
+use SionModel\Form\Element\Csrf;
+use SionModel\Form\Element\DateSelect;
+use SionModel\Form\Element\Email;
+use SionModel\Form\Element\Number;
+use SionModel\Form\Element\Url;
 use Laminas\Form\ElementInterface;
 use Laminas\Validator\Date as DateValidator;
 use Laminas\Validator\Explode;
@@ -50,7 +48,7 @@ use function is_string;
  *
  * ## What is deliberately absent: the step validators
  *
- * `Laminas\Form\Element\Number` adds a `Step` validator unless `step="any"`, and
+ * `SionModel\Form\Element\Number` adds a `Step` validator unless `step="any"`, and
  * `AbstractDateTime` adds a `DateStep` one on the same condition. `Step` is here.
  * `DateStep` is not, and cannot be: it is configured with `DateTimeZone` and
  * `DateInterval` **objects**, which a plain-data specification cannot hold.
@@ -67,7 +65,7 @@ final class InputTypeRules
     /**
      * `Number`: a numeric pattern, the min/max bounds, and the step.
      *
-     * @see \Laminas\Form\Element\Number::getValidators()
+     * @see \Laminas\Form\Element\Number::getValidators() — the source reproduced here
      * @return list<array<string, mixed>>
      */
     public static function number(ElementInterface $element): array
@@ -119,17 +117,17 @@ final class InputTypeRules
      * here, because a specification that threw while being built would take the page down
      * rather than report a field.
      *
-     * @see \Laminas\Form\Element\AbstractDateTime::getValidators()
+     * @see \Laminas\Form\Element\AbstractDateTime::getValidators() — the source reproduced here
      * @return list<array<string, mixed>>
      */
     public static function date(ElementInterface $element): array
     {
-        //`DateSelect extends MonthSelect extends Element` — it is not an AbstractDateTime
-        //and carries no min/max, and its validator is built with a **literal** 'Y-m-d'
-        //rather than through getFormat(). Reproduced as laminas writes it, separately,
-        //rather than folded into the branch below on the assumption the two agree.
-        //MonthSelect and the other pickers are deliberately not handled: none is used
-        //here, and a silent wrong format is worse than a reported gap.
+        //`DateSelect` is not an AbstractDateTime: it carries no min/max, and its validator
+        //is built with a **literal** 'Y-m-d' rather than through getFormat() — laminas'
+        //`DateSelect extends MonthSelect` did the same. Reproduced separately rather than
+        //folded into the branch below on the assumption the two agree. MonthSelect and the
+        //other pickers are deliberately not handled: no form uses one, and a silent wrong
+        //format is worse than a reported gap.
         if ($element instanceof DateSelect) {
             return [['name' => DateValidator::class, 'options' => ['format' => 'Y-m-d']]];
         }
@@ -161,7 +159,7 @@ final class InputTypeRules
     /**
      * `Url`: an absolute URI and nothing relative.
      *
-     * @see \Laminas\Form\Element\Url::getValidator()
+     * @see \Laminas\Form\Element\Url::getValidator() — the source reproduced here
      * @return list<array<string, mixed>>
      */
     public static function url(ElementInterface $element): array
@@ -185,7 +183,7 @@ final class InputTypeRules
      * specification already; this restates the element's regex beside it, because both
      * run today and the contract is that the specification says what already happens.
      *
-     * @see \Laminas\Form\Element\Email::getEmailValidator()
+     * @see \SionModel\Form\Element\Email::getEmailValidator()
      * @return list<array<string, mixed>>
      */
     public static function email(ElementInterface $element): array
@@ -221,26 +219,28 @@ final class InputTypeRules
      * It surfaced when the engine was first cut over and the smoke suite refused to create
      * a person: `Schoenstatt\Form\PersonForm::nameDay` is a `DateSelect`, which posts
      * `['year' => …, 'month' => …, 'day' => …]` from its three `<select>`s, and
-     * `Laminas\Form\Element\DateSelect::getInputSpecification()` supplies the
+     * `Laminas\Form\Element\DateSelect::getInputSpecification()` supplied the
      * `Laminas\Filter\DateSelect` that turns that array into `Y-m-d`. Without it the array
      * reaches `Laminas\Validator\Date` unchanged and every person save fails on a field
      * nobody touched.
      *
      * The other 73 are `StringTrim`, and they are not cosmetic either: a `ToNull` after a
      * `StringTrim` turns `'   '` into `null`, and the same `ToNull` without it stores three
-     * spaces. The ordering below matters for the same reason — laminas merges the element's
-     * filters *before* the specification's, so these must be spread first.
+     * spaces. The ordering below matters for the same reason — laminas merged the element's
+     * filters *before* the specification's, so these are spread first. Since the element
+     * swap no element supplies any of it and these helpers are the only source, which makes
+     * the ordering a convention rather than a constraint.
      *
      * @return list<array<string, mixed>> filter specifications, or none
      */
     public static function filters(ElementInterface $element): array
     {
-        //Before MonthSelect: DateSelect extends it, and the two filters differ.
+        //A `MonthSelect` branch stood second here, because laminas' `DateSelect` extended
+        //`MonthSelect` and the two filters differ. The element model has neither the
+        //inheritance nor a MonthSelect — no form in the application uses one — so the
+        //ordering no longer carries any weight and the branch would never be reached.
         if ($element instanceof DateSelect) {
             return [['name' => DateSelectFilter::class]];
-        }
-        if ($element instanceof MonthSelect) {
-            return [['name' => MonthSelectFilter::class]];
         }
 
         //`Csrf`, `Url`, `Email`, `Number` and `AbstractDateTime` each declare exactly
