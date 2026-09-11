@@ -10,8 +10,8 @@ use SionModel\Form\Element\Csrf;
 use SionModel\Form\Element\Select;
 use SionModel\Form\Element\Submit;
 use SionModel\Form\Element\Textarea;
-use Laminas\Form\ElementInterface;
-use Laminas\Form\FormInterface;
+use SionModel\Form\ElementInterface;
+use SionModel\Form\FormInterface;
 
 use function array_filter;
 use function array_flip;

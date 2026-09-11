@@ -116,7 +116,7 @@ class SionForm extends Form implements InputFilterProviderInterface
      * @todo I'm not positive this works 100%, it seemed to decode script tags well,
      * but not apostrophes. I ended up using StripTags instead.
      */
-    public function setData($data)
+    public function setData(iterable $data): static
     {
         $data = $this->blankUnusableDateSelectValues($data);
 

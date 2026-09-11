@@ -6,7 +6,7 @@ namespace SionModel\Form;
 
 use Laminas\Filter\StringTrim;
 use SionModel\Form\Element\Csrf;
-use Laminas\Form\ElementInterface;
+use SionModel\Form\ElementInterface;
 use Laminas\Validator\Csrf as CsrfValidator;
 
 use function array_merge;

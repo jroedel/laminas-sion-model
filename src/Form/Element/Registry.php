@@ -4,146 +4,102 @@ declare(strict_types=1);
 
 namespace SionModel\Form\Element;
 
-use Laminas\Form\Element as LaminasElement;
-use Laminas\Form\Factory;
-use Laminas\Form\FormElementManager;
-use Laminas\ServiceManager\ServiceManager;
+use SionModel\Form\Collection;
+use SionModel\Form\ElementInterface;
+use SionModel\Form\Factory;
+use SionModel\Form\Fieldset;
+use SionModel\Form\Form;
+
+use function class_exists;
+use function is_subclass_of;
+use function ltrim;
+use function strtolower;
 
 /**
  * Which class answers `'type' => 'Select'`.
  *
  * ## Why a class and not a config file
  *
- * Because three different things build elements and all three have to agree.
+ * Because three different things build elements and all three have to agree: a form's own
+ * `add()` calls through {@see Factory}, the container's form services, and
+ * `App\Schoenstatt\Association\AssociationValidator`, which validates an API payload with
+ * no module loading and no merged config at all. Three copies of the same list is three
+ * chances for one path to build something different from the other two — and that failure
+ * is silent, because the form still works.
  *
- *  1. `FormElementManager`, configured from the merged `form_elements` key, builds every
- *     form the container hands out — and injects itself into that form's factory, so the
- *     form's own `add()` calls resolve through it too.
- *  2. A form built with `new` has no manager at all: `Laminas\Form\Fieldset::getFormFactory()`
- *     makes a `Factory` with a default `FormElementManager` the first time it is asked.
- *     {@see \SionModel\Form\Form} overrides that with {@see formFactory()}.
- *  3. `App\Schoenstatt\Association\AssociationValidator` builds a `FormElementManager` by
- *     hand, because the associations API validates with no module loading and no merged
- *     config at all.
+ * It was a `FormElementManager` configuration until the form model landed. A plugin
+ * manager brought a `ServiceManager`, a canonicalisation scheme and laminas' own aliases
+ * underneath ours, to do a lookup in an array.
  *
- * Three copies of the same list is three chances for one path to keep building laminas
- * elements while the other two do not — and that failure is silent: the form still works,
- * it is simply the old class. So the list lives here and the three read it.
+ * ## What a `type` may be
  *
- * ## What is deliberately not listed
- *
- * `Collection`, `Fieldset` and `Form`, which belong to the form model rather than the
- * element model, and every element type no form in this application uses — Captcha, Color,
- * DateTime, Image, Month, MultiCheckbox, Password, Radio, Range, Search, Tel, Time, Week.
- * Those keep resolving to laminas' own classes. A form that starts using one gets a laminas
- * element and `test/Integration/ElementSurfaceTest` says so by name on the next run, which
- * is the loud answer; aliasing them to something that throws would be a louder one for no
- * extra safety, since a new element type needs a decision either way.
+ * A short name in any case — 74 forms write `'Text'` and five write `'text'` — or a class,
+ * which is how a form names a fieldset of its own (`Books\Form\MassCheckoutFieldset`) or
+ * an element by class (`SionModel\Form\Element\Csrf`). A name that is neither is refused
+ * by {@see Factory}, rather than quietly building a plain element that would render as an
+ * empty text box.
  */
 final class Registry
 {
     /**
-     * laminas' class => ours, for every element type this application actually uses.
+     * Every short name, lower-cased. The lookup lower-cases too, so one entry serves both
+     * spellings a form might write.
      *
-     * @var array<class-string, class-string>
+     * `Collection`, `Fieldset` and `Form` are here and were not in the laminas version:
+     * they were the form model, which belonged to laminas then and does not now.
+     *
+     * @var array<string, class-string<ElementInterface>>
      */
-    public const REPLACEMENTS = [
-        LaminasElement::class            => Element::class,
-        LaminasElement\Button::class     => Button::class,
-        LaminasElement\Checkbox::class   => Checkbox::class,
-        LaminasElement\Csrf::class       => Csrf::class,
-        LaminasElement\Date::class       => Date::class,
-        LaminasElement\DateSelect::class => DateSelect::class,
-        LaminasElement\Email::class      => Email::class,
-        LaminasElement\File::class       => File::class,
-        LaminasElement\Hidden::class     => Hidden::class,
-        LaminasElement\Number::class     => Number::class,
-        LaminasElement\Select::class     => Select::class,
-        LaminasElement\Submit::class     => Submit::class,
-        LaminasElement\Text::class       => Text::class,
-        LaminasElement\Textarea::class   => Textarea::class,
-        LaminasElement\Url::class        => Url::class,
-    ];
-
-    /**
-     * The short names a form may write, in every spelling `FormElementManager` accepts.
-     *
-     * Both cases are listed because both appear in this application's forms — `'Text'` 73
-     * times and `'text'` five, `'csrf'` in lowercase only — and a spelling that fell through
-     * would build a laminas element beside fourteen of ours with nothing to say so.
-     *
-     * @var array<string, class-string>
-     */
-    private const SHORT_NAMES = [
+    private const TYPES = [
         'button'     => Button::class,
-        'Button'     => Button::class,
         'checkbox'   => Checkbox::class,
-        'Checkbox'   => Checkbox::class,
+        'collection' => Collection::class,
         'csrf'       => Csrf::class,
-        'Csrf'       => Csrf::class,
         'date'       => Date::class,
-        'Date'       => Date::class,
         'dateselect' => DateSelect::class,
-        'dateSelect' => DateSelect::class,
-        'DateSelect' => DateSelect::class,
         'element'    => Element::class,
-        'Element'    => Element::class,
         'email'      => Email::class,
-        'Email'      => Email::class,
+        'fieldset'   => Fieldset::class,
         'file'       => File::class,
-        'File'       => File::class,
+        'form'       => Form::class,
         'hidden'     => Hidden::class,
-        'Hidden'     => Hidden::class,
         'number'     => Number::class,
-        'Number'     => Number::class,
         'phone'      => Phone::class,
-        'Phone'      => Phone::class,
         'select'     => Select::class,
-        'Select'     => Select::class,
         'submit'     => Submit::class,
-        'Submit'     => Submit::class,
         'text'       => Text::class,
-        'Text'       => Text::class,
         'textarea'   => Textarea::class,
-        'Textarea'   => Textarea::class,
         'url'        => Url::class,
-        'Url'        => Url::class,
     ];
 
     /**
-     * The `form_elements` configuration: every name that should build one of ours, and the
-     * classes themselves as invokables.
+     * The class behind a type, or null when there is none.
      *
-     * The aliases override `FormElementManager`'s own — the manager applies configuration
-     * after its class defaults, so `'Select'` stops meaning `Laminas\Form\Element\Select`
-     * the moment this is merged in.
+     * A class is tried first and exactly as written: `strtolower()` would not find
+     * `Books\Form\MassCheckoutFieldset`, and a short name cannot collide with a class name
+     * because none of them contains a backslash.
      *
-     * @return array{aliases: array<string, class-string>, invokables: array<class-string, class-string>}
+     * @return class-string<ElementInterface>|null
      */
-    public static function config(): array
+    public static function classFor(string $type): ?string
     {
-        $invokables = [];
-        foreach (self::SHORT_NAMES as $class) {
-            $invokables[$class] = $class;
+        $type = ltrim($type, '\\');
+
+        if (class_exists($type) && is_subclass_of($type, ElementInterface::class)) {
+            /** @var class-string<ElementInterface> */
+            return $type;
         }
 
-        return [
-            //A form naming a laminas element by class gets ours too. None does today; one
-            //written from an old example would otherwise slip a laminas element in.
-            'aliases'    => self::REPLACEMENTS + self::SHORT_NAMES,
-            'invokables' => $invokables,
-        ];
+        return self::TYPES[strtolower($type)] ?? null;
     }
 
     /**
-     * A form factory for a form nobody built through the container.
+     * Every short name this registry answers, for a test that wants to walk them.
      *
-     * Not memoised: `Factory` holds the element manager and a form is free to reconfigure
-     * its own, so handing the same instance to every form would let one form's change reach
-     * the others. Building it costs an empty `ServiceManager`.
+     * @return array<string, class-string<ElementInterface>>
      */
-    public static function formFactory(): Factory
+    public static function types(): array
     {
-        return new Factory(new FormElementManager(new ServiceManager(), self::config()));
+        return self::TYPES;
     }
 }

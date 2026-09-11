@@ -8,8 +8,8 @@ use DateTime;
 use DateTimeInterface;
 use Exception;
 use InvalidArgumentException;
-use Laminas\Form\ElementPrepareAwareInterface;
-use Laminas\Form\FormInterface;
+use SionModel\Form\FormInterface;
+use SionModel\Form\PrepareAwareInterface;
 
 use function date;
 use function is_array;
@@ -55,7 +55,7 @@ use function sprintf;
  * not empty. A date select left blank therefore reads as today unless the form asks for an
  * empty option — and `PersonForm` does ask.
  */
-class DateSelect extends Element implements ElementPrepareAwareInterface
+class DateSelect extends Element implements PrepareAwareInterface
 {
     protected Select $dayElement;
 
