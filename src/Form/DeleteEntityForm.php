@@ -2,7 +2,7 @@
 
 namespace SionModel\Form;
 
-use Laminas\InputFilter\InputFilterProviderInterface;
+use SionModel\Form\InputFilterProviderInterface;
 
 class DeleteEntityForm extends Form implements InputFilterProviderInterface
 {

@@ -10,13 +10,10 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Filter\AbstractFilter;
-use Laminas\Filter\FilterChain;
-
 class TrimStringArray extends AbstractFilter
 {
     /**
-     * Defined by Laminas\Filter\FilterInterface
+     * Defined by SionModel\Filter\FilterInterface
      *
      * Returns $value
      *

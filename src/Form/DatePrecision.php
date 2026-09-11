@@ -110,16 +110,16 @@ final class DatePrecision
         return [
             'required' => false,
             'filters' => [
-                ['name' => 'Laminas\Filter\StringTrim'],
+                ['name' => 'SionModel\Filter\StringTrim'],
             ],
             'validators' => [
                 [
                     //Restated rather than inherited from the element, because the
                     //form specification would otherwise overwrite it away.
-                    'name' => 'Laminas\Validator\InArray',
+                    'name' => 'SionModel\Validator\InArray',
                     'options' => [
                         'haystack' => DatePrecisionFormat::PRECISIONS,
-                        'strict'   => \Laminas\Validator\InArray::COMPARE_STRICT,
+                        'strict'   => \SionModel\Validator\InArray::COMPARE_STRICT,
                     ],
                 ],
             ],

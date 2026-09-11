@@ -73,7 +73,13 @@ class Element implements ElementInterface
     /** @var array<string, mixed> */
     protected array $labelOptions = [];
 
-    /** @var array<string, mixed> */
+    /**
+     * Keyed by rule name when the engine sets them, a plain list when a controller does —
+     * `LibraryImportsController` reports an upload problem that no validator produced.
+     * `BootstrapFormRenderer` renders the values and never reads the keys.
+     *
+     * @var array<array-key, mixed>
+     */
     protected array $messages = [];
 
     /** @var array<string, mixed> */
@@ -333,7 +339,7 @@ class Element implements ElementInterface
         return $this;
     }
 
-    /** @param iterable<string, mixed> $messages */
+    /** @param iterable<array-key, mixed> $messages */
     public function setMessages(iterable $messages): static
     {
         $this->messages = self::toArray($messages);
@@ -341,7 +347,7 @@ class Element implements ElementInterface
         return $this;
     }
 
-    /** @return array<string, mixed> */
+    /** @return array<array-key, mixed> */
     public function getMessages(): array
     {
         return $this->messages;

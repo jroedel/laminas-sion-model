@@ -2,7 +2,6 @@
 
 namespace SionModel\Validator;
 
-use Laminas\Validator\AbstractValidator;
 use SionModel\Filter\DateTimeParser;
 
 use function is_scalar;
@@ -61,7 +60,7 @@ class ParseableDate extends AbstractValidator
      * @param  mixed $value
      * @return bool
      */
-    public function isValid($value)
+    public function isValid($value, $context = null)
     {
         // One shared decision, in SionModel\Filter\DateTimeParser, rather than
         // a second parse written out here. When this class retried the parse

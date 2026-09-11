@@ -6,8 +6,8 @@ namespace SionModel\Form;
 
 use SionModel\Form\Element\Select;
 use SionModel\Form\ElementInterface;
-use Laminas\Validator\Explode;
-use Laminas\Validator\InArray;
+use SionModel\Validator\Explode;
+use SionModel\Validator\InArray;
 
 use function array_keys;
 use function array_map;

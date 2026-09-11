@@ -17,7 +17,6 @@
         "psr/simple-cache": "^1.0 || ^2.0 || ^3.0",
         "matriphe/iso-639": "^1.2",
         "twig/twig": "^3.0",
-        "laminas/laminas-form": "^3.24",
         "laminas/laminas-translator": "^1.0",
         "ext-intl": "*"
     },

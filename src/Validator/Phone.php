@@ -5,7 +5,7 @@ namespace SionModel\Validator;
 /**
  * Validates an international phone number, with an optional extension.
  *
- * Extends AbstractPatternValidator rather than Laminas\Validator\Regex, which
+ * Extends AbstractPatternValidator rather than SionModel\Validator\Regex, which
  * laminas marked `@final`; the pattern and message are unchanged.
  */
 class Phone extends AbstractPatternValidator

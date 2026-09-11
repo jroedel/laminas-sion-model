@@ -6,7 +6,7 @@ namespace SionModel\Form\Validation;
 
 use SionModel\Form\Collection;
 use SionModel\Form\Fieldset;
-use Laminas\InputFilter\InputFilterProviderInterface;
+use SionModel\Form\InputFilterProviderInterface;
 use LogicException;
 
 use function array_key_exists;

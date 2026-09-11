@@ -71,9 +71,9 @@ interface ElementInterface
 
     public function getLabel(): ?string;
 
-    /** @param iterable<string, mixed> $messages */
+    /** @param iterable<array-key, mixed> $messages */
     public function setMessages(iterable $messages): static;
 
-    /** @return array<string, mixed> */
+    /** @return array<array-key, mixed> */
     public function getMessages(): array;
 }

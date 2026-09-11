@@ -3,9 +3,9 @@
 namespace SionModel\Db\Model;
 
 use SionModel\Cache\Storage;
-use Laminas\Filter\FilterChain;
-use Laminas\Filter\StringToLower;
-use Laminas\Filter\PregReplace;
+use SionModel\Filter\FilterChain;
+use SionModel\Filter\StringToLower;
+use SionModel\Filter\PregReplace;
 
 /**
  * Entity-aware caching for a SionTable: cache a query result, name the entities

@@ -24,23 +24,14 @@ return [
      * Their laminas factories under src/Service went with them: a factory that resolves a
      * helper from a plugin manager can no longer build these, and this library keeps no
      * code for a laminas host.
+     *
+     * **No `validators` key any more either.** It configured
+     * `Laminas\Validator\ValidatorPluginManager`, which left with laminas-validator on
+     * 2026-09. Every specification in both applications names this library's validators by
+     * class, so nothing was resolving through those eight short names;
+     * {@see Validator\Registry} is where a short name becomes a validator now, and it maps
+     * only names a specification actually writes.
      */
-    'validators' => [
-        'invokables' => [
-            'Skype'         => Validator\Skype::class,
-            'Twitter'       => Validator\Twitter::class,
-            'Instagram'     => Validator\Instagram::class,
-            'Phone'         => Validator\Phone::class,
-            'Slack'         => Validator\Slack::class,
-            'ParseableDate' => Validator\ParseableDate::class,
-            //Not an invokable in practice — every use passes min/max options, so
-            //the plugin manager builds it with them — but registered by short
-            //name for the same reason as its neighbours: the input filter
-            //specifications name validators by string.
-            'DateWithinRange' => Validator\DateWithinRange::class,
-            'DateNotBefore' => Validator\DateNotBefore::class,
-         ],
-    ],
     'service_manager' => [
         'invokables' => [
             I18n\LanguageSupport::class     => I18n\LanguageSupport::class

@@ -51,7 +51,7 @@ use function sprintf;
  * registry populated at bootstrap, which is exactly the shape `GlobalAdapterFeature` had
  * before `JUser\Form\DeleteUserForm` took its adapter as a constructor argument instead —
  * a form that could not be constructed without reproducing a bootstrap step. The wiring
- * itself lives in {@see Engine::withLaminasRules()}, shared with the three non-form
+ * itself lives in {@see Engine::withRules()}, shared with the three non-form
  * validators, so replacing a rule set is one edit rather than four.
  */
 class Form extends Fieldset implements FormInterface
@@ -231,6 +231,6 @@ class Form extends Fieldset implements FormInterface
         //request with its value options narrowed in between — AssignmentForm::setData()
         //does exactly that — and a memoised specification would enforce the first call's
         //domain on the second call's data.
-        return Engine::withLaminasRules(FormSpecification::of($this));
+        return Engine::withRules(FormSpecification::of($this));
     }
 }

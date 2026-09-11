@@ -10,12 +10,10 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Filter\AbstractFilter;
-
 class SortArray extends AbstractFilter
 {
     /**
-     * Defined by Laminas\Filter\FilterInterface
+     * Defined by SionModel\Filter\FilterInterface
      *
      * Returns (int) $value
      *

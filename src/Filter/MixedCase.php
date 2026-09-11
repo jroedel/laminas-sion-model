@@ -10,12 +10,10 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Filter\Word\SeparatorToCamelCase;
-
 class MixedCase extends SeparatorToCamelCase
 {
     /**
-     * Defined by Laminas\Filter\FilterInterface
+     * Defined by SionModel\Filter\FilterInterface
      *
      * Returns (int) $value
      *

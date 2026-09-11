@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
-use Laminas\Filter\DateSelect as DateSelectFilter;
-use Laminas\Filter\StringTrim;
+use SionModel\Filter\DateSelect as DateSelectFilter;
+use SionModel\Filter\StringTrim;
 use SionModel\Form\Element\AbstractDateTime;
 use SionModel\Form\Element\Csrf;
 use SionModel\Form\Element\DateSelect;
@@ -13,13 +13,13 @@ use SionModel\Form\Element\Email;
 use SionModel\Form\Element\Number;
 use SionModel\Form\Element\Url;
 use SionModel\Form\ElementInterface;
-use Laminas\Validator\Date as DateValidator;
-use Laminas\Validator\Explode;
-use Laminas\Validator\GreaterThan;
-use Laminas\Validator\LessThan;
-use Laminas\Validator\Regex;
-use Laminas\Validator\Step;
-use Laminas\Validator\Uri;
+use SionModel\Validator\Date as DateValidator;
+use SionModel\Validator\Explode;
+use SionModel\Validator\GreaterThan;
+use SionModel\Validator\LessThan;
+use SionModel\Validator\Regex;
+use SionModel\Validator\Step;
+use SionModel\Validator\Uri;
 
 use function is_string;
 
@@ -54,11 +54,10 @@ use function is_string;
  * `DateInterval` **objects**, which a plain-data specification cannot hold.
  *
  * That costs nothing today and the check is explicit rather than assumed: all nine `Date`
- * elements in the application set `step="any"`, so laminas builds no `DateStep` for any of
- * them, and `DateSelect` contributes only its date validator. A future date field that
- * sets a step would be a real gap — `test/Fuzz/known-form-gaps.php` would report it, and
- * `test/Integration/EngineMatchesAssembledFilterTest` would disagree on it — which is the
- * point of leaving the hole visible rather than papering it with an object.
+ * elements in the application set `step="any"`, so no `DateStep` is built for any of them,
+ * and `DateSelect` contributes only its date validator. A future date field that sets a
+ * step would be a real gap, and `test/Fuzz/known-form-gaps.php` would report it — which is
+ * the point of leaving the hole visible rather than papering it with an object.
  */
 final class InputTypeRules
 {
@@ -220,8 +219,8 @@ final class InputTypeRules
      * a person: `Schoenstatt\Form\PersonForm::nameDay` is a `DateSelect`, which posts
      * `['year' => …, 'month' => …, 'day' => …]` from its three `<select>`s, and
      * `Laminas\Form\Element\DateSelect::getInputSpecification()` supplied the
-     * `Laminas\Filter\DateSelect` that turns that array into `Y-m-d`. Without it the array
-     * reaches `Laminas\Validator\Date` unchanged and every person save fails on a field
+     * `SionModel\Filter\DateSelect` that turns that array into `Y-m-d`. Without it the array
+     * reaches `SionModel\Validator\Date` unchanged and every person save fails on a field
      * nobody touched.
      *
      * The other 73 are `StringTrim`, and they are not cosmetic either: a `ToNull` after a

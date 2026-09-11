@@ -6,7 +6,7 @@ namespace SionModel\Form\Element;
 
 use SionModel\Form\FormInterface;
 use SionModel\Form\PrepareAwareInterface;
-use Laminas\Validator\Csrf as CsrfValidator;
+use SionModel\Validator\Csrf as CsrfValidator;
 
 use function array_merge;
 
@@ -16,7 +16,7 @@ use function array_merge;
  * ## This one still owns a validator, and that is not an oversight
  *
  * Every other element here answers questions and judges nothing. This one holds a
- * `Laminas\Validator\Csrf` because the token is *generated* by that validator, out of a
+ * `SionModel\Validator\Csrf` because the token is *generated* by that validator, out of a
  * session container it also owns: `getValue()` is the hash, `getAttributes()` seeds the
  * `value` attribute with it, and `prepareElement()` regenerates it whenever a form is
  * prepared for rendering. The validator is the token's source, not a rule applied to a

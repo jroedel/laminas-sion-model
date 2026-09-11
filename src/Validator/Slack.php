@@ -5,7 +5,7 @@ namespace SionModel\Validator;
 /**
  * Validates a Slack user name.
  *
- * Extends AbstractPatternValidator rather than Laminas\Validator\Regex, which
+ * Extends AbstractPatternValidator rather than SionModel\Validator\Regex, which
  * laminas marked `@final`; the pattern and message are unchanged.
  */
 class Slack extends AbstractPatternValidator

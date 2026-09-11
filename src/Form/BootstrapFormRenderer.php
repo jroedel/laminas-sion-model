@@ -91,7 +91,7 @@ final class BootstrapFormRenderer
     }
 
     /**
-     * @param FormInterface<array<string, mixed>> $form
+     * @param FormInterface $form
      * @param string $class the form's own class attribute. `form-horizontal` is what
      *        TwbBundle\Form\View\Helper\TwbBundleForm::openTag() emits and what every
      *        form on the site got until the comment form needed otherwise: its

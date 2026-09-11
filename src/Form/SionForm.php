@@ -4,14 +4,14 @@ namespace SionModel\Form;
 
 use SionModel\Filter\DateTimeParser;
 use SionModel\Form\Element\DateSelect;
-use Laminas\Filter\ToNull;
-use Laminas\Validator\StringLength;
+use SionModel\Filter\ToNull;
+use SionModel\Validator\StringLength;
 use SionModel\Validator\Phone;
-use Laminas\Filter\StripTags;
-use Laminas\Filter\StripNewlines;
-use Laminas\Filter\StringTrim;
+use SionModel\Filter\StripTags;
+use SionModel\Filter\StripNewlines;
+use SionModel\Filter\StringTrim;
 use SionModel\Form\Element\Csrf;
-use Laminas\InputFilter\InputFilterProviderInterface;
+use SionModel\Form\InputFilterProviderInterface;
 
 class SionForm extends Form implements InputFilterProviderInterface
 {
@@ -157,7 +157,7 @@ class SionForm extends Form implements InputFilterProviderInterface
      * three different ways: InvalidArgumentException ("Value should be a parsable
      * string or an instance of DateTime") for 'asdf'; ValueError from
      * DateTime::createFromFormat() for a value carrying a NUL byte; and
-     * Laminas\Filter\Exception\RuntimeException ("There are not enough values in
+     * SionModel\Filter\Exception\RuntimeException ("There are not enough values in
      * the array to filter this date") for an array missing year/month/day. Each
      * was a 500 with the user's whole submission lost.
      *
