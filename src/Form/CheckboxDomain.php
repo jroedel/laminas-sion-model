@@ -6,7 +6,7 @@ namespace SionModel\Form;
 
 use SionModel\Form\Element\Checkbox;
 use SionModel\Form\ElementInterface;
-use Laminas\Validator\InArray;
+use SionModel\Validator\InArray;
 
 /**
  * The `InArray` a checkbox's two values imply, for a form specification to restate.

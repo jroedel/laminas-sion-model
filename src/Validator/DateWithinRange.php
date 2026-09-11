@@ -2,7 +2,6 @@
 
 namespace SionModel\Validator;
 
-use Laminas\Validator\AbstractValidator;
 use SionModel\Filter\DateTimeParser;
 
 use function is_scalar;
@@ -97,7 +96,7 @@ class DateWithinRange extends AbstractValidator
      * @param  mixed $value
      * @return bool
      */
-    public function isValid($value)
+    public function isValid($value, $context = null)
     {
         //Emptiness is `required`/NotEmpty's business. Saying otherwise here would
         //make every optional date mandatory, and most of these are unknown for

@@ -2,7 +2,6 @@
 
 namespace SionModel\Validator;
 
-use Laminas\Validator\AbstractValidator;
 use SionModel\Filter\DateTimeParser;
 
 use function is_array;

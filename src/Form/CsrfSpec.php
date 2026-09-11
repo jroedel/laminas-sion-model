@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace SionModel\Form;
 
-use Laminas\Filter\StringTrim;
+use SionModel\Filter\StringTrim;
 use SionModel\Form\Element\Csrf;
 use SionModel\Form\ElementInterface;
-use Laminas\Validator\Csrf as CsrfValidator;
+use SionModel\Validator\Csrf as CsrfValidator;
 
 use function array_merge;
 
@@ -72,7 +72,11 @@ final class CsrfSpec
      * trimming and not before. Losing it would make a form intermittently refuse a valid
      * submission, which is the worst failure shape there is.
      *
-     * @return array{required: bool, filters: list<array{name: class-string}>, validators: list<array{name: class-string, options: array<string, mixed>}>}
+     * @return array{
+     *     required: bool,
+     *     filters: list<array{name: class-string}>,
+     *     validators: list<array{name: class-string, options: array<string, mixed>}>
+     * }
      */
     public static function forElement(ElementInterface $element): array
     {

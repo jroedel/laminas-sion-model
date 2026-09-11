@@ -4,8 +4,8 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\Validator\EmailAddress;
-use Laminas\Filter\StringTrim;
+use SionModel\Validator\EmailAddress;
+use SionModel\Filter\StringTrim;
 use SionModel\View\Escape;
 
 class Email

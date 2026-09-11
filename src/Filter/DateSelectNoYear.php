@@ -10,7 +10,7 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Validator\Regex;
+use SionModel\Validator\Regex;
 
 class DateSelectNoYear extends AbstractFilter
 {

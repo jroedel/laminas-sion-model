@@ -5,7 +5,7 @@ namespace SionModel\Validator;
 /**
  * Validates a Skype user name.
  *
- * Extends AbstractPatternValidator rather than Laminas\Validator\Regex, which
+ * Extends AbstractPatternValidator rather than SionModel\Validator\Regex, which
  * laminas marked `@final`; the pattern and message are unchanged.
  */
 class Skype extends AbstractPatternValidator

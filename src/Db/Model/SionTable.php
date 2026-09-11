@@ -6,10 +6,10 @@ use Laminas\Db\Adapter\Adapter;
 use Laminas\Db\Sql\Insert;
 use Laminas\Db\TableGateway\TableGateway;
 use SionModel\Filter\Boolean;
-use Laminas\Validator\EmailAddress;
+use SionModel\Validator\EmailAddress;
 use SionModel\Entity\Entity;
 use Laminas\Db\TableGateway\TableGatewayInterface;
-use Laminas\Uri\Http;
+use SionModel\Uri\Http;
 use Laminas\Db\Adapter\AdapterInterface;
 use Laminas\Db\Sql\Where;
 use Laminas\Stdlib\StringUtils;
@@ -929,7 +929,7 @@ class SionTable
      *      SionController::redirectAfterEdit() reads $updatedObject['identifier'] out
      *      of it. Documented as `boolean` until 2026-08-09 — a copy-paste from
      *      updateHelper(), whose return really is the affected-row count — which
-     *      static analysis resolved as the imported Laminas\Filter\Boolean class and
+     *      static analysis resolved as the imported SionModel\Filter\Boolean class and
      *      then reported every honest use of the result as dead code.
      */
     public function updateEntity($entity, $id, $data, array $fieldsToTouch = [], $refreshCache = true)

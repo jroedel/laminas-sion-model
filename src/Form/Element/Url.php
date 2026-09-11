@@ -9,7 +9,7 @@ namespace SionModel\Form\Element;
  *
  * ## `uriHandler` and `allowRelative` are inert, and always were
  *
- * Fourteen of these carry `'options' => ['uriHandler' => Laminas\Uri\Http::class,
+ * Fourteen of these carry `'options' => ['uriHandler' => SionModel\Uri\Http::class,
  * 'allowRelative' => false]`, which reads as configuration for the URI validator and never
  * was: `Laminas\Form\Element\Url` built its validator with `allowAbsolute => true,
  * allowRelative => false` hard-coded and never looked at the element's options. They are

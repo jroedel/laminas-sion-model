@@ -2,7 +2,7 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Validator\GpsPoint;
+use SionModel\Validator\GpsPoint;
 use SionModel\Db\GeoPoint;
 
 use function is_string;
@@ -12,7 +12,7 @@ use function trim;
 /**
  * Turn a submitted "latitude, longitude" string into a GeoPoint.
  *
- * Paired with Laminas\Validator\GpsPoint on the same input, and the pairing only
+ * Paired with SionModel\Validator\GpsPoint on the same input, and the pairing only
  * works because of what this filter hands back when it cannot convert.
  *
  * It used to return null for *anything* it could not parse, which made a bad
@@ -51,7 +51,7 @@ class ToGeoPoint extends AbstractFilter
     public function filter($value)
     {
         //A non-string is nulled rather than handed on, and the asymmetry with a
-        //bad *string* below is deliberate. Laminas\Validator\GpsPoint raises a
+        //bad *string* below is deliberate. SionModel\Validator\GpsPoint raises a
         //TypeError on an array, which would escape isValid() as a 500 — the very
         //failure the rest of this filter exists to avoid — and unlike 'asdf' an
         //array is not something a person typed into a coordinate box. Only

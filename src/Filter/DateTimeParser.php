@@ -69,7 +69,7 @@ final class DateTimeParser
      *
      * Refusing a value is not enough: it still travels down the rest of the
      * validator chain so that something can report it, and a NUL byte is not
-     * safe to hand on. `Laminas\Validator\Date` — which the Date form element
+     * safe to hand on. `SionModel\Validator\Date` — which the Date form element
      * contributes ahead of anything a form specification adds, so it cannot be
      * reordered from there — calls DateTime::createFromFormat() and PHP raises
      * `ValueError: must not contain any null bytes`. That escapes

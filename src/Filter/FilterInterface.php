@@ -7,7 +7,7 @@ namespace SionModel\Filter;
 /**
  * A filter turns a submitted value into the value that is stored.
  *
- * The same shape as `Laminas\Filter\FilterInterface`, deliberately: 23 classes across four
+ * The same shape as `SionModel\Filter\FilterInterface`, deliberately: 23 classes across four
  * repositories implement it, and an untyped `filter($value)` is what lets every one of them
  * change one `use` line and nothing else. Typing it `mixed $value): mixed` would be a nicer
  * interface and a worse migration — every implementation would have to be touched, and each

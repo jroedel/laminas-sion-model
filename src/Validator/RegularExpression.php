@@ -10,12 +10,9 @@
 
 namespace SionModel\Validator;
 
-use Laminas\Validator\Regex;
-use Laminas\Validator\AbstractValidator;
-
 class RegularExpression extends AbstractValidator
 {
-    public function isValid($regex)
+    public function isValid($regex, $context = null)
     {
         try {
             $validator = new Regex($regex);

@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace SionModel\Form\Validation;
 
 use InvalidArgumentException;
-use Laminas\ServiceManager\ServiceManager;
 use SionModel\Filter\Registry as FilterRegistry;
-use Laminas\Validator\ValidatorPluginManager;
+use SionModel\Validator\Registry as ValidatorRegistry;
 
 use function array_key_exists;
 use function array_keys;
@@ -51,23 +50,24 @@ use function str_ends_with;
  *
  * ## What it is driven by, and what that cost to arrange
  *
- * The specification alone. `Laminas\Form\Form::getInputFilter()` also builds an input per
- * **element**, from that element's own `getInputSpecification()`, and merges the two —
+ * The specification alone. `Laminas\Form\Form::getInputFilter()` also built an input per
+ * **element**, from that element's own `getInputSpecification()`, and merged the two —
  * which is why, measured 2026-09-10, **120 fields across the application were validated
  * only by that element half**, 31 of them by `Csrf`. Every one of those was a check this
- * engine would have dropped in silence. They were moved into the specifications over the
- * following days; `test/Fuzz/known-form-gaps.php`'s `validationSuppliedOnlyByElement`
- * holds what is left, and `FormValidationContractTest` fails when it grows.
+ * engine would have dropped in silence. All 120 were written into the specifications over
+ * the following days, before the merge went away; `test/Fuzz/known-form-gaps.php`'s
+ * `elementsMissingFromSpec` is now the whole of the exposure, because a field the
+ * specification does not name is checked by nothing at all.
  *
  * The other half of the merge — the shape, not the rules — is {@see FormSpecification},
- * which assembles the same nested structure `Form::attachInputFilterDefaults()` does out
- * of the specifications and the element list.
+ * which assembles the nested structure out of the specifications and the element list.
  *
- * `test/Integration/InputFilterEngineParityTest` can see none of this: it feeds laminas'
- * `Factory` and this engine the *same* specification, so both sides start where that list
- * ends. It proves the two agree given a specification. `EngineMatchesAssembledFilterTest`
- * compares field by field against what the application really validates with, and
- * `WholeFormEngineParityTest` compares whole submissions.
+ * The three parity tests that proved all of this — one against laminas' `Factory` given
+ * the same specification, one field by field against what the application really validated
+ * with, one over whole submissions — died with `Laminas\InputFilter`, which is what they
+ * measured against. What replaces them is a recording: `test/Form/engine-surface.php` holds
+ * this engine's verdict, values and messages for every form under two datasets, and
+ * `EngineSurfaceTest` fails when one moves.
  *
  * ## The semantics, continued
  *
@@ -122,9 +122,10 @@ final class InputFilter
      * — and only the position in the spec says which kind is meant. laminas resolves those
      * through two separate plugin managers for the same reason.
      *
-     * They are injected rather than hardcoded so that the rules can be swapped one at a
-     * time behind an engine that is already proven: today they resolve to laminas' own
-     * filters and validators, and each can be replaced without this class changing.
+     * They are injected rather than hardcoded so that the rules could be swapped one at a
+     * time behind an engine that was already proven — which is how laminas' filters and
+     * validators left, one class at a time, without this file changing. The seam stays:
+     * {@see self::withRules()} is the only place that says which rule set is meant.
      */
     public function __construct(
         private readonly array $spec,
@@ -134,36 +135,28 @@ final class InputFilter
     }
 
     /**
-     * An engine over a specification, resolving rules through laminas' plugin managers.
+     * An engine over a specification, resolving rules through the application's own registries.
      *
-     * The one place the "today they resolve to laminas' own filters and validators" of the
-     * constructor's docblock is actually decided, so that swapping a rule set is one edit
-     * rather than one per caller. Four callers want it: {@see \SionModel\Form\Form} for
-     * every form on the site, and the three non-form validators — the associations API, the
-     * phrases API and the Patres import — that used to reach for
-     * `Laminas\Form\Form::getInputFilter()`.
+     * The one seam where "which rule set" is decided, so that changing it is one edit rather
+     * than one per caller. Five callers want it: {@see \SionModel\Form\Form} for every form
+     * on the site, and the four non-form filters — the associations API, the phrases API,
+     * the Patres import and the Drive listing — that used to reach for
+     * `Laminas\Form\Form::getInputFilter()` or extend `Laminas\InputFilter\InputFilter`.
      *
-     * The plugin managers take a **bare** `ServiceManager` rather than the application's.
-     * Measured when the form cutover landed: all 23 filter names and all 29 validator names
-     * any specification here uses resolve out of the managers' own defaults, and SionModel's
-     * two custom validators are named by class. Handing them the application container would
-     * make an input filter depend on module loading, which is exactly what lets the
-     * associations API validate with no MVC, no merged config and no session.
+     * {@see \SionModel\Filter\Registry} and {@see \SionModel\Validator\Registry} are flat
+     * maps, built by nothing and depending on nothing. That is deliberate and it is what the
+     * plugin managers they replace made awkward: an input filter resolves its rules with no
+     * container, no module loading and no merged config, which is what lets the associations
+     * API validate a request with none of those present.
      *
      * @param array<string, mixed> $spec
      */
-    public static function withLaminasRules(array $spec): self
+    public static function withRules(array $spec): self
     {
-        $validators = null;
-
         return new self(
             $spec,
             static fn(string $name, array $options): object => FilterRegistry::get($name, $options),
-            static function (string $name, array $options) use (&$validators): object {
-                $validators ??= new ValidatorPluginManager(new ServiceManager());
-
-                return $validators->get($name, $options);
-            }
+            static fn(string $name, array $options): object => ValidatorRegistry::get($name, $options)
         );
     }
 
@@ -389,7 +382,7 @@ final class InputFilter
      * `InvalidArgumentException` from `CollectionInputFilter::setData()`, which reaches the
      * visitor as a 500 with their whole submission lost; answering "this row is invalid" is
      * the same verdict without the crash. Recorded here because it is a deliberate
-     * divergence, and asserted by `WholeFormEngineParityTest`.
+     * divergence.
      *
      * @param array<string, mixed> $spec
      */

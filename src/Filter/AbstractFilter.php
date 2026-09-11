@@ -25,7 +25,7 @@ use function ucwords;
  * `$this->options` — they would each need rewriting, and rewriting fourteen working filters
  * to remove a base class is how a migration acquires a regression it cannot explain.
  *
- * So this is `Laminas\Filter\AbstractFilter` minus everything the application does not
+ * So this is `SionModel\Filter\AbstractFilter` minus everything the application does not
  * reach: no `Traversable` options, no `hasPcreUnicodeSupport()`, no `__invoke()`, no
  * `getOptions()`.
  *

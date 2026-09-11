@@ -24,7 +24,7 @@ use function sprintf;
  *
  * ## The type mask
  *
- * Which kinds of emptiness become null. Reproduced from `Laminas\Filter\ToNull` bit for bit
+ * Which kinds of emptiness become null. Reproduced from `SionModel\Filter\ToNull` bit for bit
  * — the values are in 191 declarations and changing one would change what a column holds.
  * The default is `TYPE_ALL`, which is what 112 of those declarations take.
  *

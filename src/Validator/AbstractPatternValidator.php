@@ -2,8 +2,7 @@
 
 namespace SionModel\Validator;
 
-use Laminas\Validator\AbstractValidator;
-use Laminas\Validator\Exception\InvalidArgumentException;
+use SionModel\Validator\Exception\InvalidArgumentException;
 
 use function is_float;
 use function is_int;
@@ -14,7 +13,7 @@ use function preg_match;
  * Base for validators that pair one fixed regular expression with a
  * human-readable failure message.
  *
- * These all used to extend Laminas\Validator\Regex. laminas marked Regex
+ * These all used to extend SionModel\Validator\Regex. laminas marked Regex
  * `@final` (it is soft-deprecated for inheritance and closes in 3.0), so they
  * were moved down onto AbstractValidator, which stays open. That keeps
  * everything the plugin manager and InputFilter rely on — translator
@@ -28,7 +27,7 @@ use function preg_match;
 abstract class AbstractPatternValidator extends AbstractValidator
 {
     /**
-     * Error keys are Laminas\Validator\Regex's own strings, kept byte-identical
+     * Error keys are SionModel\Validator\Regex's own strings, kept byte-identical
      * so anything reading message keys — rather than message text — keeps
      * working across the base-class change.
      */
@@ -105,7 +104,7 @@ abstract class AbstractPatternValidator extends AbstractValidator
      * @param  mixed $value
      * @return bool
      */
-    public function isValid($value)
+    public function isValid($value, $context = null)
     {
         if (! is_string($value) && ! is_int($value) && ! is_float($value)) {
             $this->error(self::INVALID);

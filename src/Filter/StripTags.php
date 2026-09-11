@@ -15,7 +15,7 @@ use function substr;
  * Every HTML tag and comment removed.
  *
  * 110 specification entries use this and **not one passes an option**, so the allowed-tag
- * and allowed-attribute machinery — two thirds of `Laminas\Filter\StripTags` — is not
+ * and allowed-attribute machinery — two thirds of `SionModel\Filter\StripTags` — is not
  * reproduced. `AbstractFilter` throws on `allowTags` rather than accepting it and quietly
  * allowing nothing, which is the failure that would otherwise be invisible.
  *

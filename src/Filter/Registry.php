@@ -24,18 +24,17 @@ use function sprintf;
  * It also means an input filter no longer depends on module loading — which is what lets
  * the associations API validate with no merged config, no container and no session.
  *
- * ## The laminas aliases, and when they go
+ * ## A name that is not in the map is a class name
  *
- * Ninety specification entries still name `Laminas\Filter\StringTrim` and its siblings, and
- * they resolve here to ours. That is deliberate and temporary: it lets the rules be
- * replaced and measured in one commit, and the 110 files that spell the old names be
- * rewritten in another, so a behaviour change and a rename are never the same diff. They
- * leave with the package.
+ * `get()` falls through to the argument itself, so the ninety specification entries that
+ * name a filter by class — and SionModel's own, which have no short name — need no entry
+ * here. The map exists for the short names a specification is allowed to write.
  */
 final class Registry
 {
     /**
-     * Short name => class, and the laminas class names that mean the same thing.
+     * Short name => class. `Int` was laminas' own alias for `ToInt`, and one specification
+     * still writes it.
      *
      * @var array<string, class-string<FilterInterface>>
      */
@@ -52,21 +51,6 @@ final class Registry
         'StripTags'     => StripTags::class,
         'ToInt'         => ToInt::class,
         'ToNull'        => ToNull::class,
-
-        //`Int` is laminas' own alias for `ToInt`, and one specification uses it.
-
-        'Laminas\Filter\Boolean'                   => Boolean::class,
-        'Laminas\Filter\Callback'                  => Callback::class,
-        'Laminas\Filter\DateSelect'                => DateSelect::class,
-        'Laminas\Filter\PregReplace'               => PregReplace::class,
-        'Laminas\Filter\StringToLower'             => StringToLower::class,
-        'Laminas\Filter\StringToUpper'             => StringToUpper::class,
-        'Laminas\Filter\StringTrim'                => StringTrim::class,
-        'Laminas\Filter\StripNewlines'             => StripNewlines::class,
-        'Laminas\Filter\StripTags'                 => StripTags::class,
-        'Laminas\Filter\ToInt'                     => ToInt::class,
-        'Laminas\Filter\ToNull'                    => ToNull::class,
-        'Laminas\Filter\Word\SeparatorToCamelCase' => SeparatorToCamelCase::class,
     ];
 
     /**

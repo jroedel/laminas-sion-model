@@ -6,7 +6,7 @@ namespace SionModel\Filter;
  * A filter which guarantees an output of 1 or 0. This is helpful for validating checkboxes
  * that are to be inserted into certain types of databases since MySql, for example, handles
  * 1 and 0 well for bool values.
- * 
+ *
  * Since 1 or 0 is guaranteed, no additional validation is required on a form
  */
 class ToBit extends AbstractFilter
