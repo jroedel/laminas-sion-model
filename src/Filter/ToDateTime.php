@@ -10,12 +10,10 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Filter\AbstractFilter;
-
 class ToDateTime extends AbstractFilter
 {
     /**
-     * Defined by Laminas\Filter\FilterInterface
+     * Defined by SionModel\Filter\FilterInterface
      *
      * Converts a date string to a \DateTime in UTC.
      *

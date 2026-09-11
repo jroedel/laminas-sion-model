@@ -10,13 +10,12 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Filter\AbstractFilter;
 use Laminas\Validator\Regex;
 
 class DateSelectNoYear extends AbstractFilter
 {
     /**
-     * Defined by Laminas\Filter\FilterInterface
+     * Defined by SionModel\Filter\FilterInterface
      *
      * Returns (int) $value
      *

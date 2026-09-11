@@ -2,7 +2,6 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Filter\AbstractFilter;
 use Laminas\Validator\GpsPoint;
 use SionModel\Db\GeoPoint;
 

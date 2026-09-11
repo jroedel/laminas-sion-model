@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SionModel\Form\Validation;
 
 use InvalidArgumentException;
-use Laminas\Filter\FilterPluginManager;
 use Laminas\ServiceManager\ServiceManager;
+use SionModel\Filter\Registry as FilterRegistry;
 use Laminas\Validator\ValidatorPluginManager;
 
 use function array_key_exists;
@@ -154,16 +154,11 @@ final class InputFilter
      */
     public static function withLaminasRules(array $spec): self
     {
-        $filters    = null;
         $validators = null;
 
         return new self(
             $spec,
-            static function (string $name, array $options) use (&$filters): object {
-                $filters ??= new FilterPluginManager(new ServiceManager());
-
-                return $filters->get($name, $options);
-            },
+            static fn(string $name, array $options): object => FilterRegistry::get($name, $options),
             static function (string $name, array $options) use (&$validators): object {
                 $validators ??= new ValidatorPluginManager(new ServiceManager());
 

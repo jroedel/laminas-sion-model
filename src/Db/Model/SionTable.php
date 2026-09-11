@@ -5,7 +5,7 @@ namespace SionModel\Db\Model;
 use Laminas\Db\Adapter\Adapter;
 use Laminas\Db\Sql\Insert;
 use Laminas\Db\TableGateway\TableGateway;
-use Laminas\Filter\Boolean;
+use SionModel\Filter\Boolean;
 use Laminas\Validator\EmailAddress;
 use SionModel\Entity\Entity;
 use Laminas\Db\TableGateway\TableGatewayInterface;

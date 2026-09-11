@@ -2,8 +2,6 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Filter\AbstractFilter;
-
 /**
  * A filter which guarantees an output of 1 or 0. This is helpful for validating checkboxes
  * that are to be inserted into certain types of databases since MySql, for example, handles

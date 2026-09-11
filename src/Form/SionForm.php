@@ -157,7 +157,7 @@ class SionForm extends Form implements InputFilterProviderInterface
      * three different ways: InvalidArgumentException ("Value should be a parsable
      * string or an instance of DateTime") for 'asdf'; ValueError from
      * DateTime::createFromFormat() for a value carrying a NUL byte; and
-     * Laminas\Filter\Exception\RuntimeException ("There are not enough values in
+     * SionModel\Filter\Exception\RuntimeException ("There are not enough values in
      * the array to filter this date") for an array missing year/month/day. Each
      * was a 500 with the user's whole submission lost.
      *

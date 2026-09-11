@@ -6,9 +6,9 @@ namespace SionModel\View\Helper;
 
 use Laminas\Translator\TranslatorInterface;
 use SionModel\View\Escape;
-use Laminas\Filter\StringTrim;
-use Laminas\Filter\FilterChain;
-use Laminas\Filter\PregReplace;
+use SionModel\Filter\StringTrim;
+use SionModel\Filter\FilterChain;
+use SionModel\Filter\PregReplace;
 use libphonenumber\PhoneNumberFormat;
 
 class Telephone

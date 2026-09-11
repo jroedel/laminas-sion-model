@@ -10,8 +10,6 @@
 
 namespace SionModel\Filter;
 
-use Laminas\Filter\AbstractFilter;
-
 class ToAscii extends AbstractFilter
 {
     public function __construct()
@@ -20,7 +18,7 @@ class ToAscii extends AbstractFilter
     }
 
     /**
-     * Defined by Laminas\Filter\FilterInterface
+     * Defined by SionModel\Filter\FilterInterface
      *
      * Returns (int) $value
      *
