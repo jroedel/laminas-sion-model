@@ -11,6 +11,7 @@ use Laminas\Validator\ValidatorPluginManager;
 
 use function array_key_exists;
 use function array_keys;
+use function array_merge;
 use function array_replace;
 use function get_debug_type;
 use function is_array;
@@ -228,6 +229,7 @@ final class InputFilter
         $this->values   = [];
         $this->messages = [];
         $valid          = true;
+        $context        = $this->context();
 
         foreach ($this->validationGroup ?? array_keys($this->spec) as $name) {
             $name  = (string) $name;
@@ -280,7 +282,7 @@ final class InputFilter
             }
 
             //(5)
-            $failures = $this->validate($value, $rules, ! $allowEmpty && ! $continueIfEmpty);
+            $failures = $this->validate($value, $rules, ! $allowEmpty && ! $continueIfEmpty, $context);
             if ([] !== $failures) {
                 $this->messages[$name] = $failures;
                 $valid                 = false;
@@ -288,6 +290,69 @@ final class InputFilter
         }
 
         return $valid;
+    }
+
+    /**
+     * The sibling values a validator reads to check one field against another.
+     *
+     * `Laminas\InputFilter\Input::isValid($context)` hands its context straight to
+     * `ValidatorChain::isValid($value, $context)`, and `BaseInputFilter::validateInputs()`
+     * builds it as `array_merge($this->getRawValues(), $data)` — every input's **raw**,
+     * unfiltered value, overridden by whatever actually arrived. So a field absent from the
+     * submission is present in the context as `null` rather than missing, and a nested
+     * fieldset contributes a nested array.
+     *
+     * This engine did not pass one, and the omission was silent in the worst way: a
+     * validator that reads context is written to return `true` when it has none, because
+     * that is how laminas signals "not enough information to judge". Measured 2026-09-11 —
+     * all five `SionModel\Validator\DateNotBefore` rules were inert, so a person could be
+     * recorded as having died before they were born, an assignment could end before it
+     * began, and every form said yes. Nothing else here reads context: the two `Identical`
+     * rules both pass `literal => true`, which is what makes the token a value rather than
+     * a context key.
+     *
+     * A nested specification computes its own, exactly as laminas does — the parent passes
+     * `null` down, so cross-field rules see their own level's siblings and not the
+     * grandparent's.
+     *
+     * @return array<string, mixed>
+     */
+    private function context(): array
+    {
+        return array_merge($this->rawValues(), $this->data);
+    }
+
+    /**
+     * Every name in the specification, carrying what arrived for it unfiltered.
+     *
+     * `BaseInputFilter::getRawValues()` recurses into a nested input filter and takes
+     * `Input::getRawValue()` — which is null for an input `populate()` never set — for
+     * everything else.
+     *
+     * @return array<string, mixed>
+     */
+    private function rawValues(): array
+    {
+        $raw = [];
+
+        foreach ($this->spec as $name => $rules) {
+            $name = (string) $name;
+            if (! is_array($rules)) {
+                continue;
+            }
+
+            $nested = $rules['fieldset'] ?? $rules['collection'] ?? null;
+            if (is_array($nested)) {
+                $child = new self($nested, $this->makeFilter, $this->makeValidator);
+                $child->setData(is_array($this->data[$name] ?? null) ? $this->data[$name] : []);
+                $raw[$name] = $child->rawValues();
+                continue;
+            }
+
+            $raw[$name] = $this->data[$name] ?? null;
+        }
+
+        return $raw;
     }
 
     /**
@@ -400,9 +465,10 @@ final class InputFilter
      *        `Input::injectNotEmptyValidator()`. Prepending matters: it is what makes
      *        `isEmpty` the reported failure rather than whatever a later rule says about a
      *        value that should not have got that far.
+     * @param array<string, mixed> $context the sibling values a cross-field rule reads
      * @return array<string, string> message key => message, first failing validator only
      */
-    private function validate(mixed $value, array $rules, bool $injectNotEmpty): array
+    private function validate(mixed $value, array $rules, bool $injectNotEmpty, array $context): array
     {
         $chain = [];
 
@@ -433,7 +499,7 @@ final class InputFilter
             /** @var object $validator */
             $validator = ($this->makeValidator)($name, $options);
             /** @psalm-suppress MixedMethodCall */
-            if ($validator->isValid($value)) {
+            if ($validator->isValid($value, $context)) {
                 continue;
             }
 
