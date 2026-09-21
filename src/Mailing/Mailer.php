@@ -6,8 +6,6 @@ use SionModel\Db\Model\SionTable;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
-use TijsVerkoyen\CssToInlineStyles\CssToInlineStyles;
-use voku\Html2Text\Html2Text;
 
 /**
  * Base class for application mailers: builds messages stamped with the
@@ -136,7 +134,7 @@ class Mailer
         if (null === $body) {
             $body = $message->getTextBody();
         }
-        $html = new Html2Text((string) $body);
+
         $sender = $message->getSender();
         //report email
         $report = [
@@ -146,7 +144,7 @@ class Mailer
             'subject' => $message->getSubject(),
             'body' => $body,
             'sender' => isset($sender) ? $sender->toString() : null,
-            'text' => $html->getText(),
+            'text' => HtmlToText::convert((string) $body),
             'tags' => $tags,
             'trackingToken' => $trackingToken,
             'emailTemplate' => $template,
@@ -196,7 +194,7 @@ class Mailer
             ));
         }
 
-        return (new CssToInlineStyles())->convert($body, $css);
+        return CssInliner::inline($body, $css);
     }
 
     /**

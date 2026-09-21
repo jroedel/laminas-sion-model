@@ -10,6 +10,8 @@
 
 namespace SionModel\Filter;
 
+use SionModel\Text\Utf8Repair;
+
 class ToAscii extends AbstractFilter
 {
     public function __construct()
@@ -32,7 +34,9 @@ class ToAscii extends AbstractFilter
         if (! isset($str) || is_array($str)) {
             return $str;
         }
-        $str = \ForceUTF8\Encoding::toUTF8($str);
+        //iconv() below returns false on the first illegal byte, which would turn a search
+        //term into an empty one. Repair first; see Utf8Repair for what "repair" means here.
+        $str = Utf8Repair::toUtf8((string)$str);
 
         if (is_array($replace) && ! empty($replace)) {
             $str = str_replace((array)$replace, ' ', $str);
