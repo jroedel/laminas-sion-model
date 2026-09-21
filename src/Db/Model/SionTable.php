@@ -22,7 +22,6 @@ use Laminas\Db\Sql\Predicate\Operator;
 use Laminas\Db\Sql\Predicate\PredicateInterface;
 use Laminas\Db\Sql\Predicate\PredicateSet;
 use Laminas\Db\ResultSet\ResultSetInterface;
-use Matriphe\ISO639\ISO639;
 use SionModel\Service\ActingUserProviderInterface;
 use SionModel\Service\Adapter\CallableUserDirectory;
 use SionModel\Service\UserDirectoryInterface;
@@ -171,13 +170,6 @@ class SionTable
     protected $userDirectoryResolved = false;
 
     /**
-     * Class to get language information
-     * @var ISO639 $iso639
-     * @deprecated
-     */
-    protected $iso639;
-
-    /**
      * Class for multi-lingual language name support
      * @var LanguageSupport $languageSupport
      */
@@ -189,11 +181,6 @@ class SionTable
      */
     protected $languageNames;
 
-    /**
-     * An associative array mapping 2-digit iso-639 codes to the native name of a language
-     * @var string[] $nativeLanguageNames
-     */
-    protected $nativeLanguageNames;
 
     /**
      * Default algorithm for hashing sensitive data
@@ -2332,18 +2319,6 @@ class SionTable
         return $this;
     }
 
-    /**
-     * @deprecated
-     * @return \Matriphe\ISO639\ISO639
-     */
-    protected function getIso639()
-    {
-        if (! isset($this->iso639)) {
-            $this->iso639 = new ISO639();
-        }
-        return $this->iso639;
-    }
-
     protected function getLanguageSupport()
     {
         if (! isset($this->languageSupport)) {
@@ -2364,23 +2339,6 @@ class SionTable
     }
 
     /**
-     * Returns an associative array mapping 2-digit ISO-639 language codes to the native language name
-     * @deprecated
-     * @return string[]
-     */
-    public function getNativeLanguageNames()
-    {
-        if (! isset($this->nativeLanguageNames)) {
-            $languageRecords = $this->getIso639()->allLanguages();
-            $this->nativeLanguageNames = [];
-            foreach ($languageRecords as $item) {
-                $this->nativeLanguageNames[$item[0]] = $item[5];
-            }
-        }
-        return $this->nativeLanguageNames;
-    }
-
-    /**
      * Get the name of a language by its 2-digit ISO-639 code
      * @param string $twoDigitLangCode
      * @param string $inLanguage
@@ -2389,24 +2347,5 @@ class SionTable
     public function getLanguageName($twoDigitLangCode, $inLanguage = 'en')
     {
         return $this->getLanguageSupport()->getLanguageName($twoDigitLangCode, $inLanguage);
-    }
-
-    /**
-     * Get the native name of a language by its 2-digit ISO-639 code
-     * @param string $twoDigitLangCode
-     * @deprecated
-     * @return string
-     */
-    public function getNativeLanguageName($twoDigitLangCode)
-    {
-        if (! isset($twoDigitLangCode) || ! is_string($twoDigitLangCode)) {
-            throw new \InvalidArgumentException('Please pass a two-digit language code to get its native name');
-        }
-        if (! isset($this->nativeLanguageNames)) {
-            $this->getNativeLanguageNames();
-        }
-        return isset($this->nativeLanguageNames[$twoDigitLangCode])
-            ? $this->nativeLanguageNames[$twoDigitLangCode]
-            : null;
     }
 }
