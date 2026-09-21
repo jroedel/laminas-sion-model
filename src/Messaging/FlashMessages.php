@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SionModel\Messaging;
 
-use Laminas\Session\Container;
-use Laminas\Session\ManagerInterface;
+use SionModel\Session\SessionBagInterface;
+use SionModel\Session\Sessions;
 use SplQueue;
 
 use function is_array;
@@ -16,10 +16,11 @@ use function iterator_to_array;
  * the page rendered next in the same session.
  *
  * The storage is deliberately the one laminas-mvc's `FlashMessenger` plugin used — the
- * session container named `FlashMessenger`, one `SplQueue` per namespace, one hop of
- * expiration set on the container the first time something is written — so a message
- * written by a release that still ran the plugin renders under the release that runs
- * this, and the other way round if a deploy is rolled back. The five namespaces are the
+ * session namespace `FlashMessenger`, one `SplQueue` per severity, one hop of expiration
+ * set on the namespace the first time something is written — so a message written by a
+ * release that still ran the plugin renders under the release that runs this, and the
+ * other way round if a deploy is rolled back. The `SplQueue` is part of that format and
+ * not an implementation choice: it is what is already sitting in every live session. The five namespaces are the
  * plugin's constants, kept as literals: `JUser\Host\Severity` and
  * `JTranslate\Host\Severity` carry the same five strings by value.
  *
@@ -43,7 +44,7 @@ final class FlashMessages
     public const NAMESPACE_ERROR   = 'error';
     public const NAMESPACE_INFO    = 'info';
 
-    private ?Container $container = null;
+    private ?SessionBagInterface $bag = null;
 
     /** @var array<string, list<mixed>>|null what the previous request left; null until read */
     private ?array $received = null;
@@ -51,10 +52,10 @@ final class FlashMessages
     private bool $written = false;
 
     /**
-     * @param ManagerInterface|null $manager null means the session container's default
-     *        manager, which is what the plugin used
+     * @param SessionBagInterface|null $session null means the default session, which is
+     *        what the plugin's container did with no manager
      */
-    public function __construct(private readonly ?ManagerInterface $manager = null)
+    public function __construct(private readonly ?SessionBagInterface $session = null)
     {
     }
 
@@ -65,18 +66,23 @@ final class FlashMessages
      */
     public function add(string $namespace, mixed $message): void
     {
-        $container = $this->container();
+        $bag = $this->bag();
         $this->receive();
         if (! $this->written) {
             //one hop: readable by the next request and gone after it, whether or not it
             //was read. Set once per request, as the plugin did.
-            $container->setExpirationHops(1, null);
+            $bag->expireAfterHops(1);
             $this->written = true;
         }
-        if (! isset($container->{$namespace}) || ! $container->{$namespace} instanceof SplQueue) {
-            $container->{$namespace} = new SplQueue();
+
+        $queue = $bag->get($namespace);
+        if (! $queue instanceof SplQueue) {
+            $queue = new SplQueue();
         }
-        $container->{$namespace}->push($message);
+        $queue->push($message);
+        //Written back rather than mutated in place: the bag reads the session on every
+        //call, so an object pulled out of it is a copy as far as storage is concerned.
+        $bag->set($namespace, $queue);
     }
 
     /**
@@ -112,9 +118,9 @@ final class FlashMessages
             return;
         }
         $this->received = [];
-        $container      = $this->container();
+        $bag            = $this->bag();
         $namespaces     = [];
-        foreach ($container as $namespace => $messages) {
+        foreach ($bag->all() as $namespace => $messages) {
             $namespace = (string) $namespace;
             if ($messages instanceof SplQueue) {
                 $this->received[$namespace] = iterator_to_array($messages, false);
@@ -126,12 +132,12 @@ final class FlashMessages
             $namespaces[] = $namespace;
         }
         foreach ($namespaces as $namespace) {
-            unset($container->{$namespace});
+            $bag->remove($namespace);
         }
     }
 
-    private function container(): Container
+    private function bag(): SessionBagInterface
     {
-        return $this->container ??= new Container(self::CONTAINER, $this->manager);
+        return $this->bag ??= $this->session ?? Sessions::default()->bag(self::CONTAINER);
     }
 }

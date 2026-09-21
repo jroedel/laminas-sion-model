@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SionModel\Validator;
 
-use Laminas\Session\Container as SessionContainer;
+use SionModel\Session\SessionBagInterface;
+use SionModel\Session\Sessions;
 
 use function explode;
+use function is_array;
 use function is_string;
 use function md5;
 use function random_bytes;
@@ -65,7 +67,7 @@ final class Csrf extends AbstractValidator
 
     private string $salt = 'salt';
 
-    private ?SessionContainer $session = null;
+    private ?SessionBagInterface $session = null;
 
     private ?int $timeout = 300;
 
@@ -105,7 +107,7 @@ final class Csrf extends AbstractValidator
         return $this->timeout;
     }
 
-    public function setSession(SessionContainer $session): static
+    public function setSession(SessionBagInterface $session): static
     {
         $this->session = $session;
 
@@ -116,9 +118,9 @@ final class Csrf extends AbstractValidator
         return $this;
     }
 
-    public function getSession(): SessionContainer
+    public function getSession(): SessionBagInterface
     {
-        return $this->session ??= new SessionContainer($this->getSessionName());
+        return $this->session ??= Sessions::default()->bag($this->getSessionName());
     }
 
     public function getSessionName(): string
@@ -182,23 +184,23 @@ final class Csrf extends AbstractValidator
         $session = $this->getSession();
 
         if (null !== $this->timeout) {
-            $session->setExpirationSeconds($this->timeout);
+            $session->expireAfterSeconds($this->timeout);
         }
 
         $hash    = $this->getHash();
         $tokenId = self::tokenIdFromHash($hash);
 
         /** @var array<string, string> $list */
-        $list = $session->tokenList ?? [];
+        $list = is_array($session->get('tokenList')) ? $session->get('tokenList') : [];
 
         if (null !== $tokenId) {
             $list[$tokenId] = (string) self::tokenFromHash($hash);
         }
 
-        $session->tokenList = $list;
+        $session->set('tokenList', $list);
         //Kept for a session written by the release being replaced, which read `hash` when
         //a submission carried no token id.
-        $session->hash = $hash;
+        $session->set('hash', $hash);
     }
 
     private function storedHashFor(?string $tokenId): ?string
@@ -206,11 +208,13 @@ final class Csrf extends AbstractValidator
         $session = $this->getSession();
 
         if (null === $tokenId) {
-            return is_string($session->hash) ? $session->hash : null;
+            $hash = $session->get('hash');
+
+            return is_string($hash) ? $hash : null;
         }
 
         /** @var array<string, string> $list */
-        $list = $session->tokenList ?? [];
+        $list = is_array($session->get('tokenList')) ? $session->get('tokenList') : [];
 
         return isset($list[$tokenId]) ? sprintf('%s-%s', $list[$tokenId], $tokenId) : null;
     }
