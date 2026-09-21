@@ -2,10 +2,14 @@
 
 namespace SionModel\Service;
 
-use Laminas\ModuleManager\Listener\ListenerOptions;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
 use SionModel\Console\Command\ClearConfigCacheCommand;
+
+use function array_filter;
+use function array_values;
+use function is_array;
+use function is_string;
 
 class ClearConfigCacheCommandFactory implements FactoryInterface
 {
@@ -16,23 +20,18 @@ class ClearConfigCacheCommandFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
-        $appConfig = $container->has('ApplicationConfig') ? $container->get('ApplicationConfig') : [];
-        $listenerOptions = new ListenerOptions(
-            is_array($appConfig) && isset($appConfig['module_listener_options'])
-            && is_array($appConfig['module_listener_options'])
-                ? $appConfig['module_listener_options']
-                : []
+        //The host names its own cache files: it is the side that writes them, and until
+        //2026-09-21 this factory derived them a second time through
+        //`Laminas\ModuleManager\Listener\ListenerOptions`. That package is gone, and a
+        //copy of the naming rule here would be a second owner of it either way — so the
+        //host registers the list and this asks for it.
+        //
+        //Absent, the command clears nothing, which is the honest answer for a host that
+        //caches no merged configuration.
+        $files = $container->has('ConfigCacheFiles') ? $container->get('ConfigCacheFiles') : [];
+
+        return new ClearConfigCacheCommand(
+            is_array($files) ? array_values(array_filter($files, is_string(...))) : []
         );
-
-        //With no cache_dir configured, ListenerOptions builds its file names
-        //against an empty directory — i.e. paths at the filesystem root. Since
-        //nothing was ever cached in that case, hand the command an empty list
-        //rather than an unlink() target outside the application.
-        $cacheDir = (string) $listenerOptions->getCacheDir();
-        $files = '' === $cacheDir
-            ? []
-            : [$listenerOptions->getConfigCacheFile(), $listenerOptions->getModuleMapCacheFile()];
-
-        return new ClearConfigCacheCommand($files);
     }
 }
