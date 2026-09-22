@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Service;
 
-use Laminas\Translator\TranslatorInterface;
+use SionModel\I18n\TranslatesMessages;
 use Psr\Container\ContainerInterface;
 use SionModel\Mailing\TwigTemplateRenderer;
 use SionModel\Twig\MailExtension;
@@ -25,9 +25,9 @@ use function is_string;
  *
  * No compile cache: a notice run renders a few dozen bodies from two templates.
  *
- * The translator is the canonical laminas-i18n one, `TranslatorInterface::class` — the
- * instance the host configures with its catalogs — which is what the `translate` view
- * helper used inside the `.phtml` originals.
+ * The translator comes from the host under `TranslatesMessages::class` — the one it
+ * configures with its catalogs — which is what the `translate` view helper used inside the
+ * `.phtml` originals.
  */
 final class TemplateRendererFactory
 {
@@ -60,8 +60,8 @@ final class TemplateRendererFactory
             'strict_variables' => true,
             'cache'            => false,
         ]);
-        /** @var TranslatorInterface $translator */
-        $translator = $container->get(TranslatorInterface::class);
+        /** @var TranslatesMessages $translator */
+        $translator = $container->get(TranslatesMessages::class);
         $twig->addExtension(new MailExtension($translator));
 
         return new TwigTemplateRenderer($twig);
