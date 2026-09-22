@@ -3,11 +3,10 @@
 namespace SionModel\Service;
 
 use Symfony\Component\HttpClient\HttpClient;
-use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
 use SionModel\Console\Command\FlushPersistentCacheCommand;
 
-class FlushPersistentCacheCommandFactory implements FactoryInterface
+class FlushPersistentCacheCommandFactory
 {
     /**
      * Create an object

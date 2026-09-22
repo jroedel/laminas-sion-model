@@ -2,10 +2,9 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
-class ChangesCollectorFactory implements FactoryInterface
+class ChangesCollectorFactory
 {
     /**
      * Create an object

@@ -2,7 +2,6 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
@@ -20,7 +19,7 @@ use Psr\Container\ContainerInterface;
  *
  * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
  */
-class ExceptionsLoggerFactory implements FactoryInterface
+class ExceptionsLoggerFactory
 {
     /**
      * Create an object

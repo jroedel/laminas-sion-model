@@ -7,8 +7,7 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Problem\EntityProblem;
 
 /**
@@ -16,7 +15,7 @@ use SionModel\Problem\EntityProblem;
  *
  * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
-class ProblemServiceFactory implements FactoryInterface
+class ProblemServiceFactory
 {
     /**
      * Create an object

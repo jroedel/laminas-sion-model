@@ -2,8 +2,7 @@
 
 namespace SionModel\Service;
 
-use Interop\Container\ContainerInterface;
-use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Mailer\Transport\SendmailTransport;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
@@ -19,7 +18,7 @@ use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
  * through the 'SionModel\ExceptionMailTransport' alias, so a project can still
  * point exception mail at a different transport without touching the notifier.
  */
-class MailTransportFactory implements FactoryInterface
+class MailTransportFactory
 {
     /**
      * A mail host that has stopped answering must not stall a request for the

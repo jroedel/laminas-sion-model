@@ -2,8 +2,7 @@
 
 namespace SionModel\Service;
 
-use Interop\Container\ContainerInterface;
-use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Error\Config;
 use SionModel\Error\RequestContext;
 use Throwable;
@@ -11,7 +10,7 @@ use Throwable;
 /**
  * Factory responsible of priming the RequestContext service
  */
-class RequestContextFactory implements FactoryInterface
+class RequestContextFactory
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {

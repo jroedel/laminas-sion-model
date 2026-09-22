@@ -2,7 +2,6 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
 use SionModel\Console\Command\ClearConfigCacheCommand;
 
@@ -11,7 +10,7 @@ use function array_values;
 use function is_array;
 use function is_string;
 
-class ClearConfigCacheCommandFactory implements FactoryInterface
+class ClearConfigCacheCommandFactory
 {
     /**
      * Create an object

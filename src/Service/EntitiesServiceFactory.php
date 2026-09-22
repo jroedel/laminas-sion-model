@@ -7,15 +7,14 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
 /**
  * Factory responsible of constructing the central collection of Entity's
  *
  * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
-class EntitiesServiceFactory implements FactoryInterface
+class EntitiesServiceFactory
 {
     /**
      * Create an object

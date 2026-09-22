@@ -2,8 +2,7 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 use JTranslate\Model\CountriesInfo;
 
 /**
@@ -11,7 +10,7 @@ use JTranslate\Model\CountriesInfo;
  *
  * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
-class CountryValueOptionsFactory implements FactoryInterface
+class CountryValueOptionsFactory
 {
     /**
      * Create an object

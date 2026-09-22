@@ -13,7 +13,6 @@
         "twig/twig": "^3.0",
         "laminas/laminas-translator": "^1.0",
         "laminas/laminas-db": "^2.11",
-        "laminas/laminas-servicemanager": "^3.24",
         "laminas/laminas-stdlib": "^3.21",
         "psr/container": "^1.1 || ^2.0",
         "symfony/http-client-contracts": "^3.7",

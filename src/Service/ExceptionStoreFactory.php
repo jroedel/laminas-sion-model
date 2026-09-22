@@ -2,15 +2,14 @@
 
 namespace SionModel\Service;
 
-use Interop\Container\ContainerInterface;
-use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Error\Config;
 use SionModel\Error\ExceptionStore;
 
 /**
  * Factory responsible of priming the ExceptionStore service
  */
-class ExceptionStoreFactory implements FactoryInterface
+class ExceptionStoreFactory
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
