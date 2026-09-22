@@ -39,7 +39,7 @@ use function trim;
  * sub-selects as a table. No call site uses them, and laminas-db's support for them is where
  * most of its complexity lived.
  */
-final class Select
+final class Select implements Statement
 {
     public const ORDER_ASCENDING  = 'ASC';
     public const ORDER_DESCENDING = 'DESC';
