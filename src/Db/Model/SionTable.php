@@ -2,33 +2,30 @@
 
 namespace SionModel\Db\Model;
 
-use Laminas\Db\Adapter\Adapter;
-use Laminas\Db\Sql\Insert;
-use Laminas\Db\TableGateway\TableGateway;
+use SionModel\Db\Connection;
+use SionModel\Db\Sql\Insert;
+use SionModel\Db\TableGateway;
 use SionModel\Filter\Boolean;
 use SionModel\Validator\EmailAddress;
 use SionModel\Entity\Entity;
-use Laminas\Db\TableGateway\TableGatewayInterface;
 use SionModel\Uri\Http;
-use Laminas\Db\Adapter\AdapterInterface;
-use Laminas\Db\Sql\Where;
+use SionModel\Db\Sql\Where;
 use Laminas\Stdlib\StringUtils;
-use Laminas\Db\ResultSet\ResultSet;
-use Laminas\Db\Sql\Select;
-use Laminas\Db\Sql\Expression;
+use SionModel\Db\ResultSet;
+use SionModel\Db\Sql\Select;
+use SionModel\Db\Sql\Expression;
 use SionModel\Db\GeoPoint;
-use Laminas\Db\Sql\Predicate\In;
-use Laminas\Db\Sql\Predicate\Operator;
-use Laminas\Db\Sql\Predicate\PredicateInterface;
-use Laminas\Db\Sql\Predicate\PredicateSet;
-use Laminas\Db\ResultSet\ResultSetInterface;
+use SionModel\Db\Sql\Predicate\In;
+use SionModel\Db\Sql\Predicate\Operator;
+use SionModel\Db\Sql\Predicate\PredicateInterface;
 use SionModel\Service\ActingUserProviderInterface;
 use SionModel\Service\Adapter\CallableUserDirectory;
 use SionModel\Service\UserDirectoryInterface;
 use SionModel\Service\EntitiesService;
-use Laminas\Db\Sql\Predicate\IsNull;
+use SionModel\Db\Sql\Predicate\IsNull;
 use SionModel\I18n\LanguageSupport;
 use Psr\Log\LoggerAwareTrait;
+use SionModel\Db\Sql\Predicate\Group;
 
 /*
  * I have an interesting idea of being able to specify in a configuration file
@@ -79,7 +76,7 @@ class SionTable
     protected $tableGateway;
 
     /**
-     * @var Adapter $adapter
+     * @var Connection $adapter
      */
     protected $adapter;
 
@@ -112,12 +109,12 @@ class SionTable
     protected $visitsTableName;
 
     /**
-     * @var TableGatewayInterface $changesTableGateway
+     * @var TableGateway $changesTableGateway
      */
     protected $changesTableGateway;
 
     /**
-     * @var TableGatewayInterface $visitTableGateway
+     * @var TableGateway $visitTableGateway
      */
     protected $visitsTableGateway;
 
@@ -237,7 +234,7 @@ class SionTable
      * lookup and the `! $this instanceof ProblemTable` cycle guard out with it.
      */
     public function __construct(
-        AdapterInterface $dbAdapter,
+        Connection $dbAdapter,
         EntitiesService $entities,
         array $config,
         ?ActingUserProviderInterface $actingUserProvider
@@ -347,10 +344,10 @@ class SionTable
         }
         $gateway = $this->getTableGateway($entitySpec->tableName);
         $select = $this->getSelectPrototype($entity);
-        $predicate = new Operator($entitySpec->tableKey, Operator::OPERATOR_EQUAL_TO, $entityId);
+        $predicate = new Operator($entitySpec->tableKey, Operator::EQ, $entityId);
         $select->where($predicate);
         $result = $gateway->selectWith($select);
-        if (! $result instanceof ResultSetInterface) {
+        if (! $result instanceof ResultSet) {
             throw new \Exception("Unexpected query result for entity `$entity`");
         }
         $results = $result->toArray();
@@ -424,8 +421,8 @@ class SionTable
 
         $shouldFailSilently = isset($options['failSilently']) ? (bool)$options['failSilently'] : false;
         $combination = (isset($options['orCombination']) && $options['orCombination'])
-            ? PredicateSet::OP_OR
-            : PredicateSet::OP_AND;
+            ? Where::OP_OR
+            : Where::OP_AND;
 
         if ($query instanceof PredicateInterface) {
             $where = $query;
@@ -445,7 +442,7 @@ class SionTable
                 } else {
                     $clause = new Operator(
                         $columnPrefix . $fieldMap[$key],
-                        Operator::OPERATOR_EQUAL_TO, $value
+                        Operator::EQ, $value
                         );
                 }
                 $where->addPredicate($clause, $combination);
@@ -506,7 +503,7 @@ class SionTable
         }
 
         $result = $gateway->selectWith($select);
-        if (! $result instanceof ResultSetInterface) {
+        if (! $result instanceof ResultSet) {
             if ($shouldFailSilently) {
                 return null;
             } else {
@@ -634,11 +631,11 @@ class SionTable
             'EntityId',
             'TotalVisits' => new Expression('COUNT(*)'),
         ]);
-        $where = new PredicateSet([new Operator('Entity', Operator::OPERATOR_EQUAL_TO, $entity)]);
+        $group = (new Where())->addPredicate(new Operator('Entity', Operator::EQ, $entity));
         if (! empty($ids)) {
-            $where->addPredicate(new In('EntityId', $ids));
+            $group->addPredicate(new In('EntityId', $ids));
         }
-        $select->where($where)
+        $select->where(new Group($group))
         ->group(['EntityId']);
         $result = $gateway->selectWith($select);
         foreach ($result as $row) {
@@ -660,10 +657,10 @@ class SionTable
             'EntityId',
             'PastMonthVisits' => new Expression('COUNT(*)'),
         ]);
-        $where->addPredicate(
-            new \Laminas\Db\Sql\Predicate\Expression('`VisitedAt` >= DATE_ADD(NOW(), INTERVAL -1 MONTH)')
+        $group->addPredicate(
+            new \SionModel\Db\Sql\Expression('`VisitedAt` >= DATE_ADD(NOW(), INTERVAL -1 MONTH)')
         );
-        $select->where($where)
+        $select->where(new Group($group))
         ->group(['EntityId']);
         $result = $gateway->selectWith($select);
         foreach ($result as $row) {
@@ -717,9 +714,16 @@ class SionTable
     }
 
     /**
+     * Run a hand-written SELECT and return its rows.
+     *
+     * `$sqlArgs` was `Connection::QUERY_MODE_EXECUTE` when it was null — laminas-db's `query()`
+     * returned a *statement* rather than running it unless told otherwise, and that constant
+     * was how every caller here said "actually run it". A connection that runs what it is
+     * given needs no such word: no values to bind is an empty list.
+     *
      * @param Where|\Closure|string|array $where
-     * @param null|string
-     * @param null|array
+     * @param null|string $sql
+     * @param null|array $sqlArgs
      * @return array
      */
     public function fetchSome($where, $sql = null, $sqlArgs = null)
@@ -727,12 +731,7 @@ class SionTable
         if (null === $where && null === $sql) {
             throw new \InvalidArgumentException('No query requested.');
         }
-        if (null !== $sql) {
-            if (null === $sqlArgs) {
-                $sqlArgs = Adapter::QUERY_MODE_EXECUTE; //make sure query executes
-            }
-            $result = $this->adapter->query($sql, $sqlArgs);
-        } else {
+        if (null === $sql) {
             //the '' gateway this used to select() through never had a table,
             //so this path could only ever produce invalid SQL
             throw new \InvalidArgumentException(
@@ -741,11 +740,7 @@ class SionTable
             );
         }
 
-        $return = [];
-        foreach ($result as $row) {
-            $return[] = $row;
-        }
-        return $return;
+        return $this->adapter->select($sql, is_array($sqlArgs) ? $sqlArgs : [])->toArray();
     }
 
     /**
@@ -1005,14 +1000,14 @@ class SionTable
      * @param mixed[] $data
      * @param string $entityType
      * @param string $tableKey
-     * @param TableGatewayInterface $tableGateway
+     * @param TableGateway $tableGateway
      * @param string[] $updateCols
      * @param mixed[] $referenceEntity
      * @param string[] $manyToOneUpdateColumns
      * @param bool $reportChanges
      * @throws \Exception
      */
-    protected function updateHelper($id, $data, $entityType, $tableKey, TableGatewayInterface $tableGateway, $updateCols, $referenceEntity, $manyToOneUpdateColumns = null, $reportChanges = false, array $fieldsToTouch = [])
+    protected function updateHelper($id, $data, $entityType, $tableKey, TableGateway $tableGateway, $updateCols, $referenceEntity, $manyToOneUpdateColumns = null, $reportChanges = false, array $fieldsToTouch = [])
     {
         if (null === $entityType || $entityType === '') {
             throw new \Exception('No entity provided.');
@@ -1157,7 +1152,7 @@ class SionTable
      * @param string[] $requiredCols
      * @param string[] $updateCols
      * @param string $entityType
-     * @param TableGatewayInterface $tableGateway
+     * @param TableGateway $tableGateway
      * @param string|null $scope
      * @param string[]|null $manyToOneUpdateColumns
      */
@@ -1274,7 +1269,7 @@ class SionTable
      * Get a TableGateway instance for a given entity name
      * @param string $entity
      * @throws \Exception
-     * @return \Laminas\Db\TableGateway\TableGateway
+     * @return \SionModel\Db\TableGateway
      */
     protected function getTableGatewayForEntity($entity)
     {
@@ -1399,7 +1394,7 @@ class SionTable
     public function reportChange($data)
     {
         $changesTableGateway = $this->getChangesTableGateway();
-        if (! $changesTableGateway instanceof TableGatewayInterface) {
+        if (! $changesTableGateway instanceof TableGateway) {
             return -1;
         }
         $i = 0;
@@ -2256,7 +2251,7 @@ class SionTable
 
     /**
      *
-     * @return \Laminas\Db\Adapter\Adapter
+     * @return \SionModel\Db\Connection
      */
     public function getAdapter()
     {
@@ -2265,7 +2260,7 @@ class SionTable
 
     /**
      *
-     * @param \Laminas\Db\Adapter\Adapter $adapter
+     * @param \SionModel\Db\Connection $adapter
      */
     public function setAdapter($adapter)
     {
@@ -2273,7 +2268,7 @@ class SionTable
     }
 
     /**
-     * @return TableGatewayInterface
+     * @return TableGateway
      */
     public function getChangesTableGateway()
     {
@@ -2288,17 +2283,17 @@ class SionTable
 
     /**
      *
-     * @param TableGatewayInterface $gateway
+     * @param TableGateway $gateway
      * @return self
      */
-    public function setChangesTableGateway(TableGatewayInterface $gateway)
+    public function setChangesTableGateway(TableGateway $gateway)
     {
         $this->changesTableGateway = $gateway;
         return $this;
     }
 
     /**
-     * @return TableGatewayInterface
+     * @return TableGateway
      */
     public function getVisitTableGateway()
     {
@@ -2310,10 +2305,10 @@ class SionTable
 
     /**
      *
-     * @param TableGatewayInterface $gateway
+     * @param TableGateway $gateway
      * @return self
      */
-    public function setVisitTableGateway(TableGatewayInterface $gateway)
+    public function setVisitTableGateway(TableGateway $gateway)
     {
         $this->visitsTableGateway = $gateway;
         return $this;

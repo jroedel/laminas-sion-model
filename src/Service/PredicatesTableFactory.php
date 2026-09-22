@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Service;
 
-use Laminas\Db\Adapter\Adapter;
+use SionModel\Db\Connection;
 use Psr\Container\ContainerInterface;
 use SionModel\Db\Model\PredicatesTable;
 
@@ -24,7 +24,7 @@ class PredicatesTableFactory
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): PredicatesTable
     {
         $table = new PredicatesTable(
-            $container->get(Adapter::class),
+            $container->get(Connection::class),
             $container->get(EntitiesService::class),
             $container->get('SionModel\Config'),
             $container->has(ActingUserProviderInterface::class)

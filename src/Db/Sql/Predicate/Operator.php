@@ -48,7 +48,9 @@ final class Operator implements PredicateInterface
     public function render(): array
     {
         if ($this->value instanceof Expression) {
-            return [Identifier::quote($this->identifier) . ' ' . $this->operator . ' ' . (string) $this->value, []];
+            [$sql, $bound] = $this->value->render();
+
+            return [Identifier::quote($this->identifier) . ' ' . $this->operator . ' ' . $sql, $bound];
         }
 
         return [Identifier::quote($this->identifier) . ' ' . $this->operator . ' ?', [$this->value]];

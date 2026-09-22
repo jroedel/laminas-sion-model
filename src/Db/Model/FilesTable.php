@@ -2,7 +2,7 @@
 
 namespace SionModel\Db\Model;
 
-use Laminas\Db\Adapter\AdapterInterface;
+use SionModel\Db\Connection;
 use SionModel\Service\ActingUserProviderInterface;
 use SionModel\Service\EntitiesService;
 
@@ -23,7 +23,7 @@ class FilesTable extends SionTable
      * @param array<string, mixed> $sionModelConfig
      */
     public function __construct(
-        AdapterInterface $dbAdapter,
+        Connection $dbAdapter,
         EntitiesService $entities,
         array $config,
         ?ActingUserProviderInterface $actingUserProvider,

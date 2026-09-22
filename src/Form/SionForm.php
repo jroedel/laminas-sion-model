@@ -23,7 +23,7 @@ class SionForm extends Form implements InputFilterProviderInterface
     
     /**
      * Db adapter used for validators, optional
-     * @var \Laminas\Db\Adapter\AdapterInterface $adapter
+     * @var \SionModel\Db\Connection $adapter
      */
     protected $adapter;
 
@@ -240,7 +240,7 @@ class SionForm extends Form implements InputFilterProviderInterface
         return $this->adapter;
     }
     
-    public function setAdapter(\Laminas\Db\Adapter\AdapterInterface $adapter)
+    public function setAdapter(\SionModel\Db\Connection $adapter)
     {
         $this->adapter = $adapter;
         return $this;

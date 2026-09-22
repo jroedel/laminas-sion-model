@@ -47,6 +47,14 @@ final class Where implements PredicateInterface, Countable
             throw new InvalidPredicate('A combination is either ' . self::OP_AND . ' or ' . self::OP_OR . '.');
         }
 
+        //Whether a nested set gets brackets is the difference between "any of these, and
+        //that" and "any of these, or that and this", so it is said rather than inferred.
+        if ($predicate instanceof self) {
+            throw new InvalidPredicate(
+                'Wrap a nested set in a Group to say it is bracketed, or merge() it to say it is not.'
+            );
+        }
+
         $this->predicates[] = [$combination, $predicate];
 
         return $this;
@@ -111,6 +119,11 @@ final class Where implements PredicateInterface, Countable
         return $this->addPredicate(new Operator($identifier, Operator::EQ, $value), $combination);
     }
 
+    public function notEqualTo(string $identifier, mixed $value, string $combination = self::OP_AND): self
+    {
+        return $this->addPredicate(new Operator($identifier, Operator::NEQ, $value), $combination);
+    }
+
     public function isNull(string $identifier, string $combination = self::OP_AND): self
     {
         return $this->addPredicate(new IsNull($identifier), $combination);
@@ -137,6 +150,58 @@ final class Where implements PredicateInterface, Countable
         return count($this->predicates);
     }
 
+    /**
+     * Take another set's conditions into this one, **flat** — no brackets.
+     *
+     * {@see \SionModel\Db\Sql\Predicate\Group} is the bracketed alternative, and the choice
+     * between them is the whole of what laminas-db expressed by having a `Where` and a
+     * `Predicate` with identical contents.
+     *
+     * Each condition keeps the combination it was added with, so a set built with `OP_OR`
+     * merges as `a OR b` and not as `a AND b`.
+     */
+    public function merge(self $other): self
+    {
+        foreach ($other->predicates as $index => [$combination, $predicate]) {
+            //The first condition of a set carries no operator of its own: it takes the one
+            //that joins the set to whatever is already here.
+            $this->addPredicate($predicate, 0 === $index && [] === $this->predicates ? self::OP_AND : $combination);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Add whatever a statement's `where()` was handed.
+     *
+     * `Select`, `Update` and `Delete` all face the same three-way choice, and it lives here
+     * rather than three times over — the divergence is not hypothetical: `Update::where()`
+     * and `Delete::where()` went to {@see self::addPredicate()} directly and so refused a
+     * whole `Where`, which is exactly what `TableGateway::update()` passes them.
+     *
+     * An array is the array form; a `Where` merges flat, because a caller who wants brackets
+     * says so with {@see \SionModel\Db\Sql\Predicate\Group}; anything else is one condition.
+     *
+     * laminas-db said the second of those with two classes — a `Where` passed to `where()`
+     * *replaced* the clause, a `Predicate` with identical contents became a parenthesised
+     * group. Merging rather than replacing keeps conditions the caller added first, which
+     * replacing dropped silently.
+     *
+     * @param self|PredicateInterface|array<array-key, mixed> $predicate
+     */
+    public function add(self|PredicateInterface|array $predicate, string $combination = self::OP_AND): self
+    {
+        if (is_array($predicate)) {
+            return $this->addPredicates($predicate, $combination);
+        }
+
+        if ($predicate instanceof self) {
+            return $this->merge($predicate);
+        }
+
+        return $this->addPredicate($predicate, $combination);
+    }
+
     public function render(): array
     {
         $sql    = '';
@@ -148,7 +213,7 @@ final class Where implements PredicateInterface, Countable
             }
 
             [$fragment, $bound] = $predicate->render();
-            $sql               .= $predicate instanceof self ? '(' . $fragment . ')' : $fragment;
+            $sql               .= $fragment;
             array_push($values, ...$bound);
         }
 

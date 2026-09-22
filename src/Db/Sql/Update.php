@@ -41,15 +41,15 @@ final class Update implements Statement
     /** @param Where|PredicateInterface|array<array-key, mixed> $predicate */
     public function where(Where|PredicateInterface|array $predicate, string $combination = Where::OP_AND): self
     {
-        if (is_array($predicate)) {
-            $this->where->addPredicates($predicate, $combination);
-
-            return $this;
-        }
-
-        $this->where->addPredicate($predicate, $combination);
+        $this->where->add($predicate, $combination);
 
         return $this;
+    }
+
+    /** A copy gets its own `WHERE`; see {@see Select::__clone()} for why that matters. */
+    public function __clone()
+    {
+        $this->where = clone $this->where;
     }
 
     /** @return array{0: string, 1: list<mixed>} */
@@ -71,7 +71,9 @@ final class Update implements Statement
             }
 
             if ($value instanceof Expression) {
-                $assignments[] = Identifier::quote($column) . ' = ' . (string) $value;
+                [$sql, $params] = $value->render();
+                $assignments[]  = Identifier::quote($column) . ' = ' . $sql;
+                array_push($values, ...$params);
                 continue;
             }
 

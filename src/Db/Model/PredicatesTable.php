@@ -2,11 +2,10 @@
 
 namespace SionModel\Db\Model;
 
-use Laminas\Db\Sql\Select;
-use Laminas\Db\Sql\Where;
-use Laminas\Db\Sql\Predicate\Operator;
-use Laminas\Db\Sql\Predicate\PredicateSet;
-use Laminas\Db\Sql\Predicate\In;
+use SionModel\Db\Sql\Select;
+use SionModel\Db\Sql\Where;
+use SionModel\Db\Sql\Predicate\Operator;
+use SionModel\Db\Sql\Predicate\In;
 
 class PredicatesTable extends SionTable
 {
@@ -35,8 +34,8 @@ class PredicatesTable extends SionTable
         $select = $this->getCommentSelectPrototype();
         $where = new Where();
         $combination = (isset($options['orCombination']) && $options['orCombination'])
-            ? PredicateSet::OP_OR
-            : PredicateSet::OP_AND;
+            ? Where::OP_OR
+            : Where::OP_AND;
         $fieldMap = $this->getEntitySpecification('comment')->updateColumns;
 
         if (isset($query['objectEntityId'])) {
@@ -44,16 +43,14 @@ class PredicatesTable extends SionTable
                 throw new \Exception('When asking for comments refering to a specific entity, '
                     . 'please specify the predicateKind');
             }
-            $joinPredicate = new PredicateSet();
+            $joinPredicate = new Where();
             $joinPredicate->addPredicates([
-                new Operator(
+                Operator::betweenColumns(
                     'relationships.SubjectEntityId',
-                    Operator::OPERATOR_EQUAL_TO,
-                    'comments.CommentId',
-                    Operator::TYPE_IDENTIFIER,
-                    Operator::TYPE_IDENTIFIER
+                    Operator::EQ,
+                    'comments.CommentId'
                 ),
-                new Operator('relationships.PredicateKind', Operator::OPERATOR_EQUAL_TO, $query['predicateKind'])
+                new Operator('relationships.PredicateKind', Operator::EQ, $query['predicateKind'])
                 ]);
             $objectEntityIdPredicate = null;
             if (is_array($query['objectEntityId'])) {
@@ -67,7 +64,7 @@ class PredicatesTable extends SionTable
             if (! is_array($query['objectEntityId'])) {
                 $objectEntityIdPredicate = new Operator(
                     'relationships.ObjectEntityId',
-                    Operator::OPERATOR_EQUAL_TO,
+                    Operator::EQ,
                     $query['objectEntityId']
                 );
             }
@@ -87,7 +84,7 @@ class PredicatesTable extends SionTable
         if (isset($query['status'])) {
             $statusClause = new Operator(
                 $fieldMap['status'],
-                Operator::OPERATOR_EQUAL_TO,
+                Operator::EQ,
                 $query['status']
             );
             $where->addPredicate($statusClause, $combination);
@@ -112,7 +109,7 @@ class PredicatesTable extends SionTable
         }
         $select = $this->getCommentSelectPrototype();
         $select->where(['CommentId' => $id]);
-        /** @var \Laminas\Db\ResultSet\ResultSetInterface $result */
+        /** @var \SionModel\Db\ResultSet $result */
         $result = $gateway->selectWith($select);
         $results = $result->toArray();
 
@@ -151,7 +148,7 @@ class PredicatesTable extends SionTable
 
     /**
      * Get a standardized select object to retrieve records from the database
-     * @return \Laminas\Db\Sql\Select
+     * @return \SionModel\Db\Sql\Select
      */
     protected function getCommentSelectPrototype()
     {
@@ -247,7 +244,7 @@ class PredicatesTable extends SionTable
 
     /**
      * Get a standardized select object to retrieve records from the database
-     * @return \Laminas\Db\Sql\Select
+     * @return \SionModel\Db\Sql\Select
      */
     protected function getPredicateSelectPrototype()
     {
@@ -284,7 +281,7 @@ class PredicatesTable extends SionTable
 
     /**
      * Get a standardized select object to retrieve records from the database
-     * @return \Laminas\Db\Sql\Select
+     * @return \SionModel\Db\Sql\Select
      */
     protected function getRelationshipSelectPrototype()
     {

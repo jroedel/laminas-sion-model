@@ -148,13 +148,17 @@ final class Select implements Statement
     /** @param Where|PredicateInterface|array<array-key, mixed> $predicate */
     public function where(Where|PredicateInterface|array $predicate, string $combination = Where::OP_AND): self
     {
-        return $this->addTo($this->where, $predicate, $combination);
+        $this->where->add($predicate, $combination);
+
+        return $this;
     }
 
     /** @param Where|PredicateInterface|array<array-key, mixed> $predicate */
     public function having(Where|PredicateInterface|array $predicate, string $combination = Where::OP_AND): self
     {
-        return $this->addTo($this->having, $predicate, $combination);
+        $this->having->add($predicate, $combination);
+
+        return $this;
     }
 
     /** @param list<string> $columns */
@@ -236,6 +240,25 @@ final class Select implements Statement
     }
 
     /**
+     * A copy gets its own clauses.
+     *
+     * PHP's `clone` is shallow, so without this a copy shares the original's `Where` objects
+     * and a condition added to the copy appears in the original too. That is not theoretical:
+     * `SionTable::getSelectPrototype()` memoises one `Select` per entity and hands out clones,
+     * so the second `getObject()` of a request would ask for `id = <first> AND id = <second>`
+     * and find nothing — which reads as "the row you just wrote is not there". laminas-db
+     * declared the same three clauses in `Select::__clone()`.
+     *
+     * The predicates inside a clause need no copying: the array is a value, and nothing
+     * mutates a predicate once it has been added.
+     */
+    public function __clone()
+    {
+        $this->where  = clone $this->where;
+        $this->having = clone $this->having;
+    }
+
+    /**
      * @return array{0: string, 1: list<mixed>} the statement, and the values its placeholders
      *         bind, in the order they appear
      */
@@ -250,7 +273,10 @@ final class Select implements Statement
             $from .= ' AS ' . Identifier::quote($this->alias);
         }
 
-        $sql = 'SELECT ' . implode(', ', $this->renderColumns($prefix)) . ' FROM ' . $from;
+        [$columns, $columnValues] = $this->renderColumns($prefix);
+        array_push($values, ...$columnValues);
+
+        $sql = 'SELECT ' . implode(', ', $columns) . ' FROM ' . $from;
 
         foreach ($this->joins as $join) {
             $name = Identifier::quote($join['name']);
@@ -294,55 +320,64 @@ final class Select implements Statement
             $sql .= ' ORDER BY ' . implode(', ', $parts);
         }
 
+        //**Written into the statement, not bound.** PDO emulates prepares here, so every
+        //bound value is quoted — and MySQL rejects `LIMIT '300'` as a syntax error. laminas-db
+        //got past that by declaring the parameter `TYPE_INTEGER` so PDO bound it as a number;
+        //writing the number is the same statement with one fewer moving part, and the setters
+        //type these `int`, so there is nothing here a caller could inject.
         if (null !== $this->limit) {
-            $sql     .= ' LIMIT ?';
-            $values[] = $this->limit;
+            $sql .= ' LIMIT ' . $this->limit;
         }
 
         if (null !== $this->offset) {
-            $sql     .= ' OFFSET ?';
-            $values[] = $this->offset;
+            $sql .= ' OFFSET ' . $this->offset;
         }
 
         return [$sql, $values];
     }
 
-    /** @return list<string> */
+    /** @return array{0: list<string>, 1: list<mixed>} */
     private function renderColumns(string $prefix): array
     {
         $rendered = [];
+        $values   = [];
 
         foreach ($this->columns as $alias => $column) {
-            $rendered[] = self::renderColumn($column, $alias, $prefix);
+            [$sql, $bound] = self::renderColumn($column, $alias, $prefix);
+            $rendered[]    = $sql;
+            array_push($values, ...$bound);
         }
 
         foreach ($this->joins as $join) {
             $joinPrefix = Identifier::quote($join['alias'] ?? $join['name']);
             foreach ($join['columns'] as $alias => $column) {
-                $rendered[] = self::renderColumn($column, $alias, $joinPrefix);
+                [$sql, $bound] = self::renderColumn($column, $alias, $joinPrefix);
+                $rendered[]    = $sql;
+                array_push($values, ...$bound);
             }
         }
 
-        return $rendered;
+        return [$rendered, $values];
     }
 
-    private static function renderColumn(string|Expression $column, string|int $alias, string $prefix): string
+    /** @return array{0: string, 1: list<mixed>} */
+    private static function renderColumn(string|Expression $column, string|int $alias, string $prefix): array
     {
         if ('*' === $column) {
-            return $prefix . '.*';
+            return [$prefix . '.*', []];
         }
 
         //An expression is not a column of any table, so it is never prefixed, and it carries
         //no name of its own — an alias has to be given or the result row has nothing to key on.
         if ($column instanceof Expression) {
-            return is_string($alias)
-                ? (string) $column . ' AS ' . Identifier::quote($alias)
-                : (string) $column;
+            [$sql, $bound] = $column->render();
+
+            return [is_string($alias) ? $sql . ' AS ' . Identifier::quote($alias) : $sql, $bound];
         }
 
         $name = $prefix . '.' . Identifier::quote($column);
 
-        return $name . ' AS ' . Identifier::quote(is_string($alias) ? $alias : $column);
+        return [$name . ' AS ' . Identifier::quote(is_string($alias) ? $alias : $column), []];
     }
 
     private static function joinType(string $type): string
@@ -353,19 +388,5 @@ final class Select implements Statement
             self::JOIN_RIGHT => 'RIGHT',
             default          => throw new InvalidPredicate(sprintf('"%s" is not a join this builder writes.', $type)),
         };
-    }
-
-    /** @param Where|PredicateInterface|array<array-key, mixed> $predicate */
-    private function addTo(Where $set, Where|PredicateInterface|array $predicate, string $combination): self
-    {
-        if (is_array($predicate)) {
-            $set->addPredicates($predicate, $combination);
-
-            return $this;
-        }
-
-        $set->addPredicate($predicate, $combination);
-
-        return $this;
     }
 }

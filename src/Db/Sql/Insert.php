@@ -6,6 +6,7 @@ namespace SionModel\Db\Sql;
 
 use function array_keys;
 use function array_map;
+use function array_push;
 use function implode;
 
 /**
@@ -51,7 +52,9 @@ final class Insert implements Statement
             }
 
             if ($value instanceof Expression) {
-                $placeholders[] = (string) $value;
+                [$sql, $params]  = $value->render();
+                $placeholders[]  = $sql;
+                array_push($bound, ...$params);
                 continue;
             }
 

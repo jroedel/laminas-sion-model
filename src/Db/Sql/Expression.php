@@ -20,12 +20,19 @@ use SionModel\Db\Sql\Predicate\PredicateInterface;
  *
  * **The string is emitted verbatim**, so it must never be built from user input. Every one
  * of the application's expressions is a literal in the source; that is the only safe use and
- * the reason this class carries no escaping of its own.
+ * the reason this class carries no escaping of its own. A value that *does* come from a
+ * request goes in `$parameters` and is bound — which is how the phrase listing's
+ * `NOT EXISTS (… AND tx.locale = ?)` takes a locale.
  */
 final class Expression implements PredicateInterface
 {
-    public function __construct(private readonly string $expression)
-    {
+    /**
+     * @param list<mixed> $parameters values for the `?` placeholders the expression contains
+     */
+    public function __construct(
+        private readonly string $expression,
+        private readonly array $parameters = []
+    ) {
     }
 
     public function __toString(): string
@@ -35,6 +42,6 @@ final class Expression implements PredicateInterface
 
     public function render(): array
     {
-        return [$this->expression, []];
+        return [$this->expression, $this->parameters];
     }
 }

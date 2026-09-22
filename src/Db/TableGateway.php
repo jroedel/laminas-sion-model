@@ -36,6 +36,18 @@ final class TableGateway
         return $this->table;
     }
 
+    /**
+     * The connection this gateway runs on.
+     *
+     * `JTranslate\Model\TranslationsTable` composes two gateways and needs the connection
+     * they share for the statements it writes by hand; laminas-db's `getAdapter()`, which it
+     * inherited from `AbstractTableGateway`, is where it got it before.
+     */
+    public function connection(): Connection
+    {
+        return $this->connection;
+    }
+
     /** A statement built against this table, run as given. */
     public function selectWith(Select $select): ResultSet
     {

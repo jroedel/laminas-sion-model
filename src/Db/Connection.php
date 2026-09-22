@@ -10,6 +10,9 @@ use PDOStatement;
 use SionModel\Db\Sql\Statement;
 
 use function array_key_exists;
+use function is_bool;
+use function is_int;
+use function microtime;
 use function is_array;
 use function sprintf;
 
@@ -34,8 +37,34 @@ use function sprintf;
  */
 final class Connection
 {
+    /** @var (callable(string, list<mixed>, float): void)|null */
+    private $listener = null;
+
+    /** How many callers have opened a transaction; see {@see beginTransaction()}. */
+    private int $depth = 0;
+
     public function __construct(private readonly PDO $pdo)
     {
+    }
+
+    /**
+     * Watch every statement this connection runs.
+     *
+     * `Laminas\Db\Adapter\Profiler\ProfilerInterface` until 2026-09-22, which was an
+     * interface, a start/finish pair and a `StatementContainerInterface` the listener had to
+     * narrow before it could read the SQL. Two things in this repository want the same thing
+     * — the fuzz suite records what a form asked the database, and `tools/perf` times it —
+     * and both want the statement and its values, once, before it runs.
+     *
+     * The listener is called in a `finally`, with the statement, its values and how long the
+     * server took. So it sees a statement that threw as well as one that returned, which is
+     * the case a recording is most wanted for. `null` detaches.
+     *
+     * @param (callable(string, list<mixed>, float): void)|null $listener
+     */
+    public function watch(?callable $listener): void
+    {
+        $this->listener = $listener;
     }
 
     /**
@@ -69,8 +98,17 @@ final class Connection
     /** @param list<mixed> $values bound in order when the statement is given as a string */
     public function select(Statement|string $statement, array $values = []): ResultSet
     {
+        $prepared = $this->run($statement, $values);
+
+        //A statement with no result set answers 0 columns. Without this, asking a write for
+        //its rows returns an empty set and reads as "nothing matched" — the exact silence
+        //that made laminas-db's single `query()` hard to reason about, reproduced.
+        if (0 === $prepared->columnCount()) {
+            throw new PDOException('This statement returns no rows; run it with execute().');
+        }
+
         /** @var list<array<string, mixed>> $rows */
-        $rows = $this->run($statement, $values)->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $prepared->fetchAll(PDO::FETCH_ASSOC);
 
         return new ResultSet($rows);
     }
@@ -81,7 +119,15 @@ final class Connection
      */
     public function execute(Statement|string $statement, array $values = []): int
     {
-        return $this->run($statement, $values)->rowCount();
+        $prepared = $this->run($statement, $values);
+
+        //The mirror of the check in select(): a SELECT run for effect changes nothing, so a
+        //`0` here would be a true answer to a question the caller did not mean to ask.
+        if (0 !== $prepared->columnCount()) {
+            throw new PDOException('This statement returns rows; run it with select().');
+        }
+
+        return $prepared->rowCount();
     }
 
     /** The id the last `INSERT` generated, on this connection. */
@@ -90,19 +136,48 @@ final class Connection
         return (int) $this->pdo->lastInsertId();
     }
 
+    /**
+     * Open a transaction, or note that one is already open.
+     *
+     * **Nesting is counted, not passed on.** PDO throws on a second `beginTransaction()`, and
+     * this application nests in the ordinary course of things: a caller wraps several writes,
+     * and one of them — `TranslationsTable::writeMissingPhrasesToDb()` — opens a transaction of
+     * its own. laminas-db counted the depth
+     * (`Adapter\Driver\Pdo\Connection::$nestedTransactionsCount`) and so does this.
+     *
+     * The counting is honest about what it does *not* give: an inner `commit()` commits
+     * nothing, and an inner `rollBack()` discards the outer caller's writes too. MariaDB has
+     * savepoints and PDO does not expose them; nothing here has ever needed one.
+     */
     public function beginTransaction(): void
     {
-        $this->pdo->beginTransaction();
+        if (0 === $this->depth) {
+            $this->pdo->beginTransaction();
+        }
+
+        $this->depth++;
     }
 
+    /** Commit when the outermost caller says so, and not before. */
     public function commit(): void
     {
-        $this->pdo->commit();
+        if ($this->depth > 0) {
+            $this->depth--;
+        }
+
+        if (0 === $this->depth && $this->pdo->inTransaction()) {
+            $this->pdo->commit();
+        }
     }
 
+    /** Roll the whole transaction back, whatever the depth. */
     public function rollBack(): void
     {
-        $this->pdo->rollBack();
+        $this->depth = 0;
+
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
     }
 
     public function inTransaction(): bool
@@ -138,9 +213,45 @@ final class Connection
             $bound = $values;
         }
 
-        $prepared = $this->pdo->prepare($sql);
-        $prepared->execute($bound);
+        $startedAt = microtime(true);
 
-        return $prepared;
+        try {
+            $prepared = $this->pdo->prepare($sql);
+            self::bind($prepared, $bound);
+            $prepared->execute();
+
+            return $prepared;
+        } finally {
+            if (null !== $this->listener) {
+                ($this->listener)($sql, $bound, microtime(true) - $startedAt);
+            }
+        }
+    }
+
+    /**
+     * Bind each value with a type taken from its PHP type.
+     *
+     * **`PDOStatement::execute($values)` is not equivalent**, and the difference is not
+     * cosmetic: it binds everything as a string, so `false` is sent as `''` and MariaDB
+     * refuses it for an integer column — `sch_publications.IsAccessableForFree` is where that
+     * surfaced. laminas-db bound by PHP type
+     * (`Adapter\Driver\Pdo\Statement::bindParametersFromContainer()`), and this reproduces
+     * it: a bool goes as `0`/`1`, an int unquoted, everything else quoted.
+     *
+     * @param list<mixed> $values
+     */
+    private static function bind(PDOStatement $statement, array $values): void
+    {
+        foreach ($values as $index => $value) {
+            $type = match (true) {
+                is_bool($value) => PDO::PARAM_BOOL,
+                is_int($value)  => PDO::PARAM_INT,
+                null === $value => PDO::PARAM_NULL,
+                default         => PDO::PARAM_STR,
+            };
+
+            //PDO numbers positional parameters from one.
+            $statement->bindValue($index + 1, $value, $type);
+        }
     }
 }
