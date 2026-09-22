@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace SionModel\Validator\Db;
 
-use Laminas\Db\Adapter\AdapterInterface;
-use Laminas\Db\Sql\Select;
-use Laminas\Db\Sql\Sql;
-use Laminas\Db\Sql\TableIdentifier;
+use SionModel\Db\Connection;
+use SionModel\Db\Sql\Predicate\Operator;
+use SionModel\Db\Sql\Select;
 use SionModel\Validator\AbstractValidator;
 use SionModel\Validator\Exception\RuntimeException;
 
@@ -42,7 +41,7 @@ abstract class AbstractDb extends AbstractValidator
         self::ERROR_RECORD_FOUND    => 'A record matching the input was found',
     ];
 
-    protected ?AdapterInterface $adapter = null;
+    protected ?Connection $adapter = null;
 
     protected string $table = '';
 
@@ -53,12 +52,10 @@ abstract class AbstractDb extends AbstractValidator
     /** @var array{field: string, value: mixed}|string|null */
     protected mixed $exclude = null;
 
-    private ?Select $select = null;
-
     public function setAdapter(mixed $adapter): static
     {
-        if (! $adapter instanceof AdapterInterface) {
-            throw new RuntimeException('A database validator needs a laminas-db adapter');
+        if (! $adapter instanceof Connection) {
+            throw new RuntimeException('A database validator needs a database connection');
         }
 
         $this->adapter = $adapter;
@@ -69,7 +66,6 @@ abstract class AbstractDb extends AbstractValidator
     public function setTable(mixed $table): static
     {
         $this->table  = is_string($table) ? $table : '';
-        $this->select = null;
 
         return $this;
     }
@@ -77,7 +73,6 @@ abstract class AbstractDb extends AbstractValidator
     public function setSchema(mixed $schema): static
     {
         $this->schema = is_string($schema) ? $schema : '';
-        $this->select = null;
 
         return $this;
     }
@@ -85,7 +80,6 @@ abstract class AbstractDb extends AbstractValidator
     public function setField(mixed $field): static
     {
         $this->field  = is_string($field) ? $field : '';
-        $this->select = null;
 
         return $this;
     }
@@ -94,56 +88,48 @@ abstract class AbstractDb extends AbstractValidator
     public function setExclude(mixed $exclude): static
     {
         $this->exclude = $exclude;
-        $this->select  = null;
 
         return $this;
     }
 
     /**
-     * The query this validator runs, built once.
+     * The query this validator runs, for one value.
      *
-     * Public because that is how it is recorded: `test/Rules/RuleSurface` renders it
-     * through `Sql::prepareStatementForSqlObject()` and stores the statement.
+     * Public because that is how it is recorded: `test/Rules/RuleSurface` renders it and
+     * stores the statement. Called with no argument — which is how the recording calls it —
+     * the comparison binds `null`, so what is recorded is the shape and not one interpolation
+     * of it.
+     *
+     * It is built per call rather than once and rebound by parameter name. laminas-db's
+     * `where1` trick kept a single prepared statement across a form's repeated submissions;
+     * with emulated prepares there is no server-side statement to keep, so it bought a
+     * positional assumption and nothing else.
      */
-    public function getSelect(): Select
+    public function getSelect(mixed $value = null): Select
     {
-        if (null !== $this->select) {
-            return $this->select;
-        }
+        //A schema qualifier is part of the name, and `Identifier::quote()` quotes a dotted
+        //name segment by segment — which is what `TableIdentifier` existed to arrange.
+        $table = '' === $this->schema ? $this->table : $this->schema . '.' . $this->table;
 
-        $select = new Select();
-        $select->from(new TableIdentifier($this->table, '' === $this->schema ? null : $this->schema))
-            ->columns([$this->field]);
-        $select->where->equalTo($this->field, null);
+        $select = (new Select($table))->columns([$this->field]);
+        $select->where(new Operator($this->field, Operator::EQ, $value));
 
         if (is_array($this->exclude)) {
-            $select->where->notEqualTo($this->exclude['field'], $this->exclude['value']);
+            $select->where(new Operator($this->exclude['field'], Operator::NEQ, $this->exclude['value']));
         } elseif (null !== $this->exclude) {
             $select->where($this->exclude);
         }
 
-        return $this->select = $select;
+        return $select;
     }
 
-    /**
-     * The first matching row, or null.
-     *
-     * `where1` is laminas-db's own name for the first bound parameter of the `WHERE`, and
-     * binding by that name rather than rebuilding the select is what keeps one prepared
-     * statement across a form's repeated submissions.
-     */
+    /** The first matching row, or null. */
     protected function queryFor(mixed $value): mixed
     {
         if (null === $this->adapter) {
-            throw new RuntimeException('No database adapter present');
+            throw new RuntimeException('No database connection present');
         }
 
-        $sql        = new Sql($this->adapter);
-        $statement  = $sql->prepareStatementForSqlObject($this->getSelect());
-        $parameters = $statement->getParameterContainer();
-
-        $parameters['where1'] = $value;
-
-        return $statement->execute()->current();
+        return $this->adapter->select($this->getSelect($value))->current();
     }
 }

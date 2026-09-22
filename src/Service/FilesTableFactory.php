@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SionModel\Service;
 
 use Exception;
-use Laminas\Db\Adapter\Adapter;
+use SionModel\Db\Connection;
 use Psr\Container\ContainerInterface;
 use SionModel\Db\Model\FilesTable;
 
@@ -32,7 +32,7 @@ class FilesTableFactory
         }
 
         $table = new FilesTable(
-            $container->get(Adapter::class),
+            $container->get(Connection::class),
             $container->get(EntitiesService::class),
             $sionModelConfig,
             $container->has(ActingUserProviderInterface::class)
