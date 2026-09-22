@@ -6,7 +6,7 @@ namespace SionModel\Twig;
 
 use IntlDateFormatter;
 use InvalidArgumentException;
-use Laminas\Translator\TranslatorInterface;
+use SionModel\I18n\TranslatesMessages;
 use Locale;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
@@ -39,7 +39,7 @@ use const ENT_SUBSTITUTE;
  */
 final class MailExtension extends AbstractExtension
 {
-    public function __construct(private readonly TranslatorInterface $translator)
+    public function __construct(private readonly TranslatesMessages $translator)
     {
     }
 

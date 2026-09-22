@@ -4,7 +4,7 @@
 
 namespace SionModel\I18n\View\Helper;
 
-use Laminas\Translator\TranslatorInterface;
+use SionModel\I18n\TranslatesMessages;
 use SionModel\View\Escape;
 
 class DayFormat
@@ -12,7 +12,7 @@ class DayFormat
     protected $englishStrings;
     protected $cardinalEndings;
 
-    public function __construct(private readonly ?TranslatorInterface $translator = null)
+    public function __construct(private readonly ?TranslatesMessages $translator = null)
     {
         $this->englishStrings = [
             1 => 'January %s',

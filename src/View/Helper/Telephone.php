@@ -4,7 +4,7 @@
 
 namespace SionModel\View\Helper;
 
-use Laminas\Translator\TranslatorInterface;
+use SionModel\I18n\TranslatesMessages;
 use SionModel\View\Escape;
 use SionModel\Filter\StringTrim;
 use SionModel\Filter\FilterChain;
@@ -21,7 +21,7 @@ class Telephone
     protected $phoneUtil;
     protected $geocoder;
 
-    public function __construct(private readonly ?TranslatorInterface $translator = null)
+    public function __construct(private readonly ?TranslatesMessages $translator = null)
     {
         $this->filter = new FilterChain();
         $this->filter->attach(new StringTrim())

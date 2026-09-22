@@ -1,7 +1,7 @@
 <?php
 namespace SionModel\Mailing;
 
-use Laminas\Translator\TranslatorInterface;
+use SionModel\I18n\TranslatesMessages;
 use SionModel\Db\Model\SionTable;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
@@ -36,7 +36,7 @@ class Mailer
     protected $renderer;
 
     /**
-     * @var TranslatorInterface $translator
+     * @var TranslatesMessages $translator
      */
     protected $translator;
 
@@ -237,13 +237,13 @@ class Mailer
     /**
      * Sets translator to use in helper
      *
-     * @param  TranslatorInterface $translator  [optional] translator.
+     * @param  TranslatesMessages $translator  [optional] translator.
      *                                           Default is null, which sets no translator.
      * @param  string              $textDomain  [optional] text domain
      *                                           Default is null, which skips setTranslatorTextDomain
      * @return self
      */
-    public function setTranslator(?TranslatorInterface $translator = null, $textDomain = null)
+    public function setTranslator(?TranslatesMessages $translator = null, $textDomain = null)
     {
         $this->translator =  $translator;
         if (isset($textDomain)) {
@@ -255,7 +255,7 @@ class Mailer
     /**
      * Returns translator used in object
      *
-     * @return TranslatorInterface|null
+     * @return TranslatesMessages|null
      */
     public function getTranslator()
     {
@@ -269,7 +269,7 @@ class Mailer
      */
     public function hasTranslator()
     {
-        return isset($this->translator) && $this->translator instanceof TranslatorInterface;
+        return isset($this->translator) && $this->translator instanceof TranslatesMessages;
     }
 
     /**

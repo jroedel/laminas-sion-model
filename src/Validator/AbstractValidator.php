@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SionModel\Validator;
 
-use Laminas\Translator\TranslatorInterface;
+use SionModel\I18n\TranslatesMessages;
 
 use function array_key_exists;
 use function array_keys;
@@ -56,7 +56,7 @@ use const SORT_REGULAR;
  */
 abstract class AbstractValidator implements ValidatorInterface
 {
-    /** @var TranslatorInterface|null */
+    /** @var TranslatesMessages|null */
     protected static $defaultTranslator;
 
     /** @var string */
@@ -96,7 +96,7 @@ abstract class AbstractValidator implements ValidatorInterface
     }
 
     public static function setDefaultTranslator(
-        ?TranslatorInterface $translator = null,
+        ?TranslatesMessages $translator = null,
         ?string $textDomain = null
     ): void {
         self::$defaultTranslator = $translator;
@@ -106,7 +106,7 @@ abstract class AbstractValidator implements ValidatorInterface
         }
     }
 
-    public static function getDefaultTranslator(): ?TranslatorInterface
+    public static function getDefaultTranslator(): ?TranslatesMessages
     {
         return self::$defaultTranslator;
     }
