@@ -5,13 +5,15 @@ namespace SionModel\Service;
 use SionModel\Problem\ProblemProviderInterface;
 use SionModel\Problem\EntityProblem;
 use Laminas\Stdlib\ArrayUtils;
-use Laminas\ServiceManager\ServiceLocatorInterface;
+use Psr\Container\ContainerInterface;
 
 class ProblemService
 {
     /**
-     * Service locator used for finding ProblemProvider's
-     * @var ServiceLocatorInterface $serviceLocator
+     * The container, used for finding ProblemProviders. PSR-11 since 2026-09-21: it was
+     * `Laminas\ServiceManager\ServiceLocatorInterface`, and all this ever asks of it is
+     * `get()` and `has()`.
+     * @var ContainerInterface $serviceLocator
      */
     protected $serviceLocator;
     /**
@@ -39,11 +41,11 @@ class ProblemService
      * class ever called it — it was stored and forgotten. It was also the reason the
      * UserTable/ProblemService/ProblemTable/AuthService dependency cycle existed at all.
      *
-     * @param ServiceLocatorInterface $serviceLocator
+     * @param ContainerInterface $serviceLocator
      * @param mixed[][] $problemProviders
      * @param EntityProblem $problemPrototype
      */
-    public function __construct(ServiceLocatorInterface $serviceLocator, $problemProviders, EntityProblem $entityProblemPrototype)
+    public function __construct(ContainerInterface $serviceLocator, $problemProviders, EntityProblem $entityProblemPrototype)
     {
         $this->serviceLocator = $serviceLocator;
         foreach ($problemProviders as $serviceName) {

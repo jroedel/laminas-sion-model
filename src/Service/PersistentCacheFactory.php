@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
 use SionModel\Cache\Storage;
 use SionModel\Cache\StorageFactory;
@@ -18,7 +17,7 @@ use function is_array;
  * files are written in — because {@see StorageFactory} reads it. What changed is what comes
  * out: {@see \SionModel\Cache\ApcuStorage} rather than a laminas storage adapter.
  */
-class PersistentCacheFactory implements FactoryInterface
+class PersistentCacheFactory
 {
     /**
      * @param string $requestedName

@@ -2,8 +2,7 @@
 
 namespace SionModel\Service;
 
-use Interop\Container\ContainerInterface;
-use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Error\ExceptionNotifier;
 use SionModel\Error\ExceptionStore;
 use SionModel\Error\Fingerprinter;
@@ -14,7 +13,7 @@ use Throwable;
  *
  * @author Jeff Roedel <jeff.roedel@schoenstatt-fathers.org>
  */
-class ErrorHandlingFactory implements FactoryInterface
+class ErrorHandlingFactory
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {

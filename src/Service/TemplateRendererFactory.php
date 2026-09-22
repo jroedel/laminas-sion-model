@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SionModel\Service;
 
 use Laminas\Translator\TranslatorInterface;
-use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
 use SionModel\Mailing\TwigTemplateRenderer;
 use SionModel\Twig\MailExtension;
@@ -30,7 +29,7 @@ use function is_string;
  * instance the host configures with its catalogs — which is what the `translate` view
  * helper used inside the `.phtml` originals.
  */
-final class TemplateRendererFactory implements FactoryInterface
+final class TemplateRendererFactory
 {
     public const TEMPLATE_NAMESPACE = 'sion-model';
 

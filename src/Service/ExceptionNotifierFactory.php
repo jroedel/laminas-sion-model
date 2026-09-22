@@ -2,8 +2,7 @@
 
 namespace SionModel\Service;
 
-use Interop\Container\ContainerInterface;
-use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Error\Config;
 use SionModel\Error\ExceptionNotifier;
 use SionModel\Error\ExceptionStore;
@@ -12,7 +11,7 @@ use SionModel\Error\NotificationGate;
 /**
  * Factory responsible of priming the ExceptionNotifier service
  */
-class ExceptionNotifierFactory implements FactoryInterface
+class ExceptionNotifierFactory
 {
     /** Service name of the transport, so a project can alias it elsewhere. */
     public const TRANSPORT_SERVICE = 'SionModel\ExceptionMailTransport';

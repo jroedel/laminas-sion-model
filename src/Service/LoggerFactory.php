@@ -2,7 +2,6 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
@@ -18,7 +17,7 @@ use Psr\Container\ContainerInterface;
  * per-cache-write debug() calls have always landed in this file. Raising the
  * threshold is a real decision about log volume, not part of the port.
  */
-class LoggerFactory implements FactoryInterface
+class LoggerFactory
 {
     /**
      * Create an object

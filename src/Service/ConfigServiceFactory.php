@@ -2,15 +2,14 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
 /**
  * Factory responsible of retrieving an array containing the BjyAuthorize configuration
  *
  * @author Marco Pivetta <ocramius@gmail.com>
  */
-class ConfigServiceFactory implements FactoryInterface
+class ConfigServiceFactory
 {
     /**
      * Create an object

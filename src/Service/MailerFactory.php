@@ -6,8 +6,7 @@
 
 namespace SionModel\Service;
 
-use Laminas\ServiceManager\Factory\FactoryInterface;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Mailing\Mailer;
 use SionModel\Mailing\TemplateRendererInterface;
 
@@ -16,7 +15,7 @@ use SionModel\Mailing\TemplateRendererInterface;
  *
  * @author Jeff Ro <jeff.roedel.isp@gmail.com>
  */
-class MailerFactory implements FactoryInterface
+class MailerFactory
 {
     /**
      * Create an object

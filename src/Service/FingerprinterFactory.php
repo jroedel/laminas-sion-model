@@ -2,15 +2,14 @@
 
 namespace SionModel\Service;
 
-use Interop\Container\ContainerInterface;
-use Laminas\ServiceManager\Factory\FactoryInterface;
+use Psr\Container\ContainerInterface;
 use SionModel\Error\Config;
 use SionModel\Error\Fingerprinter;
 
 /**
  * Factory responsible of priming the Fingerprinter service
  */
-class FingerprinterFactory implements FactoryInterface
+class FingerprinterFactory
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
