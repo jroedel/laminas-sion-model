@@ -10,7 +10,6 @@ use SionModel\Validator\EmailAddress;
 use SionModel\Entity\Entity;
 use SionModel\Uri\Http;
 use SionModel\Db\Sql\Where;
-use Laminas\Stdlib\StringUtils;
 use SionModel\Db\ResultSet;
 use SionModel\Db\Sql\Select;
 use SionModel\Db\Sql\Expression;
@@ -2160,57 +2159,6 @@ class SionTable
             }
         }
         return $return;
-    }
-
-    /**
-     * Pad a string to a certain length with another string
-     *
-     * @param  string  $input
-     * @param  int $padLength
-     * @param  string  $padString
-     * @param  int $padType
-     * @return string
-     */
-    public static function strPad($input, $padLength, $padString = ' ', $padType = STR_PAD_RIGHT)
-    {
-        if (StringUtils::isSingleByteEncoding('UTF8')) {
-            return str_pad($input, $padLength, $padString, $padType);
-        }
-
-        $lengthOfPadding = $padLength - strlen($input);
-        if ($lengthOfPadding <= 0) {
-            return $input;
-        }
-
-        $padStringLength = strlen($padString);
-        if ($padStringLength === 0) {
-            return $input;
-        }
-
-        $repeatCount = floor($lengthOfPadding / $padStringLength);
-
-        if ($padType === STR_PAD_BOTH) {
-            $repeatCountLeft = $repeatCountRight = ($repeatCount - $repeatCount % 2) / 2;
-
-            $lastStringLength       = $lengthOfPadding - 2 * $repeatCountLeft * $padStringLength;
-            $lastStringLeftLength   = $lastStringRightLength = floor($lastStringLength / 2);
-            $lastStringRightLength += $lastStringLength % 2;
-
-            $lastStringLeft  = substr($padString, 0, $lastStringLeftLength);
-            $lastStringRight = substr($padString, 0, $lastStringRightLength);
-
-            return str_repeat($padString, $repeatCountLeft) . $lastStringLeft
-            . $input
-            . str_repeat($padString, $repeatCountRight) . $lastStringRight;
-        }
-
-        $lastString = substr($padString, 0, $lengthOfPadding % $padStringLength);
-
-        if ($padType === STR_PAD_LEFT) {
-            return str_repeat($padString, $repeatCount) . $lastString . $input;
-        }
-
-        return $input . str_repeat($padString, $repeatCount) . $lastString;
     }
 
     /**
