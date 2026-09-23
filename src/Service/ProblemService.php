@@ -4,7 +4,7 @@ namespace SionModel\Service;
 
 use SionModel\Problem\ProblemProviderInterface;
 use SionModel\Problem\EntityProblem;
-use Laminas\Stdlib\ArrayUtils;
+use SionModel\Data\ArrayMerge;
 use Psr\Container\ContainerInterface;
 
 class ProblemService
@@ -98,7 +98,7 @@ class ProblemService
             $problems = [];
             foreach ($this->problemProviders as $providerInfo) {
                 $currentProblems = $this->getCurrentProviderEntityProblems($providerInfo['serviceName']);
-                $problems = ArrayUtils::merge($problems, $currentProblems);
+                $problems = ArrayMerge::merge($problems, $currentProblems);
             }
             $this->sortedProblems = $problems;
         }
@@ -187,7 +187,7 @@ class ProblemService
         foreach ($this->problemProviders as $providerInfo) {
             $currentProblems = $this->getProblemProviderService($providerInfo['serviceName'])
                 ->autoFixProblems($simulate);
-            $problems = ArrayUtils::merge($problems, $currentProblems);
+            $problems = ArrayMerge::merge($problems, $currentProblems);
         }
         return $problems;
     }
